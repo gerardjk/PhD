@@ -1,0 +1,17 @@
+APPROACH
+
+This industry PhD will leverage AP+'s Project Acacia experiments to empirically investigate liquidity dynamics in token interchange systems through four sequential phases.
+
+Phase 0: Literature Review and Conceptual Framework
+Comprehensive analysis of payment scheme evolution, fintech disruptions, and tokenisation impacts on liquidity. Review will examine how existing schemes (SWIFT, CLS, TARGET2) manage institutional liquidity, innovations by Visa/Mastercard in stablecoin integration, global CBDC pilots' liquidity findings, and DeFi protocol failures. This foundational knowledge establishes evaluation criteria for AP+'s experiments.
+
+Phase 1: NPP-Token Integration Analysis
+Quantify liquidity fragmentation when value moves between ESA balances and token platforms. Examine how stablecoin collateralisation requirements immobilise reserves traditionally supporting fractional banking. Model atomic settlement's elimination of netting benefits requiring instant bilateral liquidity.
+
+Phase 2: Token Interchange Evaluation
+Test hub-token architectures using CBDC as common settlement asset. Analyze lock/release bridges creating liquidity silos versus mint/burn mechanisms offering flexibility but introducing counterparty risks. Employ network analysis (FNA methodologies) mapping cross-platform dependencies.
+
+Phase 3: System-Wide Stress Testing
+Agent-based simulations of extreme scenarios: stablecoin depegging, bridge failures, correlated withdrawals. Smart contract vulnerability analysis of automated market makers. Develop monitoring frameworks and buffer sizing recommendations.
+
+This sequencing is essential: conceptual foundations (Phase 0) inform experimental design, NPP integration (Phase 1) establishes baseline liquidity flows before multi-token complexity, interchange testing (Phase 2) builds on single-platform insights, and comprehensive stress testing (Phase 3) requires calibrated models from earlier phases. Outputs include quantitative frameworks for liquidity management and policy recommendations ensuring the Future Payments Scheme maintains resilience while enabling innovation.

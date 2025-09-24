@@ -1,0 +1,327 @@
+
+DATA4800 Assessment 1 - Final Grades Summary
+
+  Group 13
+
+  Section 1.1: Logistic Regression (10 marks total)
+  - Q1 (1 mark): ✓ Correct - Type 2
+  - Q2 (2 marks): ✓ Correct equation provided
+  - Q3 (3 marks): ✗ Incorrect calculation method (values >1)
+  - Q4 (2 marks): ✓ Metrics provided
+  - Q5 (2 marks): ✓ 88% correct
+  Score: 8/10
+
+  Section 1.2: Decision Tree (10 marks total)
+  - Q1 (1 mark): ✗ Wrong - 69% (should be ~45-54%)
+  - Q2 (2 marks): ✓ Internal: 13, Leaf: 7
+  - Q3 (3 marks): ✓ 6.6% probability
+  - Q4 (2 marks): ✓ Correct prediction
+  - Q5 (2 marks): ✓ Recall: 75.6%, Precision: 88.6%
+  Score: 9/10
+
+  Section 1.3: PCA & Clustering (6 marks total)
+  - Q1-5: ✗ Not answered
+  Score: 0/6
+
+  Section 1.4: KNN (4 marks total)
+  - Q1 (2 marks): ✓ No
+  - Q2 (2 marks): ✓ Chat
+  Score: 4/4
+
+  Total: 21/30
+
+  ---
+  Group 2
+
+  Students: Al Amin Mridha (1855994), Mittalben Sahilkumar Chaudhari
+  (1806511), Patel Neelkumar Sanjaybhai (1829624), Victor Maiyo (1838702)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2 (39.9%)
+  - Q2: ✓ Complete equation
+  - Q3: ✓ Correct probabilities and prediction
+  - Q4: ✓ Detailed metrics
+  - Q5: ✓ 70.4%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 54.46%
+  - Q2: ✓ Internal: 4, Leaf: 5
+  - Q3: ✓ 10%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 85.71%, Precision: 88.24%
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ 78%
+  - Q2: ✓ 0.000
+  - Q3: ✗ Not specified
+  - Q4: ✓ Ana
+  - Q5: ✓ Student 5
+  Score: 4/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✓ Food
+  Score: 4/4
+
+  Total: 28/30
+
+  ---
+  Group 3
+
+  Students: Muhammad Hiadar Aftab Cheema (1821359), Thi Dan My Nguyen
+  (1845336), Nelson Lizarazo (1852378), Ujunwa Miracle Ogbuehi (1856256)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2
+  - Q2: ✓ Model description
+  - Q3: ✓ Correct probabilities
+  - Q4: ✓ Performance metrics
+  - Q5: ✓ 83.33%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 45.87%
+  - Q2: ✓ Internal: 7, Leaf: 8
+  - Q3: ✓ 3.77%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 0.8293, Precision: 0.8095
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ 74.50%
+  - Q2: ✓ 0.0000
+  - Q3: ✓ k=6
+  - Q4: ✓ Bill
+  - Q5: ✓ Katherine
+  Score: 6/6
+
+  Section 1.4: KNN
+  - Q1-2: ✗ Not answered
+  Score: 0/4
+
+  Total: 26/30
+
+  ---
+  Group 4
+
+  Students: Paula Andrea Castillo Torres (1848442), Giovanni Bonato
+  (1847578), Ronak A Patel (1851314), Ana Carolina Avila de Castro
+  (1851392)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2
+  - Q2: ✓ Complete equation
+  - Q3: ✓ Correct probabilities
+  - Q4: ✓ Metrics provided
+  - Q5: ✓ 91.67%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 45.87%
+  - Q2: ✓ Internal: 5, Leaf: 6
+  - Q3: ✓ 6.6%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 0.774, Precision: 0.772
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ PC1: 45.29%, PC2: 27.99%
+  - Q2: ✓ 0.00%
+  - Q3: ✓ 3 clusters
+  - Q4: ✓ Nash
+  - Q5: ✓ Henry
+  Score: 6/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✓ Chat
+  Score: 4/4
+
+  Total: 30/30
+
+  ---
+  Group 5
+
+  Students: Ashaben Joitabhai Chaudhari (1832255), Michael Soco (1845948),
+  Shahzaib (1841979), Joshna Malla (1859888)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2 (71 samples)
+  - Q2: ✓ Complete equation
+  - Q3: ✓ Correct probabilities
+  - Q4: ✓ 88.89% accuracy
+  - Q5: ✓ 83.33%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 54.46%
+  - Q2: ✓ Internal: 5, Leaf: 6
+  - Q3: ✓ 19.48%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 0.79, Precision: 0.83
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ 73%
+  - Q2: ✓ 0
+  - Q3: ✓ 3 clusters
+  - Q4: ✓ None (all fit well)
+  - Q5: ✓ Jena
+  Score: 6/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✗ Time (incorrect)
+  Score: 2/4
+
+  Total: 28/30
+
+  ---
+  Group 6
+
+  Students: Elisa Tjan (1846084), Luciane Teodoro Alves de Jesus (1854971),
+   Patel Dhavalkumar Sunilbhai (1855130), Vanessa Castano Suarez (1848145)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2
+  - Q2: ✓ Model shown
+  - Q3: ✓ Probabilities calculated
+  - Q4: ✓ Performance metrics
+  - Q5: ✓ 85.7%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 46.87%
+  - Q2: ✓ Internal: 7, Leaf: 8
+  - Q3: ✓ Shown in visualization
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Metrics shown
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ PC1: 44.85%, PC2: 27.49%
+  - Q2: ✓ No correlation
+  - Q3: ✓ C1
+  - Q4: ✓ Eve
+  - Q5: ✓ Jena
+  Score: 6/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✓ Food
+  Score: 4/4
+
+  Total: 30/30
+
+  ---
+  Group 7
+
+  Students: Kaushilya Kumari Gupta (1843735), Dhruvik Shingala (1835911),
+  Drishya Khanal (1862136), Erfan Tulsion
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2 (71 samples)
+  - Q2: ✓ Complete equation
+  - Q3: ✓ Correct probabilities
+  - Q4: ✓ 88.89% accuracy
+  - Q5: ✓ 83.33%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 45.87%
+  - Q2: ✓ Internal: 6, Leaf: 7
+  - Q3: ✓ 3.57%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 0.732, Precision: 0.811
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ 72%
+  - Q2: ✗ -0.470 (should be ~0)
+  - Q3: ✓ 3 clusters
+  - Q4: ✓ Eve
+  - Q5: ✓ Jena
+  Score: 5/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✓ Food
+  Score: 4/4
+
+  Total: 29/30
+
+  ---
+  Group 8
+
+  Students: Asad ullah (1842566), Adnan Rafi (1859295), Amritpal Singh
+  (1844778), Dipak Gore (1854967)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✗ Type 2 (79 entries - incorrect count)
+  - Q2: ✗ No equation provided
+  - Q3: ✗ No probabilities calculated
+  - Q4: ✓ Performance metrics
+  - Q5: ✗ 100% (unrealistic)
+  Score: 2/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 45%
+  - Q2: ✓ Internal: 7, Leaf: 8
+  - Q3: ✗ 0.4 (incorrect)
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 0.732, Precision: 0.811
+  Score: 7/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✓ 72.8%
+  - Q2: ✗ Misunderstood question
+  - Q3: ✓ 3 clusters
+  - Q4: ✓ Eve
+  - Q5: ✓ Multiple students listed
+  Score: 4/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✓ Food and Price
+  Score: 4/4
+
+  Total: 17/30
+
+  ---
+  Group 10
+
+  Students: Ismatur Rahmi (1836954), Manali Dipakbhai Bhavasar (1854696),
+  Yogesh Kumar (1834273), Swastika Bhushal (1861077)
+
+  Section 1.1: Logistic Regression
+  - Q1: ✓ Type 2
+  - Q2: ✓ Equation shown
+  - Q3: ✓ Probabilities provided
+  - Q4: ✓ Performance metrics
+  - Q5: ✓ 77.1%
+  Score: 10/10
+
+  Section 1.2: Decision Tree
+  - Q1: ✓ 54.13%
+  - Q2: ✓ Internal: 5, Leaf: 6
+  - Q3: ✓ 24.6%
+  - Q4: ✓ Correct prediction
+  - Q5: ✓ Recall: 85%, Precision: 82%
+  Score: 10/10
+
+  Section 1.3: PCA & Clustering
+  - Q1: ✗ Wrong format (0.728, 0.279)
+  - Q2: ✓ 0
+  - Q3: ✓ 6 clusters
+  - Q4: ✗ C1 (not a student name)
+  - Q5: ✗ C3 (not a student name)
+  Score: 2/6
+
+  Section 1.4: KNN
+  - Q1: ✓ No
+  - Q2: ✗ Fast (incorrect)
+  Score: 2/4
+
+  Total: 24/30

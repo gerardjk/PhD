@@ -1,0 +1,35 @@
+Country,Region,Status,Project Name,Key Dates,Current Status,Adoption Metrics
+United States,North America,Banned,None (prohibited),"Executive Order banning CBDCs: January 23, 2025",Only major economy to ban CBDCs; continues wholesale research through Project Agorá,N/A
+Canada,North America,Suspended,Digital Canadian Dollar (discontinued),Research: 2017-2024; Scaled down: September 2024,"Abandoned after 85,000+ person consultation revealed privacy concerns",N/A
+Mexico,North America,Development,Digital Peso (Peso Digital),Development began: 2019; Target launch: 2025 (delayed from 2024),Legislative framework under development with BIS collaboration,N/A
+European Union,Europe,Development,Digital Euro,Preparation phase: through October 2025; Potential launch: 2028,Unified approach for eurozone; €2.8-5.4 billion implementation cost estimated,N/A
+United Kingdom,Europe,Development,"Digital Pound (""Britcoin"")",Design phase: 2024-2025; Decision: 2025; Potential launch: late 2020s,Digital Pound Lab launched January 2025 for technology testing,N/A
+Switzerland,Europe,Pilot,Project Helvetia III,Pilot launched: November 2023; Extended: June 2025,Successfully settled CHF 750 million in digital bonds; no retail CBDC planned,CHF 750 million settled
+Sweden,Europe,Development,e-krona,Pilot phases: 2020-2024; Pilot concluded: March 2024,Awaiting political decision on implementation after four testing phases,N/A
+Russia,Europe,Pilot,Digital Ruble,Pilot began: 2023; Mass rollout delayed to: September 2026,30+ organizations across 11 cities; merchant resistance delaying rollout,"30+ organizations, 11 cities"
+Norway,Europe,Research,Digital Norwegian Krone,Research through: 2025; Final recommendation: end-2025,Completing wholesale CBDC research; decision expected year-end,N/A
+Denmark,Europe,Suspended,None,Rejected CBDC development,"Explicitly rejected CBDC, citing adequate existing infrastructure",N/A
+Poland,Europe,Research,Digital Zloty,No active development,No active development plans,N/A
+China,Asia,Pilot,e-CNY (Digital Yuan/DCEP),Research: 2014; Pilot: 2020; Nationwide expansion: ongoing,"29 cities, 260+ million wallets, most advanced pilot globally","260M wallets, ¥7 trillion ($988B) transactions"
+Japan,Asia,Pilot,Digital Yen,Pilot began: April 2023; Multi-year program: ongoing,64 companies testing; high cash usage (20% of GDP) reduces urgency,64 companies testing
+South Korea,Asia,Suspended,E-won/Digital Won,Testing: 2020-2021; Suspended: Q2 2025,Project halted due to high costs; pivoting to private won-pegged stablecoins,N/A
+India,Asia,Pilot,Digital Rupee (e-Rupee),Wholesale pilot: Nov 2022; Retail pilot: Dec 2022,Most advanced after China; both wholesale and retail pilots active,"₹10.16B circulation, 5M users, 1M daily transactions"
+Singapore,Asia,Development,Project Orchid/Ubin+,Project Ubin: 2016-2020; Project Orchid: ongoing,No urgent retail need; leading cross-border wholesale initiatives,N/A
+Indonesia,Asia,Development,Project Garuda (Rupiah Digital),Proof-of-concept completed: 2024,Focusing on wholesale applications,N/A
+Philippines,Asia,Development,Project Agila,Testing completed: 2024; Expected launch: 2025-2026,Testing phase completed; launch expected soon,N/A
+Malaysia,Asia,Research,Project Dunbar,Ongoing cross-border collaboration,Prioritizing international collaboration over domestic issuance,N/A
+Saudi Arabia,Middle East,Development,Digital Saudi Riyal,Project Aber: 2019-2020; Domestic experiments: 2022-present,No launch decision; active in Project mBridge,N/A
+United Arab Emirates,Middle East,Development,Digital Dirham,Launch confirmed: Q4 2025,85% of Financial Infrastructure Transformation complete; will be legal tender,N/A
+Israel,Middle East,Development,Digital Shekel,Design document: March 2025; Decision: after 2026,Interest-bearing CBDC design with anonymous small transactions,N/A
+Turkey,Middle East,Pilot,Digital Turkish Lira,Phase 1 pilot: 2022-2023; Phase 2: ongoing; Decision: end-2025,Testing with defense and software partners,N/A
+Nigeria,Africa,Launched,eNaira,Launched: October 2021,Operational but under review for 2025,"0.37% of currency, 98.5% wallets unused"
+Egypt,Africa,Development,e-Pound,Target launch: 2030,Developing to counter cryptocurrency adoption,N/A
+Bahamas,Caribbean,Launched,Sand Dollar,Launched: October 2020,Struggling despite incentive programs,$2.1M circulation (0.5% of cash)
+Jamaica,Caribbean,Launched,JAM-DEX,Launched: July 2022,Legal tender status; facing bank resistance,0.09% of money supply
+Eastern Caribbean,Caribbean,Suspended,DCash,Launched: 2021; Shut down: 2024,Rebuilding after technical failures and outages,N/A
+Australia,Oceania,Research,Project Acacia,Retail CBDC rejected: Sept 2024; Reassessment: 2027,No strong case for retail CBDC; focusing on wholesale tokenized assets,24 participating organizations
+Brazil,South America,Pilot,DREX (Digital Real),Pilot began: 2023; Full launch expected: 2024-2025,Testing tokenized deposits and DeFi applications,N/A
+Argentina,South America,Research,Digital Peso,Research phase ongoing,Exploring options amid high inflation,N/A
+Kazakhstan,Asia,Launched,Digital Tenge,Launched: November 2023; Full deployment: end-2025,Operational with gradual expansion,$480M in first-year transactions
+Thailand,Asia,Pilot,Digital Baht,Retail pilot: 2022-ongoing,Part of Project mBridge for cross-border payments,"10,000 participants in pilot"
+Hong Kong,Asia,Pilot,e-HKD,Pilot program: 2023-ongoing,Testing programmable payments; part of Project mBridge,16 firms in pilot program
