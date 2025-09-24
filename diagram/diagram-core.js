@@ -566,6 +566,7 @@ function initializeDiagram() {
         const verticalGap = 5; // Gap between rectangles vertically
         const horizontalGap = 30; // Gap between SWIFT box and side rectangles
         const smallRectHeight = (rectHeight - 2 * verticalGap) / 3; // Each is 1/3 height minus gaps
+        window.smallRectHeight = smallRectHeight;
         const austraclearHeight = rectHeight * (2/3); // Reduced by one third
 
         // Calculate base positions - Austraclear at top, SWIFT at bottom
@@ -1570,6 +1571,7 @@ function initializeDiagram() {
           strokeWidth: '6',
           fill: 'none'
         });
+        nppToFssPathStyled.setAttribute('id', 'npp-to-fss-path');
         // Insert the path at the beginning so it appears behind all circles
         const smallGroup = document.getElementById('small-group');
         svg.insertBefore(nppToFssPathStyled, smallGroup);
@@ -1610,8 +1612,8 @@ function initializeDiagram() {
           fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
           stroke: '#A8998C', // Darker smoked oyster border
           strokeWidth: '2',
-          rx: '8',
-          ry: '8'
+          rx: '4',
+          ry: '4'
         });
         labelsGroup.appendChild(apceBox);
         window.apceApcrAcptData = window.apceApcrAcptData || {};
@@ -1635,8 +1637,8 @@ function initializeDiagram() {
           fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
           stroke: '#A8998C',
           strokeWidth: '2',
-          rx: '8',
-          ry: '8'
+          rx: '4',
+          ry: '4'
         });
         labelsGroup.appendChild(apcrBox);
         window.apceApcrAcptData.APCR = { rect: apcrBox };
@@ -1659,8 +1661,8 @@ function initializeDiagram() {
           fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
           stroke: '#A8998C',
           strokeWidth: '2',
-          rx: '8',
-          ry: '8'
+          rx: '4',
+          ry: '4'
         });
         labelsGroup.appendChild(acptBox);
         window.apceApcrAcptData.ACPT = { rect: acptBox };
@@ -1679,7 +1681,7 @@ function initializeDiagram() {
         window.apceApcrAcptData.ACPT.text = acptText;
 
         // Add Cheques box above the three small boxes
-        const chequesBoxGap = squareRectGap / 2; // Reduce vertical gap to match DE spacing visually
+        const chequesBoxGap = Math.max(0, squareRectGap / 2 - 2); // Nudge Cheques closer to the small boxes
         // chequesBoxX and chequesBoxWidth already calculated above
         const chequesBoxHeight = boxHeight; // Same height as other boxes
         const chequesBoxY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Above the small boxes
@@ -3613,6 +3615,8 @@ function initializeDiagram() {
           }
           window.clsEndpoints.audLineEndX = pathEndX;
           window.clsEndpoints.audLineEndY = turnY2;
+          window.clsEndpoints.neonLineEndX = pathEndX;
+          window.clsEndpoints.neonLineEndY = turnY2;
           console.log('Stored CLS AUD endpoint:', {audLineEndX: pathEndX, audLineEndY: turnY2});
           // S-curve will be drawn at the end when we have both endpoints
         }
@@ -4444,7 +4448,7 @@ function initializeDiagram() {
             }
 
             // Update NPP to FSS sigmoid curve
-            const nppToFssPath = document.querySelector('path[stroke="rgb(100,80,180)"][stroke-width="4"]');
+            const nppToFssPath = document.getElementById('npp-to-fss-path');
             if (nppToFssPath) {
               const d = nppToFssPath.getAttribute('d');
               if (d) {
@@ -4491,6 +4495,9 @@ function initializeDiagram() {
           }
         }
       }
+
+      // Shift NPP box upward by BSCT height while leaving BSCT in place
+      const nppToFssPath = document.getElementById('npp-to-fss-path');
 
       // Add dark red LVSS gear circle above Administered Batches box
       // Position LVSS to the right of the moved boxes
@@ -5763,10 +5770,12 @@ const boundingBoxPaddingVRef = 5; // Same as SWIFT HVCS
 const newBoundingBoxHeight = (smallRectHeight + verticalGapRef) * 3 - verticalGapRef + boundingBoxPaddingVRef * 2 + labelSpaceUpdated;
 
 // Calculate position for new bounding box
-// Position bottom 5 pixels below NPP BI bottom
+// Position bottom 5 pixels below NPP BI bottom, then shift upward by BSCT height
 const nppBIBottom = nppY + nppHeight;
 const newBoundingBoxBottom = nppBIBottom + 5; // 5 pixels below NPP BI bottom
-const newBoundingBoxY = newBoundingBoxBottom - newBoundingBoxHeight; // Calculate top from bottom
+const boundingBoxVerticalShift = smallRectHeight; // Match BSCT height
+const adjustedBoundingBoxBottom = newBoundingBoxBottom - boundingBoxVerticalShift;
+const boundingBoxY = adjustedBoundingBoxBottom - newBoundingBoxHeight; // Calculate top from adjusted bottom
 
 // Position it to the left of NPP with same gap
 const newBoundingBoxX = nppX - verticalGapRef - hvcsBoxWidth;
@@ -5774,7 +5783,7 @@ const newBoundingBoxX = nppX - verticalGapRef - hvcsBoxWidth;
 // Create the bounding box first (so it's behind)
 const newBoundingBox = createStyledRect(
   newBoundingBoxX,
-  newBoundingBoxY,
+  boundingBoxY,
   hvcsBoxWidth,
   newBoundingBoxHeight,
   {
@@ -5833,7 +5842,7 @@ labelsGroup.appendChild(newPacsText);
 // Add label for the bounding box (like SWIFT HVCS has)
 const boundingBoxLabel = createStyledText(
   newBoundingBoxX + hvcsBoxWidth / 2,
-  newBoundingBoxY + newBoundingBoxHeight - labelSpaceUpdated / 2 - 5, // Position near bottom
+  boundingBoxY + newBoundingBoxHeight - labelSpaceUpdated / 2 - 5, // Position near bottom
   'NPP',
   {
     fill: 'rgb(80,60,150)', // Purple text to match purple box
@@ -5867,7 +5876,7 @@ connectingLine.setAttribute('stroke-linecap', 'round');
 svg.insertBefore(connectingLine, labelsGroup);
 
 console.log('Created new pacs-style box and bounding box:', {
-  boundingBox: { x: newBoundingBoxX, y: newBoundingBoxY, width: hvcsBoxWidth, height: hvcsBoxHeight },
+  boundingBox: { x: newBoundingBoxX, y: boundingBoxY, width: hvcsBoxWidth, height: newBoundingBoxHeight },
   pacsBox: { x: pacsBoxX, y: pacsBoxY, width: pacsBoxWidth, height: pacsBoxHeight },
   line: { from: [lineStartX, lineStartY], to: [lineEndX, lineEndY] }
 });
@@ -5945,8 +5954,92 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
     console.log('dotLineEndX:', window.clsEndpoints.dotLineEndX);
     console.log('dotLineEndY:', window.clsEndpoints.dotLineEndY);
   }
-  if (window.clsEndpoints && window.clsEndpoints.audLineEndX && window.clsEndpoints.dotLineEndX) {
-    console.log('CLS S-curve creation disabled.');
+  if (window.clsEndpoints &&
+      (window.clsEndpoints.neonLineEndX !== undefined || window.clsEndpoints.audLineEndX !== undefined) &&
+      (window.clsEndpoints.neonLineEndY !== undefined || window.clsEndpoints.audLineEndY !== undefined) &&
+      (window.clsEndpoints.clsCircleEdgeX !== undefined || window.clsEndpoints.clsCircleCenterX !== undefined)) {
+    let startX = window.clsEndpoints.neonLineEndX !== undefined ? Number(window.clsEndpoints.neonLineEndX)
+                : Number(window.clsEndpoints.audLineEndX);
+    let startY = window.clsEndpoints.neonLineEndY !== undefined ? Number(window.clsEndpoints.neonLineEndY)
+                : Number(window.clsEndpoints.audLineEndY);
+
+    const clsNeonPath = document.getElementById('cls-aud-line-new');
+    if (clsNeonPath && typeof clsNeonPath.getTotalLength === 'function') {
+      try {
+        const totalLength = clsNeonPath.getTotalLength();
+        const point = clsNeonPath.getPointAtLength(totalLength);
+        startX = point.x;
+        startY = point.y;
+      } catch (err) {
+        console.warn('Unable to sample CLS neon path endpoint:', err);
+      }
+    }
+    const endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
+                 : Number(window.clsEndpoints.clsCircleCenterX);
+    const endY = window.clsEndpoints.clsCircleEdgeY !== undefined ? Number(window.clsEndpoints.clsCircleEdgeY)
+                 : Number(window.clsEndpoints.clsCircleCenterY);
+
+    if (Number.isFinite(startX) && Number.isFinite(startY) && Number.isFinite(endX) && Number.isFinite(endY)) {
+      const dx = endX - startX;
+      const dy = endY - startY;
+
+      const direction = dx >= 0 ? 1 : -1;
+      const controlOffset = Math.max(60, Math.abs(dx) * 0.35);
+
+      const cp1X = startX + direction * controlOffset;
+      const cp1Y = startY;
+      const cp2X = endX - direction * controlOffset;
+      const cp2Y = endY;
+
+      const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+                       `C ${cp1X.toFixed(2)} ${cp1Y.toFixed(2)}, ` +
+                         `${cp2X.toFixed(2)} ${cp2Y.toFixed(2)}, ` +
+                         `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+      const svg = document.getElementById('diagram');
+      let container = document.getElementById('cls-s-curve-group');
+      if (!container && svg) {
+        container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        container.setAttribute('id', 'cls-s-curve-group');
+        const bigGroup = document.getElementById('big-group');
+        if (bigGroup && bigGroup.nextSibling) {
+          svg.insertBefore(container, bigGroup.nextSibling);
+        } else {
+          svg.appendChild(container);
+        }
+      }
+
+      let sCurvePath = document.getElementById('cls-s-curve');
+      if (!sCurvePath) {
+        sCurvePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        sCurvePath.setAttribute('id', 'cls-s-curve');
+        if (container) {
+          container.appendChild(sCurvePath);
+        } else if (svg) {
+          svg.appendChild(sCurvePath);
+        }
+      } else if (container && sCurvePath.parentNode !== container) {
+        container.appendChild(sCurvePath);
+      }
+
+      if (sCurvePath) {
+        sCurvePath.setAttribute('d', pathData);
+        sCurvePath.setAttribute('stroke', '#7FFF00');
+        sCurvePath.setAttribute('stroke-width', '6');
+        sCurvePath.setAttribute('fill', 'none');
+        sCurvePath.setAttribute('stroke-linecap', 'round');
+        sCurvePath.setAttribute('stroke-linejoin', 'round');
+      }
+
+      console.log('CLS S-curve created from neon line to CLS dot.');
+    } else {
+      console.log('CLS S-curve skipped: invalid numeric endpoints', {
+        startX,
+        startY,
+        endX,
+        endY
+      });
+    }
   } else {
     console.log('window.clsEndpoints not found or incomplete');
   }
