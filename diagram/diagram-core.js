@@ -511,6 +511,11 @@ function initializeDiagram() {
         if (!window.clsEndpoints) {
           window.clsEndpoints = {};
         }
+        window.clsEndpoints.clsCircleCenterX = actualCircleX;
+        window.clsEndpoints.clsCircleCenterY = actualCircleY;
+        window.clsEndpoints.clsCircleRadius = blueRadius;
+        window.clsEndpoints.clsCircleEdgeX = clsStartX;
+        window.clsEndpoints.clsCircleEdgeY = clsStartY;
         window.clsEndpoints.dotLineEndX = clsEndX;
         window.clsEndpoints.dotLineEndY = clsEndY;
 
@@ -603,30 +608,37 @@ function initializeDiagram() {
         labelsGroup.appendChild(swiftRect);
 
         // Add text inside SWIFT rectangle with line break
+        const swiftCenterX = rectX + swiftRectWidth / 2;
+        const swiftCenterY = rectY + rectHeight / 2;
         const swiftRectText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        swiftRectText.setAttribute('x', (rectX + swiftRectWidth/2).toFixed(2));
-        swiftRectText.setAttribute('y', (rectY + rectHeight/2).toFixed(2));
+        swiftRectText.setAttribute('x', swiftCenterX.toFixed(2));
+        swiftRectText.setAttribute('y', swiftCenterY.toFixed(2));
         swiftRectText.setAttribute('text-anchor', 'middle');
         swiftRectText.setAttribute('dominant-baseline', 'middle');
-        swiftRectText.setAttribute('fill', '#0f766e'); // Dark gray text
+        swiftRectText.setAttribute('fill', '#0f766e');
         swiftRectText.setAttribute('font-family', 'Arial, sans-serif');
         swiftRectText.setAttribute('font-size', '18');
         swiftRectText.setAttribute('font-weight', 'bold');
 
-        // Create two lines of text
         const swiftLine1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        swiftLine1.setAttribute('x', (rectX + swiftRectWidth/2).toFixed(2));
+        swiftLine1.setAttribute('x', swiftCenterX.toFixed(2));
         swiftLine1.setAttribute('dy', '-0.5em');
         swiftLine1.textContent = 'SWIFT';
         swiftRectText.appendChild(swiftLine1);
 
         const swiftLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        swiftLine2.setAttribute('x', (rectX + swiftRectWidth/2).toFixed(2));
+        swiftLine2.setAttribute('x', swiftCenterX.toFixed(2));
         swiftLine2.setAttribute('dy', '1.2em');
         swiftLine2.textContent = 'PDS';
         swiftRectText.appendChild(swiftLine2);
 
+        swiftRectText.setAttribute('id', 'swift-pds-text');
         labelsGroup.appendChild(swiftRectText);
+
+        window.swiftPdsTextData = {
+          element: swiftRectText,
+          centerY: swiftCenterY
+        };
 
         // Calculate CLS AUD Y position early (needed for pacs.009 extension)
         // Place CLS AUD above SWIFT PDS instead of below
@@ -839,9 +851,12 @@ function initializeDiagram() {
           'CHESS-RTGS',
           {
             fill: '#071f6a', // Dark blue text
-            fontSize: '12' // Same as other small boxes
+            fontSize: '12', // Same as other small boxes
+            dominantBaseline: 'middle',
+            textAnchor: 'middle'
           }
         );
+        chessText.setAttribute('alignment-baseline', 'middle');
         labelsGroup.appendChild(chessText);
 
         // Add Austraclear box below CHESS-RTGS
@@ -872,9 +887,9 @@ function initializeDiagram() {
         let dvpRtgsX = baseX - rectWidth - horizontalGap; // Initial position
         const dvpRtgsY = chessY; // Align top with CHESS-RTGS
         const dvpRtgsRect = createStyledRect(dvpRtgsX, dvpRtgsY, rectWidth / 2, austraclearHeight, {
-          fill: '#e8ecf7', // Same light blue-grey as Austraclear
-          stroke: '#071f6a', // Same dark blue border
-          strokeWidth: '1',
+          fill: '#4a5a8a', // Match CHESS equities shade
+          stroke: 'none',
+          opacity: '0.7',
           rx: '4',
           ry: '4'
         });
@@ -891,7 +906,7 @@ function initializeDiagram() {
         dvpRtgsText.setAttribute('y', (dvpRtgsY + austraclearHeight / 2).toFixed(2));
         dvpRtgsText.setAttribute('text-anchor', 'middle');
         dvpRtgsText.setAttribute('dominant-baseline', 'middle');
-        dvpRtgsText.setAttribute('fill', '#071f6a'); // Dark blue text
+        dvpRtgsText.setAttribute('fill', '#ffffff'); // White text for contrast
         dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
         dvpRtgsText.setAttribute('font-size', '11'); // Slightly bigger font
         dvpRtgsText.setAttribute('font-weight', 'bold');
@@ -961,9 +976,9 @@ function initializeDiagram() {
         // Bottom box: RTGS / DvP RTGS
         const rtgsY = dvpRtgsY + austraclearHeight + verticalGap;
         const rtgsRect = createStyledRect(dvpRtgsX, rtgsY, rectWidth / 2, smallRectHeight, {
-          fill: '#e8ecf7', // Same light blue-grey as Austraclear
-          stroke: '#071f6a', // Same dark blue border
-          strokeWidth: '1',
+          fill: '#4a5a8a', // Match CHESS equities shade
+          stroke: 'none',
+          opacity: '0.7',
           rx: '4',
           ry: '4'
         });
@@ -978,7 +993,7 @@ function initializeDiagram() {
           dvpRtgsX + rectWidth / 4,
           rtgsY + smallRectHeight / 2,
           'RTGS',
-          { fontSize: '10' }  // Smaller font
+          { fontSize: '10', fill: '#ffffff' }  // Smaller font, white text
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
@@ -1162,6 +1177,9 @@ function initializeDiagram() {
         // Update the rounded rectangles with new positions
         bridgeBox.setAttribute('x', widerAdminBoxX);
         bridgeBox.setAttribute('width', widerAdminBoxWidth);
+        if (!window.bridgePositions) window.bridgePositions = {};
+        window.bridgePositions.bridgeX = widerAdminBoxX;
+        window.bridgePositions.bridgeWidth = widerAdminBoxWidth;
 
         asxfBox.setAttribute('x', widerAdminBoxX);
         asxfBox.setAttribute('width', widerAdminBoxWidth);
@@ -1286,8 +1304,6 @@ function initializeDiagram() {
           window.bridgePositions = {};
         }
         window.bridgePositions.bridgeY = bridgeY;
-        window.bridgePositions.bridgeX = updatedBridgeX;
-        window.bridgePositions.bridgeWidth = updatedBridgeWidth;
 
         // Store that we need to create ASX to HVCS line later
         if (!window.asxBoxData) window.asxBoxData = {};
@@ -1503,38 +1519,37 @@ function initializeDiagram() {
           originalY: nppY
         };
 
-        // Add NPP label with two lines
-        const nppText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        nppText.setAttribute('x', (nppRectX + nppSwiftRectWidth / 2).toFixed(2));
-        nppText.setAttribute('y', (nppY + nppRectHeight / 2).toFixed(2));
-        nppText.setAttribute('text-anchor', 'middle');
-        nppText.setAttribute('dominant-baseline', 'middle');
-        nppText.setAttribute('fill', '#0f766e'); // Dark gray text to match mint green box
-        nppText.setAttribute('font-family', 'Arial, sans-serif');
-        nppText.setAttribute('font-size', '18'); // Same size as SWIFT PDS
-        nppText.setAttribute('font-weight', 'bold');
+        // Add NPP label with two centered lines
+        const nppCenterX = nppRectX + nppSwiftRectWidth / 2;
+        const nppCenterY = nppY + nppRectHeight / 2;
+        const nppLineOffset = 10;
 
-        // First line: NPP BI
-        const tspan1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan1.setAttribute('x', (nppRectX + nppSwiftRectWidth / 2).toFixed(2));
-        tspan1.setAttribute('dy', '-0.5em');
-        tspan1.textContent = 'NPP BI';
-        nppText.appendChild(tspan1);
+        const nppTopText = createStyledText(nppCenterX, nppCenterY - nppLineOffset, 'NPP BI', {
+          fill: '#0f766e',
+          fontSize: '18',
+          fontWeight: 'bold'
+        });
+        nppTopText.setAttribute('id', 'npp-text-top');
+        labelsGroup.appendChild(nppTopText);
 
-        // Second line: (SWIFT)
-        const tspan2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan2.setAttribute('x', (nppRectX + nppSwiftRectWidth / 2).toFixed(2));
-        tspan2.setAttribute('dy', '1.1em');
-        tspan2.textContent = '(SWIFT)';
-        nppText.appendChild(tspan2);
+        const nppBottomText = createStyledText(nppCenterX, nppCenterY + nppLineOffset, '(SWIFT)', {
+          fill: '#0f766e',
+          fontSize: '14',
+          fontWeight: 'bold'
+        });
+        nppBottomText.setAttribute('id', 'npp-text-bottom');
+        labelsGroup.appendChild(nppBottomText);
 
-        labelsGroup.appendChild(nppText);
+        window.nppTextElements = {
+          top: nppTopText,
+          bottom: nppBottomText
+        };
 
         // Add sigmoid curve from NPP to FSS circle
         const nppToFssPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         // NPP right edge and center Y
         const nppRightX = nppRectX + nppSwiftRectWidth;
-        const nppCenterY = nppY + nppRectHeight / 2;
+        const nppCenterYForPath = nppCenterY;
         // FSS circle position (orange circle)
         const fssCenterX = 300;
         const fssCenterY = 222;
@@ -1545,8 +1560,8 @@ function initializeDiagram() {
         const midX = (nppRightX + fssLeftEdgeX) / 2;
         // Connect to lower part of FSS circle (70% down from center)
         const fssConnectionY = fssCenterY + fssRadius * 0.5; // Lower connection point
-        const sigmoidData = `M ${nppRightX} ${nppCenterY} 
-                            C ${midX} ${nppCenterY},
+        const sigmoidData = `M ${nppRightX} ${nppCenterYForPath} 
+                            C ${midX} ${nppCenterYForPath},
                               ${midX} ${fssConnectionY},
                               ${fssLeftEdgeX} ${fssConnectionY}`;
 
@@ -1569,7 +1584,10 @@ function initializeDiagram() {
         const smallBoxY = nppBottomY - apceApcrAcptHeight; // Align bottom with NPP bottom
 
         // Calculate Cheques box width and position first
-        const chequesBoxWidth = nppSwiftRectWidth || 0; // Same width as NPP box
+        const chequesTargetWidth = (window.hexagonPositions && typeof window.hexagonPositions.mastercardWidth === 'number')
+          ? window.hexagonPositions.mastercardWidth
+          : 0;
+        const chequesBoxWidth = chequesTargetWidth || nppSwiftRectWidth || 0; // Prefer MCAU/ESSB width, fall back to NPP width
         // Use fixed position based on original layout, not dependent on moveable boxes
         const originalGabsX = adminBatchesLeftEdge; // Original position before any moves
         const chequesBoxX = originalGabsX - chequesBoxWidth; // Right edge aligns with original GABS position
@@ -1596,6 +1614,8 @@ function initializeDiagram() {
           ry: '8'
         });
         labelsGroup.appendChild(apceBox);
+        window.apceApcrAcptData = window.apceApcrAcptData || {};
+        window.apceApcrAcptData.APCE = { rect: apceBox };
 
         // APCE text
         const apceText = createStyledText(
@@ -1608,6 +1628,7 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(apceText);
+        window.apceApcrAcptData.APCE.text = apceText;
 
         // APCR box (middle)
         const apcrBox = createStyledRect(apcrX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
@@ -1618,6 +1639,7 @@ function initializeDiagram() {
           ry: '8'
         });
         labelsGroup.appendChild(apcrBox);
+        window.apceApcrAcptData.APCR = { rect: apcrBox };
 
         // APCR text
         const apcrText = createStyledText(
@@ -1630,6 +1652,7 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(apcrText);
+        window.apceApcrAcptData.APCR.text = apcrText;
 
         // ACPT box (rightmost)
         const acptBox = createStyledRect(acptX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
@@ -1640,6 +1663,7 @@ function initializeDiagram() {
           ry: '8'
         });
         labelsGroup.appendChild(acptBox);
+        window.apceApcrAcptData.ACPT = { rect: acptBox };
 
         // ACPT text
         const acptText = createStyledText(
@@ -1652,9 +1676,10 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(acptText);
+        window.apceApcrAcptData.ACPT.text = acptText;
 
         // Add Cheques box above the three small boxes
-        const chequesBoxGap = 10; // Gap between Cheques and the small boxes below
+        const chequesBoxGap = squareRectGap / 2; // Reduce vertical gap to match DE spacing visually
         // chequesBoxX and chequesBoxWidth already calculated above
         const chequesBoxHeight = boxHeight; // Same height as other boxes
         const chequesBoxY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Above the small boxes
@@ -1729,7 +1754,7 @@ function initializeDiagram() {
         labelsGroup.appendChild(becnText);
 
         // Add DE box above BECN and BECG
-        const deBoxGap = 10; // Gap between DE and boxes below
+        const deBoxGap = squareRectGap; // Match gap used between APCS and GABS
         const deBoxX = becnX; // Align left edge with BECN
         const deBoxWidth = (becgX + becgBecnWidth) - becnX; // Span from BECN left to BECG right
         const deBoxHeight = boxHeight; // Same height as Cheques
@@ -1820,7 +1845,7 @@ function initializeDiagram() {
         // Line to APCE (leftmost - connects to bottom)
         const apceCenterX = apceX + singleSmallBoxWidth / 2;
         const apcsToApceData = `M ${apcsLeftX} ${apcsBottomThird}
-                                Q ${apceCenterX} ${apcsBottomThird} ${apceCenterX} ${smallBoxesBottomY}`;
+                                Q ${apceCenterX} ${apcsBottomThird} ${apceCenterX} ${smallBoxesBottomY - squareRectGap}`;
         const apcsToApcePath = createStyledPath(apcsToApceData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -1828,12 +1853,12 @@ function initializeDiagram() {
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
         });
-        labelsGroup.appendChild(apcsToApcePath);
+        labelsGroup.insertBefore(apcsToApcePath, apceBox);
 
         // Line to APCR (middle)
         const apcrCenterX = apcrX + singleSmallBoxWidth / 2;
         const apcsToApcrData = `M ${apcsLeftX} ${apcsMiddle}
-                                Q ${apcrCenterX} ${apcsMiddle} ${apcrCenterX} ${smallBoxesBottomY}`;
+                                Q ${apcrCenterX} ${apcsMiddle} ${apcrCenterX} ${smallBoxesBottomY - squareRectGap}`;
         const apcsToApcrPath = createStyledPath(apcsToApcrData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -1841,12 +1866,12 @@ function initializeDiagram() {
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
         });
-        labelsGroup.appendChild(apcsToApcrPath);
+        labelsGroup.insertBefore(apcsToApcrPath, apcrBox);
 
         // Line to ACPT (rightmost - connects to top)
         const acptCenterX = acptX + singleSmallBoxWidth / 2;
         const apcsToAcptData = `M ${apcsLeftX} ${apcsTopThird}
-                                Q ${acptCenterX} ${apcsTopThird} ${acptCenterX} ${smallBoxesBottomY}`;
+                                Q ${acptCenterX} ${apcsTopThird} ${acptCenterX} ${smallBoxesBottomY - squareRectGap}`;
         const apcsToAcptPath = createStyledPath(apcsToAcptData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -1854,7 +1879,7 @@ function initializeDiagram() {
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
         });
-        labelsGroup.appendChild(apcsToAcptPath);
+        labelsGroup.insertBefore(apcsToAcptPath, acptBox);
 
         // Add curved lines from bottom of BECG and BECN to left side of BECS
         const becsLeftX = reducedNarrowBoxX; // Left side of BECS
@@ -1987,24 +2012,12 @@ function initializeDiagram() {
             swiftRect.setAttribute('y', (currentY + swiftGroupAdjustment).toFixed(2));
           }
 
-          // Update SWIFT PDS text elements
-          // Note: swiftRectText, swiftLine1, swiftLine2 are out of scope here
-          // They were defined inside if (i === 0) block
-          // TODO: Add IDs to these elements so they can be accessed later
-          /*
-          if (swiftRectText) {
-            const currentY = parseFloat(swiftRectText.getAttribute('y'));
-            swiftRectText.setAttribute('y', (currentY + swiftGroupAdjustment).toFixed(2));
+          // Update SWIFT PDS text element
+          if (window.swiftPdsTextData && window.swiftPdsTextData.element) {
+            const swiftTextEl = window.swiftPdsTextData.element;
+            const currentY = parseFloat(swiftTextEl.getAttribute('y'));
+            swiftTextEl.setAttribute('y', (currentY + swiftGroupAdjustment).toFixed(2));
           }
-          if (swiftLine1) {
-            const currentY = parseFloat(swiftLine1.getAttribute('y'));
-            swiftLine1.setAttribute('y', (currentY + swiftGroupAdjustment).toFixed(2));
-          }
-          if (swiftLine2) {
-            const currentY = parseFloat(swiftLine2.getAttribute('y'));
-            swiftLine2.setAttribute('y', (currentY + swiftGroupAdjustment).toFixed(2));
-          }
-          */
 
           // Update SWIFT HVCS box
           if (window.swiftHvcsElements && window.swiftHvcsElements.boundingBox) {
@@ -3698,6 +3711,9 @@ function initializeDiagram() {
         85: "Indue Ltd",  // Changed from 86
         87: "CUSCAL Limited",  // Changed from 88
         88: "Wise Australia Pty Limited",  // Changed from 89
+        92: "Adyen Australia Pty Limited",
+        93: "EFTEX Pty Limited",
+        94: "First Data Network Australia Limited",
         96: "ASX Settlement Pty Limited",
         97: "ASX Clearing Corporation Limited",
         98: "LCH Limited"
@@ -3765,6 +3781,18 @@ function initializeDiagram() {
           // Wise Australia - four lines below Australian Settlements
           labelX = actualCircleX + 25;
           labelY = window.dotPositions[84] ? window.dotPositions[84].y + 40 : actualCircleY + 40;
+        } else if (i === 92) {
+          // Adyen Australia - align with dot
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY - 6;
+        } else if (i === 93) {
+          // EFTEX - just below Adyen
+          labelX = actualCircleX + 25;
+          labelY = window.dotPositions[92] ? window.dotPositions[92].y + 6 : actualCircleY + 6;
+        } else if (i === 94) {
+          // First Data Network - below EFTEX
+          labelX = actualCircleX + 25;
+          labelY = window.dotPositions[92] ? window.dotPositions[92].y + 16 : actualCircleY + 16;
         } else if (i === 96) {
           // ASX Settlement - level with its dot
           labelX = actualCircleX + 35; // Align horizontally
@@ -3888,6 +3916,20 @@ function initializeDiagram() {
         // No rx/ry = square corners
       });
       labelsGroup.appendChild(bdfSquare);
+
+      const bdfLabel = createStyledText(
+        bdfX,
+        bdfY,
+        'BDF',
+        {
+          fill: '#ffffff',
+          fontSize: '20',
+          fontWeight: 'bold'
+        }
+      );
+      bdfLabel.setAttribute('text-anchor', 'middle');
+      bdfLabel.setAttribute('dominant-baseline', 'middle');
+      labelsGroup.appendChild(bdfLabel);
 
       // Add kinked lines from dots 50-53 to the square
       const boxLeftX = bdfX - squareSize/2;
@@ -4383,13 +4425,23 @@ function initializeDiagram() {
             nppBox.setAttribute('y', newNppY.toFixed(2));
 
             // Update NPP text
-            const nppTexts = Array.from(labelsGroup.getElementsByTagName('text')).filter(text => 
-              text.textContent === 'NPP'
-            );
-            nppTexts.forEach(text => {
-              const currentY = parseFloat(text.getAttribute('y'));
-              text.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
-            });
+            if (window.nppTextElements) {
+              ['top', 'bottom'].forEach(key => {
+                const el = window.nppTextElements[key];
+                if (el) {
+                  const currentY = parseFloat(el.getAttribute('y'));
+                  el.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
+                }
+              });
+            } else {
+              const nppTexts = Array.from(labelsGroup.getElementsByTagName('text')).filter(text => 
+                text.textContent === 'NPP BI' || text.textContent === '(SWIFT)'
+              );
+              nppTexts.forEach(text => {
+                const currentY = parseFloat(text.getAttribute('y'));
+                text.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
+              });
+            }
 
             // Update NPP to FSS sigmoid curve
             const nppToFssPath = document.querySelector('path[stroke="rgb(100,80,180)"][stroke-width="4"]');
@@ -4412,19 +4464,15 @@ function initializeDiagram() {
               }
             }
 
-            // Update the APCE, APCR, and ACPT boxes that align with NPP bottom
-            const apceApcrAcptBoxes = labelsGroup.querySelectorAll('rect[fill="#D8D0F0"]');
-            apceApcrAcptBoxes.forEach(box => {
-              // Skip the NPP box itself
-              if (box.id !== 'npp-box') {
-                const boxWidth = parseFloat(box.getAttribute('width'));
-                // APCE, APCR, ACPT boxes are smaller (about 1/3 of NPP width)
-                if (boxWidth < window.nppBoxData.width * 0.4) {
-                  const currentY = parseFloat(box.getAttribute('y'));
-                  box.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
+            // Update the APCE, APCR, and ACPT boxes and labels that align with NPP bottom
+            if (window.apceApcrAcptData) {
+              Object.values(window.apceApcrAcptData).forEach(item => {
+                if (item && item.rect) {
+                  const currentY = parseFloat(item.rect.getAttribute('y'));
+                  item.rect.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
                 }
-              }
-            });
+              });
+            }
 
             // Update APCE, APCR, ACPT text labels
             const smallBoxTexts = ['APCE', 'APCR', 'ACPT'];
@@ -4820,8 +4868,8 @@ function initializeDiagram() {
       if (minX3 !== null && maxX3 !== null) {
         // Use smaller padding for the yellow rectangle
         const yellowLeftPadding = 10;
-        const yellowTopPadding = 20;
-        const yellowBottomPadding = 17;
+        const yellowTopPadding = 24;
+        const yellowBottomPadding = 21;
         const yellowRightPadding = 210;
 
         const yellowRect = createStyledRect(
@@ -4889,8 +4937,8 @@ function initializeDiagram() {
       if (minX4 !== null && maxX4 !== null) {
         // Use even smaller padding for the green rectangle
         const greenLeftPadding = 100;
-        const greenTopPadding = 6;
-        const greenBottomPadding = 0;
+        const greenTopPadding = 10;
+        const greenBottomPadding = 4;
         const greenRightPadding = 280;
 
         const greenRect = createStyledRect(
@@ -4946,8 +4994,8 @@ function initializeDiagram() {
       if (minX5 !== null && maxX5 !== null) {
         // Use tight padding for Group 2 rectangle
         const group2LeftPadding = 5;
-        const group2TopPadding = 15;
-        const group2BottomPadding = -3;
+        const group2TopPadding = 19;
+        const group2BottomPadding = 1;
         const group2RightPadding = 110;
 
         const group2Rect = createStyledRect(
@@ -4956,7 +5004,7 @@ function initializeDiagram() {
           (maxX5 - minX5) + group2LeftPadding + group2RightPadding + dotRadius * 2,
           (maxY5 - minY5) + group2TopPadding + group2BottomPadding + dotRadius * 2,
           {
-            fill: '#e0f2fe', // Very light blue (same as group 3)
+            fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border (same as group 3)
             strokeWidth: '0.5',
             rx: '4' // Small rounded corners
@@ -5004,8 +5052,8 @@ function initializeDiagram() {
       if (minX6 !== null && maxX6 !== null) {
         // Use tight padding for Group 3 rectangle
         const group3LeftPadding = 8;
-        const group3TopPadding = 1;
-        const group3BottomPadding = 12;
+        const group3TopPadding = 5;
+        const group3BottomPadding = 16;
         const group3RightPadding = 205;
 
         const group3Rect = createStyledRect(
@@ -5014,7 +5062,7 @@ function initializeDiagram() {
           (maxX6 - minX6) + group3LeftPadding + group3RightPadding + dotRadius * 2,
           (maxY6 - minY6) + group3TopPadding + group3BottomPadding + dotRadius * 2,
           {
-            fill: '#e0f2fe', // Very light blue
+            fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border
             strokeWidth: '0.5',
             rx: '4' // Small rounded corners
@@ -5062,8 +5110,8 @@ function initializeDiagram() {
       if (minX7 !== null && maxX7 !== null) {
         // Use tight padding for Group 5a rectangle
         const group5aLeftPadding = 8;
-        const group5aTopPadding = 4;
-        const group5aBottomPadding = -2;
+        const group5aTopPadding = 9;
+        const group5aBottomPadding = 3;
         const group5aRightPadding = 295;  // Same as group 4
 
         const group5aRect = createStyledRect(
@@ -5119,8 +5167,8 @@ function initializeDiagram() {
       if (minX8 !== null && maxX8 !== null) {
         // Use tight padding for Group 5b rectangle
         const group5bLeftPadding = 3;
-        const group5bTopPadding = 4;
-        const group5bBottomPadding = -1;
+        const group5bTopPadding = 8;
+        const group5bBottomPadding = 3;
         const group5bRightPadding = 281;  // Same as group 4
 
         const group5bRect = createStyledRect(
@@ -5256,7 +5304,8 @@ function initializeDiagram() {
           // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
           // Adjust end point to account for stroke width (stop at edge, not past it)
           const strokeWidth = 6; // Updated stroke width
-          const adjustedAdiBottom = adiBottom + (strokeWidth / 2);
+          const strokeHalf = strokeWidth / 2;
+          const adjustedAdiBottom = adiBottom + strokeHalf;
 
           // Calculate where to start the gradual curve
           // We need to stay below ESAs and non-ADIs boxes
@@ -5277,13 +5326,22 @@ function initializeDiagram() {
                              window.swiftHvcsElements.rightEdge : 
                              window.hvcsLineData.startX;
 
+          const hvcsEndX = extendPastNonAdi + 15;
           const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +
                       `L ${curveStartX} ${window.hvcsLineData.startY} ` +
                       `C ${curveStartX + 60} ${window.hvcsLineData.startY}, ` +
                       `${extendPastNonAdi} ${window.hvcsLineData.startY - verticalDistance * 0.15}, ` +
-                      `${extendPastNonAdi + 15} ${adjustedAdiBottom}`;
+                      `${hvcsEndX} ${adjustedAdiBottom}`;
 
           hvcsHorizontalLine.setAttribute('d', path);
+
+          if (!window.clsEndpoints) {
+            window.clsEndpoints = {};
+          }
+          window.clsEndpoints.audLineEndX = hvcsEndX;
+          window.clsEndpoints.audLineEndY = adjustedAdiBottom;
+          window.clsEndpoints.audLineExitX = hvcsEndX;
+          window.clsEndpoints.audLineExitY = adjustedAdiBottom;
         }
 
         // Extend third blue line to curve into ADIs (to the right of green line)
@@ -5300,7 +5358,10 @@ function initializeDiagram() {
             const extendPastNonAdi = nonAdiRightEdge + 60;
 
             // Calculate actual vertical distance for this line
-            const actualVerticalDistance = window.asxLine2Data.horizontalY - (adiBottom + 2);
+            const asxStrokeWidth = parseFloat(asxLine2Extension.getAttribute('stroke-width')) || 4;
+            const strokeHalf = asxStrokeWidth / 2;
+            const curveEndY = adiBottom + strokeHalf;
+            const actualVerticalDistance = window.asxLine2Data.horizontalY - curveEndY;
 
             // Position endpoint closer to green line endpoint
             const greenEndX = extendPastNonAdi + 15; // Where green line ends
@@ -5315,7 +5376,7 @@ function initializeDiagram() {
                       `L ${curveStartX} ${window.asxLine2Data.horizontalY} ` +
                       `C ${curveStartX + 60} ${window.asxLine2Data.horizontalY}, ` +
                       `${extendPastNonAdi} ${window.asxLine2Data.horizontalY - actualVerticalDistance * 0.15}, ` +
-                      `${targetX} ${adiBottom + 2}`;
+                      `${targetX} ${curveEndY}`;
 
             asxLine2Extension.setAttribute('d', extensionPath);
           }
@@ -5328,9 +5389,11 @@ function initializeDiagram() {
         const nonAdiRectHeight = parseFloat(nonAdiRect.getAttribute('height'));
 
         // Position in bottom right corner
+        const nonAdiLabelRightPadding = 15;
+        const nonAdiLabelBottomPadding = 20; // Move label lower (approx 15% closer to bottom edge)
         const nonADIsText = createStyledText(
-          nonAdiRectX + nonAdiRectWidth - 15,
-          nonAdiRectY + nonAdiRectHeight - 10,
+          nonAdiRectX + nonAdiRectWidth - nonAdiLabelRightPadding,
+          nonAdiRectY + nonAdiRectHeight - nonAdiLabelBottomPadding,
           'Non-ADIs',
           {
             textAnchor: 'end',
@@ -5377,8 +5440,10 @@ function initializeDiagram() {
             const extendPastNonAdi = nonAdiRightEdge + 60;
             const greenEndX = extendPastNonAdi + 15; // Where green line ends
             const thirdBlueEndX = greenEndX + 20; // Where third blue line ends
+            const sympliStrokeWidth = parseFloat(sympliLineExtension.getAttribute('stroke-width')) || 3;
+            const sympliStrokeHalf = sympliStrokeWidth / 2;
             const targetX = thirdBlueEndX + 10; // 10px to the right of third blue line
-            const targetY = adiBottom + 2; // Just below ADIs box like other lines
+            const targetY = adiBottom + sympliStrokeHalf; // Stop at ADIs border without overlapping
 
             // Match curve parameters of blue/green lines
             const esasRightEdgeApprox = window.sympliLineData.startX + 200;
@@ -5412,8 +5477,10 @@ function initializeDiagram() {
             const greenEndX = extendPastNonAdi + 15;
             const thirdBlueEndX = greenEndX + 20;
             const sympliEndX = thirdBlueEndX + 10; // Where Sympli ends
+            const pexaStrokeWidth = parseFloat(pexaLineExtension.getAttribute('stroke-width')) || 3;
+            const pexaStrokeHalf = pexaStrokeWidth / 2;
             const targetX = sympliEndX + 15; // 15px to the right of Sympli line
-            const targetY = adiBottom + 2;
+            const targetY = adiBottom + pexaStrokeHalf;
 
             // Match curve parameters of other lines, accounting for longer horizontal
             const esasRightEdgeApprox = window.pexaLineData.startX + 200;
@@ -5454,8 +5521,8 @@ function initializeDiagram() {
       if (minX10 !== null && maxX10 !== null) {
         // Use tight padding for red-bordered dots rectangle
         const redLeftPadding = -27; // Moved in by 5 pixels
-        const redTopPadding = 2; // Reduced to lower top edge
-        const redBottomPadding = 1; // Reduced from 2 to nudge bottom border up
+        const redTopPadding = 10; // Increased headroom
+        const redBottomPadding = 5; // Increased headroom
         const redRightPadding = 300; // Reduced to bring right edge in
 
         // Match the width of "Other ADIs" box (group 5b)
@@ -5516,9 +5583,9 @@ function initializeDiagram() {
 
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
-        const greenBorderLeftPadding = -27; // Moved in by 5 pixels
-        const greenBorderTopPadding = 4; // Reduced from 6 to reduce top padding
-        const greenBorderBottomPadding = 6; // Increased to nudge bottom edge down
+        const greenBorderLeftPadding = -25; // Slight left adjustment
+        const greenBorderTopPadding = 8; // Increased headroom
+        const greenBorderBottomPadding = 10; // Increased headroom
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -5868,73 +5935,18 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
   }
 
   // Create S-curve from CLS AUD line to CLS dot at the very end
+
+// Create S-curve from CLS AUD line to CLS dot at the very end
   console.log('End of script - checking for S-curve creation.');
   console.log('window.clsEndpoints:', window.clsEndpoints);
-  if (window.clsEndpoints) {
+    if (window.clsEndpoints) {
     console.log('audLineEndX:', window.clsEndpoints.audLineEndX);
     console.log('audLineEndY:', window.clsEndpoints.audLineEndY);
     console.log('dotLineEndX:', window.clsEndpoints.dotLineEndX);
     console.log('dotLineEndY:', window.clsEndpoints.dotLineEndY);
   }
   if (window.clsEndpoints && window.clsEndpoints.audLineEndX && window.clsEndpoints.dotLineEndX) {
-    // Find the CLS AUD path element
-    const clsAudPath = document.getElementById('cls-aud-line-new');
-    if (clsAudPath) {
-  // Parse the path data to find the end point
-  const pathData = clsAudPath.getAttribute('d');
-  const matches = pathData.match(/L\s*([\d.]+)\s+([\d.]+)$/);
-
-  if (matches) {
-    // Use the stored endpoints
-    const curveStartX = window.clsEndpoints.audLineEndX;
-    const curveStartY = window.clsEndpoints.audLineEndY;
-    const curveEndX = window.clsEndpoints.dotLineEndX;
-    const curveEndY = window.clsEndpoints.dotLineEndY;
-
-    console.log('Creating S-curve from', [curveStartX, curveStartY], 'to', [curveEndX, curveEndY]);
-
-    // Calculate control points for a nice S-curve
-    const midX = (curveStartX + curveEndX) / 2;
-    const midY = (curveStartY + curveEndY) / 2;
-
-    // For S-curve: first control point pulls right, second pulls left
-    const horizontalOffset = Math.abs(curveEndX - curveStartX) * 0.5;
-
-    // Control point 1: right of start point, between start and mid Y
-    const cp1X = curveStartX + horizontalOffset;
-    const cp1Y = curveStartY + (midY - curveStartY) * 0.3;
-
-    // Control point 2: left of end point, between mid and end Y
-    const cp2X = curveEndX - horizontalOffset;
-    const cp2Y = curveEndY - (curveEndY - midY) * 0.3;
-
-    // Create the S-curve path
-    const sCurvePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const sCurveData = `M ${curveStartX} ${curveStartY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${curveEndX} ${curveEndY}`;
-
-    sCurvePath.setAttribute('d', sCurveData);
-    sCurvePath.setAttribute('stroke', '#7FFF00'); // Neon green to match
-    sCurvePath.setAttribute('stroke-width', '6');
-    sCurvePath.setAttribute('fill', 'none');
-    sCurvePath.setAttribute('stroke-linecap', 'round');
-    sCurvePath.setAttribute('id', 'cls-s-curve');
-
-    // Add to SVG
-    const svg = document.getElementById('diagram');
-    const labelsGroup = document.getElementById('dot-labels');
-    if (labelsGroup) {
-      svg.insertBefore(sCurvePath, labelsGroup);
-    } else {
-      svg.appendChild(sCurvePath);
-    }
-
-    console.log('S-curve created successfully');
-      } else {
-        console.log('No matches found in CLS AUD path data');
-      }
-    } else {
-      console.log('CLS AUD path not found');
-    }
+    console.log('CLS S-curve creation disabled.');
   } else {
     console.log('window.clsEndpoints not found or incomplete');
   }
@@ -5974,7 +5986,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       // Use similar padding but slightly less
       const innerLeftPadding = 60; // Increased to move left edge left
       const innerTopPadding = 30;
-      const innerBottomPadding = 5; // Decreased to raise bottom edge
+      const innerBottomPadding = 6; // Slightly increased to add extra bottom padding
       const innerRightPadding = 290;
 
       const adiRect = createStyledRect(
