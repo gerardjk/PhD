@@ -2752,6 +2752,13 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(pexaConveyText);
 
+        window.pexaConveyBoxData = {
+          x: pexaConveyX,
+          y: pexaConveyY,
+          width: pexaConveyWidth,
+          height: pexaConveyHeight
+        };
+
         // Add eftpos and Mastercard boxes stacked above PEXA e-conveyancing
         if (window.hexagonPositions) {
           const stackedHeight = pexaConveyHeight;
@@ -3082,6 +3089,17 @@ function initializeDiagram() {
             pexaConveyText.setAttribute('x', (newPexaConveyX + pexaConveyWidth / 2).toFixed(2));
           }
           pexaConveyX = newPexaConveyX;
+          if (!window.pexaConveyBoxData) {
+            window.pexaConveyBoxData = {
+              x: newPexaConveyX,
+              y: pexaConveyY,
+              width: pexaConveyWidth,
+              height: pexaConveyHeight
+            };
+          } else {
+            window.pexaConveyBoxData.x = newPexaConveyX;
+            window.pexaConveyBoxData.width = pexaConveyWidth;
+          }
           window.newPexaConveyX = newPexaConveyX;
           window.newPexaConveyWidth = pexaConveyWidth;
 
@@ -5653,6 +5671,58 @@ function initializeDiagram() {
             labelsGroup.appendChild(sympliToAdiLineStyled);
           }
 
+          if (window.pexaConveyBoxData && window.adiBoxData && window.asxLineData) {
+            const offsetBetweenLines = 5;
+            const horizontalSeparation = 5; // drop slightly lower than the Sympli path
+            const verticalSegmentShift = 10; // position entry segment 5px further left than Sympli
+            let actualPexaX = window.pexaConveyBoxData.x;
+            if (window.finalAsxBox) {
+              const asxBoxCenter = window.finalAsxBox.x + window.finalAsxBox.width / 2;
+              actualPexaX = asxBoxCenter - window.pexaConveyBoxData.width / 2;
+            }
+
+            const startX = actualPexaX;
+            const startY = window.pexaConveyBoxData.y + window.pexaConveyBoxData.height / 2;
+            const cornerRadius = 20;
+            const baseDownToY = window.asxLineData.horizontalY + 20;
+            let downToY = baseDownToY + horizontalSeparation;
+            const curveStartX = window.adiBoxData.x + 300;
+            const extendPastNonAdi = window.adiBoxData.x + 420;
+            const greenEndX = extendPastNonAdi + 15;
+            const blueEndX = greenEndX + 20;
+            const orangeEndX = blueEndX + 20;
+            const pinkEndX = orangeEndX + offsetBetweenLines;
+            const endY = window.adiBoxData.y + window.adiBoxData.height;
+            if (!Number.isFinite(downToY) || downToY <= endY + 1) {
+              downToY = baseDownToY;
+            }
+            const actualVerticalDistance = downToY - endY;
+            const bottomCornerRadius = 100;
+
+            const verticalEntryX = startX - verticalSegmentShift;
+            const controlX = verticalEntryX - cornerRadius;
+
+            const pexaPathData =
+              `M ${startX} ${startY} ` +
+              `L ${verticalEntryX} ${startY} ` +
+              `Q ${controlX} ${startY}, ${controlX} ${startY + cornerRadius} ` +
+              `L ${controlX} ${downToY - bottomCornerRadius} ` +
+              `Q ${controlX} ${downToY}, ${controlX + bottomCornerRadius} ${downToY} ` +
+              `L ${curveStartX} ${downToY} ` +
+              `C ${curveStartX + 60} ${downToY}, ` +
+                `${extendPastNonAdi} ${downToY - actualVerticalDistance * 0.15}, ` +
+                `${pinkEndX} ${endY}`;
+
+            const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
+              stroke: 'rgb(179,46,161)',
+              strokeWidth: '3',
+              fill: 'none',
+              id: 'pexa-to-adis-line'
+            });
+
+            labelsGroup.appendChild(pexaToAdiLineStyled);
+          }
+
           // Position: same left edge as ADI box, top edge below ADI box
           const rectX = adiBoxX;
 
@@ -6165,13 +6235,16 @@ const nppBiBoundingBoxCenterY = boundingBoxY + (newBoundingBoxHeight / 2);
 // Recalculate vertical placement so BSCT sits between PayID and PayTo
 const boxGap = 5; // Same vertical gap used between stacked boxes
 const bottomPadding = 5; // Match padding used below
-const bsctBaseY = boundingBoxY + newBoundingBoxHeight - bottomPadding - pacsBoxHeight;
-const adjustedBsctY = bsctBaseY - 1; // Slight upward adjustment for BSCT
-const payToBoxY = adjustedBsctY - pacsBoxHeight - boxGap;
-const adjustedPayToBoxY = payToBoxY; // no additional shift needed
-const payIdBoxY = adjustedPayToBoxY - pacsBoxHeight - boxGap;
+// PayTo is now at the bottom
+const payToBaseY = boundingBoxY + newBoundingBoxHeight - bottomPadding - pacsBoxHeight;
+const adjustedPayToBoxY = payToBaseY; // PayTo at bottom
+// BSCT is now in the middle
+const bsctBoxY = adjustedPayToBoxY - pacsBoxHeight - boxGap;
+const adjustedBsctY = bsctBoxY; // BSCT in middle
+// PayID stays at the top
+const payIdBoxY = adjustedBsctY - pacsBoxHeight - boxGap;
 const adjustedPayIdBoxY = payIdBoxY + 1; // Slight downward adjustment for PayID
-const pacsBoxY = adjustedBsctY;
+const pacsBoxY = adjustedBsctY; // pacsBoxY points to BSCT position
 
 // Debug logging
 console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBoxHeight, 'center=', nppBiBoundingBoxCenterY);
