@@ -17,6 +17,70 @@ function initializeDiagram() {
     const arcShift = +p.arcOffsetDeg;// rotate arc around its center (degrees)
     const strokeW  = +p.strokeWidth;
 
+    function adjustAsxBlueLinesToNeonSpacing() {
+      const endpoints = window.clsEndpoints;
+      const topLine = window.asxLineData;
+      const bottomLine = window.asxLine2Data;
+
+      if (!endpoints || endpoints.neonLineEndY === undefined) return;
+      if (!topLine || !bottomLine) return;
+      if (topLine.neonAdjusted || !topLine.pathElement || !bottomLine.pathElement) return;
+
+      const neonY = Number(endpoints.neonLineEndY);
+      const extraGapRaw = bottomLine.extraDown !== undefined ? bottomLine.extraDown : (bottomLine.horizontalY - topLine.horizontalY);
+      const startX = Number(topLine.startX);
+      const startY = Number(topLine.startY);
+      const cornerRadius = Number(topLine.cornerRadius ?? 30);
+      const horizontalLength = Number(topLine.horizontalLength ?? 150);
+      const startX2 = Number(bottomLine.startX);
+      const startY2 = Number(bottomLine.startY);
+      const cornerRadius2 = Number(bottomLine.cornerRadius ?? cornerRadius);
+      const horizontalLength2 = Number(bottomLine.horizontalLength ?? 150);
+
+      if (!Number.isFinite(neonY) || !Number.isFinite(extraGapRaw) || !Number.isFinite(startX) ||
+          !Number.isFinite(startY) || !Number.isFinite(cornerRadius) || !Number.isFinite(horizontalLength) ||
+          !Number.isFinite(startX2) || !Number.isFinite(startY2) || !Number.isFinite(cornerRadius2) ||
+          !Number.isFinite(horizontalLength2)) {
+        return;
+      }
+
+      const extraGap = Number(extraGapRaw);
+      const verticalShift = 15; // Drop the blue horizontals slightly below the neon line
+      const desiredTopY = neonY + extraGap + verticalShift;
+      const newGoDown = desiredTopY - cornerRadius - startY;
+
+      if (!Number.isFinite(newGoDown) || newGoDown < 0) return;
+
+      const newHorizontalY = startY + newGoDown + cornerRadius;
+      const path1 = `M ${startX} ${startY} ` +
+                    `L ${startX} ${startY + newGoDown} ` +
+                    `Q ${startX} ${startY + newGoDown + cornerRadius}, ` +
+                    `${startX + cornerRadius} ${startY + newGoDown + cornerRadius} ` +
+                    `L ${startX + horizontalLength} ${newHorizontalY}`;
+
+      topLine.pathElement.setAttribute('d', path1);
+      topLine.horizontalY = newHorizontalY;
+      topLine.goDownDistance = newGoDown;
+      topLine.neonAdjusted = true;
+
+      const extraDown = Number(bottomLine.extraDown ?? extraGap);
+      const newGoDown2 = newGoDown + extraDown;
+
+      if (!Number.isFinite(newGoDown2) || newGoDown2 < 0) return;
+
+      const newHorizontalY2 = startY2 + newGoDown2 + cornerRadius2;
+      const path2 = `M ${startX2} ${startY2} ` +
+                    `L ${startX2} ${startY2 + newGoDown2} ` +
+                    `Q ${startX2} ${startY2 + newGoDown2 + cornerRadius2}, ` +
+                    `${startX2 + cornerRadius2} ${startY2 + newGoDown2 + cornerRadius2} ` +
+                    `L ${startX2 + horizontalLength2} ${newHorizontalY2}`;
+
+      bottomLine.pathElement.setAttribute('d', path2);
+      bottomLine.horizontalY = newHorizontalY2;
+      bottomLine.goDownDistance = newGoDown2;
+      bottomLine.neonAdjusted = true;
+    }
+
 
     // Position circles (exactly):
     // Blue circle - update all layers
@@ -1491,7 +1555,8 @@ function initializeDiagram() {
           console.error('NPP box cannot be created - missing required dimensions');
         } else {
           // Only create NPP box if we have all required dimensions
-          nppY = 150 - (nppRectHeight * 2) + (nppRectHeight * 0.3) + (nppRectHeight / 6); // Move down by 1/6 instead of 1/3
+          const nppVerticalShift = 30; // Shift NPP down to align its base with adjacent labels without moving BSCT
+          nppY = 150 - (nppRectHeight * 2) + (nppRectHeight * 0.3) + (nppRectHeight / 6) + nppVerticalShift;
           nppBoxCreated = true;
         console.log('NPP position:', { rectX: nppRectX, nppY, swiftRectWidth: nppSwiftRectWidth, rectHeight: nppRectHeight });
         const nppBox = createStyledRect(nppRectX, nppY, nppSwiftRectWidth, nppRectHeight, {
@@ -1582,8 +1647,11 @@ function initializeDiagram() {
         const apceApcrAcptGap = 5; // Gap between the three boxes
         const singleSmallBoxWidth = narrowBoxWidth / 3; // Each box is 1/3 width (same as before)
         const apceApcrAcptHeight = boxHeight; // Same height as other boxes
-        const nppBottomY = nppBoxCreated ? (nppY + nppRectHeight) : 0; // Bottom of NPP
-        const smallBoxY = nppBottomY - apceApcrAcptHeight; // Align bottom with NPP bottom
+        const nppBottomY = nppBoxCreated ? (nppY + nppRectHeight) : null; // Bottom of NPP (if created)
+        const referenceGabsY = typeof gabsY === 'number'
+          ? gabsY
+          : (nppBottomY !== null ? nppBottomY - squareRectGap - boxHeight : 0);
+        const smallBoxY = referenceGabsY - apceApcrAcptHeight - squareRectGap; // One level above GABS with same gap
 
         // Calculate Cheques box width and position first
         const chequesTargetWidth = (window.hexagonPositions && typeof window.hexagonPositions.mastercardWidth === 'number')
@@ -1681,10 +1749,13 @@ function initializeDiagram() {
         window.apceApcrAcptData.ACPT.text = acptText;
 
         // Add Cheques box above the three small boxes
-        const chequesBoxGap = Math.max(0, squareRectGap / 2 - 2); // Nudge Cheques closer to the small boxes
+        const chequesBoxExtraGap = 12; // Additional breathing room above the APCE/APCR/ACPT row
+        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Maintain visible separation
         // chequesBoxX and chequesBoxWidth already calculated above
         const chequesBoxHeight = boxHeight; // Same height as other boxes
-        const chequesBoxY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Above the small boxes
+        const chequesBaseY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Baseline position shared with BEC*/DE
+        const chequesBoxOffsetY = 0; // Maintain original gap between Cheques and APCE row
+        const chequesBoxY = chequesBaseY + chequesBoxOffsetY; // Actual Cheques render position
 
         // Create filled Cheques box
         const chequesBox = createStyledRect(chequesBoxX, chequesBoxY, chequesBoxWidth, chequesBoxHeight, {
@@ -1716,8 +1787,14 @@ function initializeDiagram() {
         const becnX = becgX - becgBecnWidth - becgBecnGap; // BECN to the left of BECG with gap
 
         // Align vertically with Cheques box
-        const becgY = chequesBoxY; // Same Y position as Cheques
-        const becnY = chequesBoxY; // Same Y position as Cheques
+        const nppTopY = nppBoxCreated ? nppY : null;
+        const becRowOffsetAboveNpp = 5; // Keep BEC row just above the NPP top edge
+        const desiredBecRowY = (nppTopY !== null)
+          ? Math.max(nppTopY - becRowOffsetAboveNpp, 0)
+          : chequesBaseY;
+        const becRowY = Math.max(desiredBecRowY, chequesBaseY); // Allow row to follow NPP downward but not rise above the Cheques baseline
+        const becgY = becRowY;
+        const becnY = becRowY;
 
         // BECG box
         const becgBox = createStyledRect(becgX, becgY, becgBecnWidth, becgBecnHeight, {
@@ -1760,7 +1837,7 @@ function initializeDiagram() {
         const deBoxX = becnX; // Align left edge with BECN
         const deBoxWidth = (becgX + becgBecnWidth) - becnX; // Span from BECN left to BECG right
         const deBoxHeight = boxHeight; // Same height as Cheques
-        const deBoxY = chequesBoxY - deBoxHeight - deBoxGap; // Above BECN/BECG
+        const deBoxY = becRowY - deBoxHeight - deBoxGap; // Above BECN/BECG baseline
 
         // Create filled DE box
         const deBox = createStyledRect(deBoxX, deBoxY, deBoxWidth, deBoxHeight, {
@@ -1837,6 +1914,7 @@ function initializeDiagram() {
         // Add lines from APCS to all three small boxes
         const apcsLeftX = reducedNarrowBoxX; // Left side of APCS
         const smallBoxesBottomY = smallBoxY + apceApcrAcptHeight; // Bottom of small boxes
+        const smallBoxesCenterY = smallBoxY + apceApcrAcptHeight / 2; // Midpoint for connector landing
         // apcsCenterY already declared above
 
         // Calculate positions for three lines on APCS
@@ -1847,7 +1925,7 @@ function initializeDiagram() {
         // Line to APCE (leftmost - connects to bottom)
         const apceCenterX = apceX + singleSmallBoxWidth / 2;
         const apcsToApceData = `M ${apcsLeftX} ${apcsBottomThird}
-                                Q ${apceCenterX} ${apcsBottomThird} ${apceCenterX} ${smallBoxesBottomY - squareRectGap}`;
+                                Q ${apceCenterX} ${apcsBottomThird} ${apceCenterX} ${smallBoxesCenterY}`;
         const apcsToApcePath = createStyledPath(apcsToApceData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -1860,7 +1938,7 @@ function initializeDiagram() {
         // Line to APCR (middle)
         const apcrCenterX = apcrX + singleSmallBoxWidth / 2;
         const apcsToApcrData = `M ${apcsLeftX} ${apcsMiddle}
-                                Q ${apcrCenterX} ${apcsMiddle} ${apcrCenterX} ${smallBoxesBottomY - squareRectGap}`;
+                                Q ${apcrCenterX} ${apcsMiddle} ${apcrCenterX} ${smallBoxesCenterY}`;
         const apcsToApcrPath = createStyledPath(apcsToApcrData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -1873,7 +1951,7 @@ function initializeDiagram() {
         // Line to ACPT (rightmost - connects to top)
         const acptCenterX = acptX + singleSmallBoxWidth / 2;
         const apcsToAcptData = `M ${apcsLeftX} ${apcsTopThird}
-                                Q ${acptCenterX} ${apcsTopThird} ${acptCenterX} ${smallBoxesBottomY - squareRectGap}`;
+                                Q ${acptCenterX} ${apcsTopThird} ${acptCenterX} ${smallBoxesCenterY}`;
         const apcsToAcptPath = createStyledPath(apcsToAcptData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -2432,19 +2510,19 @@ function initializeDiagram() {
         const sympliWidth = rectWidth * 1.6; // Wider than before but still narrower than PEXA (1.8)
 
         // Calculate new X position based on ASX bounding box
-        // Position right edge at 1/3 of ASX box width from ASX box right edge
+        // Center the box over the ASX bounding box
         let sympliX;
         if (window.asxBoxRightEdge && window.finalAsxBox) {
-          const asxBoxRightEdge = window.asxBoxRightEdge;
           const asxBoxWidth = window.finalAsxBox.width;
-          const targetRightEdge = asxBoxRightEdge - (asxBoxWidth / 3);
-          sympliX = targetRightEdge - sympliWidth; // Calculate X from right edge
+          const asxBoxCenter = window.finalAsxBox.x + asxBoxWidth / 2;
+          sympliX = asxBoxCenter - sympliWidth / 2;
         } else {
           // Fallback to original calculation
           sympliX = moneyMarketX + rectWidth * 1.1 - sympliWidth - 60;
         }
 
-        const sympliBox = createStyledRect(sympliX, sympliY, sympliWidth, smallRectHeight * 0.9 * 1.2 * 0.95, {
+        const sympliHeight = smallRectHeight * 0.9 * 1.2 * 0.95;
+        const sympliBox = createStyledRect(sympliX, sympliY, sympliWidth, sympliHeight, {
           fill: 'rgb(239,136,51)', // Sympli new color
           stroke: 'rgb(239,136,51)', // Sympli new color
           strokeWidth: '2'
@@ -2456,7 +2534,7 @@ function initializeDiagram() {
         // Add Sympli text
         const sympliText = createStyledText(
           sympliX + sympliWidth / 2,
-          sympliY + smallRectHeight * 0.9 * 1.2 * 0.95 / 2,
+          sympliY + sympliHeight / 2,
           'Sympli e-conveyancing',
           {
             fill: '#ffffff', // White text
@@ -2465,60 +2543,34 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(sympliText);
 
-        // Add Sympli line from left edge going under dark blue boxes
-        // Move vertical segment to be between current position and PEXA
-        let sympliLineStartX = sympliX - 10; // 10px to the left of box edge
-        const sympliLineStartY = sympliY + (smallRectHeight * 0.9 * 1.2 * 0.95) + 2; // Just below bottom
-
-        // Go down further to run under the blue and green lines
-        const sympliGoDownDistance = 365; // Shifted up to be above PEXA
-        const sympliCornerRadius = 60; // Increased for more curvature at bottom left
-
-        // Calculate Sympli box center for connection
-        const sympliBoxCenterY = sympliY + (smallRectHeight * 0.9 * 1.2 * 0.95) / 2;
-
-        // Path with rounded corner connection to left side of box
-        const sympliFilletRadius = 20; // Radius for the rounded corner
-        const sympliPath = `M ${sympliX} ${sympliBoxCenterY} ` + // Start at left edge of Sympli box
-                         `L ${sympliLineStartX + sympliFilletRadius} ${sympliBoxCenterY} ` + // Go left horizontally (stop before corner)
-                         `Q ${sympliLineStartX} ${sympliBoxCenterY}, ` + // Control point at corner
-                         `${sympliLineStartX} ${sympliBoxCenterY + sympliFilletRadius} ` + // End of curve
-                         `L ${sympliLineStartX} ${sympliLineStartY + sympliGoDownDistance} ` + // Then down
-                         `Q ${sympliLineStartX} ${sympliLineStartY + sympliGoDownDistance + sympliCornerRadius}, ` +
-                         `${sympliLineStartX + sympliCornerRadius} ${sympliLineStartY + sympliGoDownDistance + sympliCornerRadius} ` +
-                         `L ${sympliLineStartX + 600} ${sympliLineStartY + sympliGoDownDistance + sympliCornerRadius}`;
-
-        const sympliLine = createStyledPath(sympliPath, {
-          stroke: 'rgb(239,136,51)', // Sympli orange color
-          strokeWidth: '3',
-          fill: 'none',
-          strokeLinecap: 'round',
-          id: 'sympli-line'
-        });
-        labelsGroup.appendChild(sympliLine);
-
-        // Update Sympli line position if needed
-        if (window.sympliLineUpdateData) {
-          const currentPath = sympliLine.getAttribute('d');
-          // Update the start point of the path (M command)
-          const newPath = currentPath.replace(/M\s*[\d.]+/, `M ${window.sympliLineUpdateData.newX}`);
-          // Update the sympliLineStartX references in the path
-          // Calculate how much the box moved
-          const moveDistance = window.sympliLineUpdateData.newX - window.sympliLineUpdateData.oldX;
-          // The old vertical line position
-          const oldLineStartX = window.sympliLineUpdateData.oldX - 10;
-          // Move the vertical line by the same distance as the box
-          const newLineStartX = oldLineStartX + moveDistance;
-          const updatedPath = newPath.replace(new RegExp(oldLineStartX.toFixed(2), 'g'), newLineStartX.toFixed(2));
-          sympliLine.setAttribute('d', updatedPath);
-          // Update sympliLineStartX for later use
-          sympliLineStartX = newLineStartX;
+        // Create Sympli double line horizontally into ASX Settlement (ASXB)
+        const sympliConnectorY = sympliY + sympliHeight / 2;
+        const sympliConnectorStartX = sympliX + sympliWidth;
+        let sympliConnectorEndX = sympliConnectorStartX;
+        if (window.bridgePositions) {
+          const left = window.bridgePositions.bridgeX;
+          const right = left + window.bridgePositions.bridgeWidth;
+          sympliConnectorEndX = left;
+          if (left <= sympliConnectorStartX) {
+            sympliConnectorEndX = right;
+          }
         }
-
-        // Store line data for later curve extension
-        if (!window.sympliLineData) window.sympliLineData = {};
-        window.sympliLineData.horizontalY = sympliLineStartY + sympliGoDownDistance + sympliCornerRadius;
-        window.sympliLineData.startX = sympliLineStartX;
+        const sympliLineGap = 3;
+        const sympliLineColor = '#DC143C';
+        const sympliLineOffsets = [-sympliLineGap / 2, sympliLineGap / 2];
+        window.sympliHorizontalLines = sympliLineOffsets.map((offset, idx) => {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', sympliConnectorStartX.toFixed(2));
+          line.setAttribute('y1', (sympliConnectorY + offset).toFixed(2));
+          line.setAttribute('x2', sympliConnectorEndX.toFixed(2));
+          line.setAttribute('y2', (sympliConnectorY + offset).toFixed(2));
+          line.setAttribute('stroke', sympliLineColor);
+          line.setAttribute('stroke-width', '1.5');
+          line.setAttribute('stroke-linecap', 'round');
+          line.setAttribute('id', `sympli-horizontal-line-${idx}`);
+          labelsGroup.appendChild(line);
+          return line;
+        });
 
         // Add PEXA e-conveyancing box above Sympli
         // Align with PEXA box to make the line horizontal
@@ -2526,19 +2578,19 @@ function initializeDiagram() {
         const pexaConveyWidth = sympliWidth; // Same width as Sympli
 
         // Calculate new X position based on ASX bounding box
-        // Position right edge at 1/3 of ASX box width from ASX box right edge
+        // Center the box over the ASX bounding box
         let pexaConveyX;
         if (window.asxBoxRightEdge && window.finalAsxBox) {
-          const asxBoxRightEdge = window.asxBoxRightEdge;
           const asxBoxWidth = window.finalAsxBox.width;
-          const targetRightEdge = asxBoxRightEdge - (asxBoxWidth / 3);
-          pexaConveyX = targetRightEdge - pexaConveyWidth; // Calculate X from right edge
+          const asxBoxCenter = window.finalAsxBox.x + asxBoxWidth / 2;
+          pexaConveyX = asxBoxCenter - pexaConveyWidth / 2;
         } else {
           // Fallback to original calculation
           pexaConveyX = moneyMarketX + rectWidth * 1.1 - pexaConveyWidth - 60;
         }
 
-        const pexaConveyBox = createStyledRect(pexaConveyX, pexaConveyY, pexaConveyWidth, smallRectHeight * 0.9 * 1.2 * 0.95, {
+        const pexaConveyHeight = smallRectHeight * 0.9 * 1.2 * 0.95;
+        const pexaConveyBox = createStyledRect(pexaConveyX, pexaConveyY, pexaConveyWidth, pexaConveyHeight, {
           fill: 'rgb(179,46,161)', // Same as PEXA border (solid fill)
           stroke: 'rgb(179,46,161)',
           strokeWidth: '2',
@@ -2550,7 +2602,7 @@ function initializeDiagram() {
         // Add PEXA e-conveyancing text
         const pexaConveyText = createStyledText(
           pexaConveyX + pexaConveyWidth / 2,
-          pexaConveyY + smallRectHeight * 0.9 * 1.2 * 0.95 / 2,
+          pexaConveyY + pexaConveyHeight / 2,
           'PEXA e-conveyancing',
           {
             fill: '#ffffff', // White text
@@ -2559,84 +2611,34 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(pexaConveyText);
 
-        // Create PEXA line parallel to Sympli line
-        // Start from bottom of PEXA box, but to the LEFT of Sympli
-        let pexaLineStartX = pexaConveyX - 20; // 20px to the left of box edge (10px more than Sympli to stay outside)
-        const pexaLineStartY = pexaConveyY + smallRectHeight * 0.9 * 1.2 * 0.95 + 2;
-
-        // Go down parallel to Sympli line, on the outside (5px further down)
-        const pexaGoDownDistance = sympliGoDownDistance + 35; // 10px below Sympli horizontal
-        const pexaCornerRadius = 60; // Even larger radius to stay well outside
-
-        // Calculate PEXA box center for connection
-        const pexaBoxCenterY = pexaConveyY + smallRectHeight * 0.9 * 1.2 * 0.95 / 2;
-
-        // Initial path: start from left edge of PEXA box, go left, then down with rounded corner
-        const pexaFilletRadius = 20; // Radius for the rounded corner
-        const pexaPath = `M ${pexaConveyX} ${pexaBoxCenterY} ` + // Start at left edge of PEXA box
-                        `L ${pexaLineStartX + pexaFilletRadius} ${pexaBoxCenterY} ` + // Go left horizontally (stop before corner)
-                        `Q ${pexaLineStartX} ${pexaBoxCenterY}, ` + // Control point at corner
-                        `${pexaLineStartX} ${pexaBoxCenterY + pexaFilletRadius} ` + // End of curve
-                        `L ${pexaLineStartX} ${pexaLineStartY + pexaGoDownDistance} ` + // Then down
-                        `Q ${pexaLineStartX} ${pexaLineStartY + pexaGoDownDistance + pexaCornerRadius}, ` +
-                        `${pexaLineStartX + pexaCornerRadius} ${pexaLineStartY + pexaGoDownDistance + pexaCornerRadius} ` + // Normal curve
-                        `L ${pexaLineStartX + 690} ${pexaLineStartY + pexaGoDownDistance + pexaCornerRadius}`;
-
-        console.log('=== PEXA LINE BEING CREATED ===');
-        console.log('PEXA box X:', pexaConveyX);
-        console.log('PEXA line start X:', pexaLineStartX);
-        console.log('PEXA box left edge:', pexaConveyX);
-        console.log('Line vertical segment X:', pexaLineStartX);
-        console.log('Gap between box and vertical line:', pexaConveyX - pexaLineStartX);
-
-        const pexaLine = createStyledPath(pexaPath, {
-          stroke: 'rgb(179,46,161)', // PEXA color
-          strokeWidth: '3',
-          fill: 'none',
-          strokeLinecap: 'round',
-          id: 'pexa-line'
-        });
-
-        labelsGroup.appendChild(pexaLine);
-
-        // Update PEXA line position if needed
-        if (window.pexaLineUpdateData) {
-          console.log('=== UPDATING PEXA LINE PATH ===');
-          const currentPath = pexaLine.getAttribute('d');
-          console.log('Current path:', currentPath);
-
-          // Update the start point of the path (M command)
-          const newPath = currentPath.replace(/M\s*[\d.]+/, `M ${window.pexaLineUpdateData.newX}`);
-          console.log('After updating M command:', newPath);
-
-          // Update the pexaLineStartX references in the path
-          // Calculate how much the box moved
-          const moveDistance = window.pexaLineUpdateData.newX - window.pexaLineUpdateData.oldX;
-          console.log('Box moved by:', moveDistance);
-
-          // The old vertical line position
-          const oldLineStartX = window.pexaLineUpdateData.oldX - 20;
-          console.log('Old vertical line X:', oldLineStartX);
-
-          // Move the vertical line by the same distance as the box
-          const newLineStartX = oldLineStartX + moveDistance;
-          console.log('New vertical line X:', newLineStartX);
-          console.log('New PEXA box left edge:', window.pexaLineUpdateData.newX);
-          console.log('Gap between box and vertical line:', window.pexaLineUpdateData.newX - newLineStartX);
-
-          const updatedPath = newPath.replace(new RegExp(oldLineStartX.toFixed(2), 'g'), newLineStartX.toFixed(2));
-          console.log('Final updated path:', updatedPath);
-
-          pexaLine.setAttribute('d', updatedPath);
-          // Update pexaLineStartX for later use
-          pexaLineStartX = newLineStartX;
+        // Create PEXA double line horizontally into PEXA hexagon
+        const pexaConnectorY = pexaConveyY + pexaConveyHeight / 2;
+        const pexaConnectorStartX = pexaConveyX + pexaConveyWidth;
+        let pexaConnectorEndX = pexaConnectorStartX;
+        if (window.hexagonPositions) {
+          const left = window.hexagonPositions.pexaX;
+          const right = left + window.hexagonPositions.pexaWidth;
+          pexaConnectorEndX = left;
+          if (left <= pexaConnectorStartX) {
+            pexaConnectorEndX = right;
+          }
         }
-
-        // Store PEXA line data for later curve extension
-        if (!window.pexaLineData) window.pexaLineData = {};
-        window.pexaLineData.horizontalY = pexaLineStartY + pexaGoDownDistance + pexaCornerRadius;
-        window.pexaLineData.startX = pexaLineStartX;
-        window.pexaLineData.startY = pexaLineStartY;
+        const pexaLineGap = 3;
+        const pexaLineColor = '#DC143C';
+        const pexaLineOffsets = [-pexaLineGap / 2, pexaLineGap / 2];
+        window.pexaHorizontalLines = pexaLineOffsets.map((offset, idx) => {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', pexaConnectorStartX.toFixed(2));
+          line.setAttribute('y1', (pexaConnectorY + offset).toFixed(2));
+          line.setAttribute('x2', pexaConnectorEndX.toFixed(2));
+          line.setAttribute('y2', (pexaConnectorY + offset).toFixed(2));
+          line.setAttribute('stroke', pexaLineColor);
+          line.setAttribute('stroke-width', '1.5');
+          line.setAttribute('stroke-linecap', 'round');
+          line.setAttribute('id', `pexa-horizontal-line-${idx}`);
+          labelsGroup.appendChild(line);
+          return line;
+        });
 
         // Trade by trade box - above SSS/CCP with double gap
         const tradeByTradePadding = 0; // No padding - align with other boxes
@@ -2788,54 +2790,43 @@ function initializeDiagram() {
 
         // Now reposition PEXA e-conveyancing and Sympli boxes based on ASX box
         // Their right edges should be 1/3 of ASX box width from ASX box right edge
-        const targetRightEdgeForConveyancing = asxBoxX + asxBoxWidth - (asxBoxWidth / 3);
+        const centerForConveyancing = asxBoxX + asxBoxWidth / 2;
 
         // Update Sympli box position
         if (sympliBox) {
-          const newSympliX = targetRightEdgeForConveyancing - sympliWidth;
+          const newSympliX = centerForConveyancing - sympliWidth / 2;
           sympliBox.setAttribute('x', newSympliX.toFixed(2));
-          // Update Sympli text position
           if (sympliText) {
             sympliText.setAttribute('x', (newSympliX + sympliWidth / 2).toFixed(2));
           }
-          // Update Sympli line start position
-          const sympliLineElements = document.querySelectorAll('path[d*="' + sympliX.toFixed(2) + '"]');
-          sympliLineElements.forEach(path => {
-            const currentPath = path.getAttribute('d');
-            const newPath = currentPath.replace(new RegExp(sympliX.toFixed(2), 'g'), newSympliX.toFixed(2));
-            path.setAttribute('d', newPath);
-          });
-          // Store the new Sympli X position for later use
           window.newSympliX = newSympliX;
 
-          // Update Sympli line from left edge
-          // The line has already been created, so update it directly
-          const sympliLineElement = document.getElementById('sympli-line');
-          if (sympliLineElement) {
-            console.log('=== UPDATING EXISTING SYMPLI LINE ===');
-            const currentPath = sympliLineElement.getAttribute('d');
-            console.log('Current path:', currentPath);
-
-            // Replace all occurrences of the old X position with the new one
-            // The line starts at sympliX and has vertical segment at sympliX - 10
-            const oldVerticalX = sympliX - 10;
-            const newVerticalX = newSympliX - 10;
-
-            let updatedPath = currentPath;
-            // Update the M command (start point)
-            updatedPath = updatedPath.replace(/M\s*[\d.]+/, `M ${newSympliX}`);
-            // Update all references to the old X positions
-            updatedPath = updatedPath.replace(new RegExp(sympliX.toFixed(2), 'g'), newSympliX.toFixed(2));
-            updatedPath = updatedPath.replace(new RegExp(oldVerticalX.toFixed(2), 'g'), newVerticalX.toFixed(2));
-
-            console.log('Updated path:', updatedPath);
-            sympliLineElement.setAttribute('d', updatedPath);
+          if (window.sympliHorizontalLines && window.sympliHorizontalLines.length) {
+            const sympliStart = newSympliX + sympliWidth;
+            let sympliEnd = sympliStart;
+            if (window.bridgePositions) {
+              const left = window.bridgePositions.bridgeX;
+              const right = left + window.bridgePositions.bridgeWidth;
+              sympliEnd = left;
+              if (left <= sympliStart) {
+                sympliEnd = right;
+              }
+            }
+            const sympliYCenter = sympliY + sympliHeight / 2;
+            const offsets = [-1.5, 1.5];
+            window.sympliHorizontalLines.forEach((line, idx) => {
+              const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+              line.setAttribute('x1', sympliStart.toFixed(2));
+              line.setAttribute('y1', (sympliYCenter + offset).toFixed(2));
+              line.setAttribute('x2', sympliEnd.toFixed(2));
+              line.setAttribute('y2', (sympliYCenter + offset).toFixed(2));
+            });
           }
         }
 
         // Update PEXA e-conveyancing box position
         if (pexaConveyBox) {
-          const newPexaConveyX = targetRightEdgeForConveyancing - pexaConveyWidth;
+          const newPexaConveyX = centerForConveyancing - pexaConveyWidth / 2;
 
           // LOG THE FUCKING COORDINATES
           console.log('=== PEXA E-CONVEYANCING BOX REPOSITIONING ===');
@@ -2845,45 +2836,36 @@ function initializeDiagram() {
           console.log('Box left edge:', newPexaConveyX);
           console.log('Box right edge:', newPexaConveyX + pexaConveyWidth);
           console.log('ASX box right edge:', asxBoxX + asxBoxWidth);
-          console.log('Target right edge (1/3 from ASX right):', targetRightEdgeForConveyancing);
+          console.log('ASX box center:', centerForConveyancing);
           pexaConveyBox.setAttribute('x', newPexaConveyX.toFixed(2));
           // Update PEXA e-conveyancing text position
           if (pexaConveyText) {
             pexaConveyText.setAttribute('x', (newPexaConveyX + pexaConveyWidth / 2).toFixed(2));
           }
-          // Update PEXA line start position
-          const pexaLineElements = document.querySelectorAll('path[d*="' + pexaConveyX.toFixed(2) + '"]');
-          pexaLineElements.forEach(path => {
-            const currentPath = path.getAttribute('d');
-            const newPath = currentPath.replace(new RegExp(pexaConveyX.toFixed(2), 'g'), newPexaConveyX.toFixed(2));
-            path.setAttribute('d', newPath);
-          });
-          // Store the new PEXA conveyancing position for later use
+          pexaConveyX = newPexaConveyX;
           window.newPexaConveyX = newPexaConveyX;
           window.newPexaConveyWidth = pexaConveyWidth;
 
-          // Update PEXA line from left edge
-          // The line has already been created, so update it directly
-          const pexaLineElement = document.getElementById('pexa-line');
-          if (pexaLineElement) {
-            console.log('=== UPDATING EXISTING PEXA LINE ===');
-            const currentPath = pexaLineElement.getAttribute('d');
-            console.log('Current path:', currentPath);
-
-            // Replace all occurrences of the old X position with the new one
-            // The line starts at pexaConveyX and has vertical segment at pexaConveyX - 20
-            const oldVerticalX = pexaConveyX - 20;
-            const newVerticalX = newPexaConveyX - 20;
-
-            let updatedPath = currentPath;
-            // Update the M command (start point)
-            updatedPath = updatedPath.replace(/M\s*[\d.]+/, `M ${newPexaConveyX}`);
-            // Update all references to the old X positions
-            updatedPath = updatedPath.replace(new RegExp(pexaConveyX.toFixed(2), 'g'), newPexaConveyX.toFixed(2));
-            updatedPath = updatedPath.replace(new RegExp(oldVerticalX.toFixed(2), 'g'), newVerticalX.toFixed(2));
-
-            console.log('Updated path:', updatedPath);
-            pexaLineElement.setAttribute('d', updatedPath);
+          if (window.pexaHorizontalLines && window.pexaHorizontalLines.length) {
+            const pexaStart = newPexaConveyX + pexaConveyWidth;
+            let pexaEnd = pexaStart;
+            if (window.hexagonPositions) {
+              const left = window.hexagonPositions.pexaX;
+              const right = left + window.hexagonPositions.pexaWidth;
+              pexaEnd = left;
+              if (left <= pexaStart) {
+                pexaEnd = right;
+              }
+            }
+            const pexaYCenter = pexaConveyY + pexaConveyHeight / 2;
+            const offsets = [-1.5, 1.5];
+            window.pexaHorizontalLines.forEach((line, idx) => {
+              const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+              line.setAttribute('x1', pexaStart.toFixed(2));
+              line.setAttribute('y1', (pexaYCenter + offset).toFixed(2));
+              line.setAttribute('x2', pexaEnd.toFixed(2));
+              line.setAttribute('y2', (pexaYCenter + offset).toFixed(2));
+            });
           }
         }
 
@@ -2924,6 +2906,10 @@ function initializeDiagram() {
           if (!window.asxLineData) window.asxLineData = {};
           window.asxLineData.horizontalY = asxLineStartY + goDownDistance + cornerRadius;
           window.asxLineData.startX = asxLineStartX;
+          window.asxLineData.startY = asxLineStartY;
+          window.asxLineData.cornerRadius = cornerRadius;
+          window.asxLineData.horizontalLength = 150;
+          window.asxLineData.goDownDistance = goDownDistance;
 
           const asxPath = `M ${asxLineStartX} ${asxLineStartY} ` +
                         `L ${asxLineStartX} ${asxLineStartY + goDownDistance} ` + // Go straight down
@@ -2939,6 +2925,8 @@ function initializeDiagram() {
             id: 'asx-to-hvcs-line'
           });
           labelsGroup.appendChild(asxToHvcsLineStyled);
+          window.asxLineData.pathElement = asxToHvcsLineStyled;
+          window.asxLineData.neonAdjusted = false;
 
           // Add third blue line from ASX box (60% from right) curving into ADIs
           const asxToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -2963,11 +2951,18 @@ function initializeDiagram() {
             id: 'asx-to-adi-line'
           });
           labelsGroup.appendChild(asxToAdiLineStyled);
+          if (!window.asxLine2Data) window.asxLine2Data = {};
+          window.asxLine2Data.pathElement = asxToAdiLineStyled;
+          window.asxLine2Data.neonAdjusted = false;
 
           // Store line data for later extension
-          if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.horizontalY = asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius;
           window.asxLine2Data.startX = asxLine2StartX;
+          window.asxLine2Data.startY = asxLine2StartY;
+          window.asxLine2Data.cornerRadius = cornerRadius;
+          window.asxLine2Data.horizontalLength = 150;
+          window.asxLine2Data.extraDown = extraDownForRightLine;
+          window.asxLine2Data.baseGoDownDistance = goDownDistance;
         }
 
         // Add blue line connecting clearing/netting to ASX Settlement
@@ -2994,24 +2989,8 @@ function initializeDiagram() {
         });
         labelsGroup.appendChild(clearingToAsxPath);
 
-        // REMOVED Sympli to ASXF curved line
-        // Instead draw a horizontal line from Sympli to ASXF x-coordinate
-        const sympliHorizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        // Use the updated Sympli X position if available
-        const actualSympliX = window.newSympliX !== undefined ? window.newSympliX : sympliX;
-        const sympliRightX = actualSympliX + sympliWidth;
-        const sympliCenterY = sympliY + smallRectHeight * 0.9 * 1.2 * 0.95 / 2; // Center Y with adjusted height
-
-        // Draw horizontal line to ASXF left X coordinate
-        sympliHorizontalLine.setAttribute('x1', sympliRightX);
-        sympliHorizontalLine.setAttribute('y1', sympliCenterY);
-        sympliHorizontalLine.setAttribute('x2', window.hexagonPositions.asxfX);
-        sympliHorizontalLine.setAttribute('y2', sympliCenterY);
-        sympliHorizontalLine.setAttribute('stroke', 'rgb(239,136,51)'); // Sympli orange color
-        sympliHorizontalLine.setAttribute('stroke-width', '3');
-        labelsGroup.appendChild(sympliHorizontalLine);
-
         // Calculate the 1/3 point on ASXF box using the UPDATED position
+        const sympliCenterY = sympliY + sympliHeight / 2;
         // We need to use the position from window.hexagonPositions which has been adjusted
         const asxfCurrentY = window.hexagonPositions.asxfY;
         const asxfCurrentHeight = window.hexagonPositions.asxfHeight;
@@ -3121,8 +3100,6 @@ function initializeDiagram() {
         // Use the updated position if available
         const actualPexaConveyX = window.newPexaConveyX !== undefined ? window.newPexaConveyX : pexaConveyX;
         const actualPexaConveyWidth = window.newPexaConveyWidth !== undefined ? window.newPexaConveyWidth : pexaConveyWidth;
-        const pexaConveyRightX = actualPexaConveyX + actualPexaConveyWidth;
-        const pexaConveyCenterY = pexaConveyY + smallRectHeight * 0.9 * 1.2 * 0.95 / 2; // Center Y with adjusted height
         // PEXA box position
         const pexaBoxLeftX = window.hexagonPositions.pexaX;
         let pexaHexCenterY = window.hexagonPositions.pexaY + window.hexagonPositions.hexHeight / 2;
@@ -3240,19 +3217,6 @@ function initializeDiagram() {
         } else {
           console.log('ASX Settlement text element not found!');
         }
-
-        // Create S-curve for PEXA
-        const pexaPathData = `M ${pexaConveyRightX} ${pexaConveyCenterY} 
-                             C ${pexaConveyRightX + controlOffset} ${pexaConveyCenterY},
-                               ${pexaBoxLeftX - controlOffset} ${pexaHexCenterY},
-                               ${pexaBoxLeftX} ${pexaHexCenterY}`;
-
-        const pexaToBoxPath = createStyledPath(pexaPathData, {
-          stroke: 'rgb(179,46,161)', // PEXA color
-          strokeWidth: '3',
-          fill: 'none'
-        });
-        labelsGroup.appendChild(pexaToBoxPath);
 
         // Horizontal line from eftpos
         const eftposHorizontalPath = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -3617,6 +3581,7 @@ function initializeDiagram() {
           window.clsEndpoints.audLineEndY = turnY2;
           window.clsEndpoints.neonLineEndX = pathEndX;
           window.clsEndpoints.neonLineEndY = turnY2;
+          adjustAsxBlueLinesToNeonSpacing();
           console.log('Stored CLS AUD endpoint:', {audLineEndX: pathEndX, audLineEndY: turnY2});
           // S-curve will be drawn at the end when we have both endpoints
         }
@@ -4408,7 +4373,8 @@ function initializeDiagram() {
 
       if (window.nppBoxData && window.esasBoxData) {
         // Calculate where NPP should be positioned (align tops)
-        const newNppY = window.esasBoxData.y;
+        const nppAlignmentOffset = 24; // Drop NPP slightly so its base lines up with the NPP BI bounding box
+        const newNppY = window.esasBoxData.y + nppAlignmentOffset;
 
         // Get NPP box element
         const nppBox = document.getElementById('npp-box');
@@ -4468,27 +4434,7 @@ function initializeDiagram() {
               }
             }
 
-            // Update the APCE, APCR, and ACPT boxes and labels that align with NPP bottom
-            if (window.apceApcrAcptData) {
-              Object.values(window.apceApcrAcptData).forEach(item => {
-                if (item && item.rect) {
-                  const currentY = parseFloat(item.rect.getAttribute('y'));
-                  item.rect.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
-                }
-              });
-            }
-
-            // Update APCE, APCR, ACPT text labels
-            const smallBoxTexts = ['APCE', 'APCR', 'ACPT'];
-            smallBoxTexts.forEach(label => {
-              const texts = Array.from(labelsGroup.getElementsByTagName('text')).filter(text => 
-                text.textContent === label
-              );
-              texts.forEach(text => {
-                const currentY = parseFloat(text.getAttribute('y'));
-                text.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
-              });
-            });
+            // Keep APCE/APCR/ACPT anchored to the admin batches layout; do not shift them with NPP
 
             // Update stored NPP data
             window.nppBoxData.y = newNppY;
@@ -5412,6 +5358,9 @@ function initializeDiagram() {
 
         // Extend ASX blue line to curve into non-ADIs box (mirroring green line)
         if (window.asxLineData && window.nonAdiBoxData) {
+          if (!window.asxLineData.neonAdjusted || !window.asxLine2Data || !window.asxLine2Data.neonAdjusted) {
+            adjustAsxBlueLinesToNeonSpacing();
+          }
           const asxExtension = document.getElementById('asx-to-hvcs-line');
           if (asxExtension) {
             const nonAdiBottom = window.nonAdiBoxData.y + window.nonAdiBoxData.height;
@@ -5437,78 +5386,6 @@ function initializeDiagram() {
           }
         }
 
-        // Extend Sympli line to curve up to ADIs box
-        if (window.sympliLineData && window.adiBoxData && window.nonAdiBoxData) {
-          const sympliLineExtension = document.getElementById('sympli-line');
-          if (sympliLineExtension) {
-            // Target position: ADIs box, to the left of the third blue line
-            const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
-            const nonAdiRightEdge = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
-            const extendPastNonAdi = nonAdiRightEdge + 60;
-            const greenEndX = extendPastNonAdi + 15; // Where green line ends
-            const thirdBlueEndX = greenEndX + 20; // Where third blue line ends
-            const sympliStrokeWidth = parseFloat(sympliLineExtension.getAttribute('stroke-width')) || 3;
-            const sympliStrokeHalf = sympliStrokeWidth / 2;
-            const targetX = thirdBlueEndX + 10; // 10px to the right of third blue line
-            const targetY = adiBottom + sympliStrokeHalf; // Stop at ADIs border without overlapping
-
-            // Match curve parameters of blue/green lines
-            const esasRightEdgeApprox = window.sympliLineData.startX + 200;
-            const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80); // Same as other lines
-
-            // Calculate actual vertical distance
-            const actualVerticalDistance = window.sympliLineData.horizontalY - targetY;
-
-            // Get current path and extend it
-            const currentPath = sympliLineExtension.getAttribute('d');
-
-            // Create curve matching the slope of other lines
-            const extensionPath = currentPath + ' ' +
-                      `L ${curveStartX} ${window.sympliLineData.horizontalY} ` +
-                      `C ${curveStartX + 60} ${window.sympliLineData.horizontalY}, ` +
-                      `${targetX - 30} ${window.sympliLineData.horizontalY - actualVerticalDistance * 0.15}, ` +
-                      `${targetX} ${targetY}`;
-
-            sympliLineExtension.setAttribute('d', extensionPath);
-          }
-        }
-
-        // Extend PEXA line to curve up to ADIs box and then back to PEXA box
-        if (window.pexaLineData && window.adiBoxData && window.nonAdiBoxData) {
-          const pexaLineExtension = document.getElementById('pexa-line');
-          if (pexaLineExtension) {
-            // Target position: ADIs box, slightly to the right of Sympli line
-            const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
-            const nonAdiRightEdge = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
-            const extendPastNonAdi = nonAdiRightEdge + 60;
-            const greenEndX = extendPastNonAdi + 15;
-            const thirdBlueEndX = greenEndX + 20;
-            const sympliEndX = thirdBlueEndX + 10; // Where Sympli ends
-            const pexaStrokeWidth = parseFloat(pexaLineExtension.getAttribute('stroke-width')) || 3;
-            const pexaStrokeHalf = pexaStrokeWidth / 2;
-            const targetX = sympliEndX + 15; // 15px to the right of Sympli line
-            const targetY = adiBottom + pexaStrokeHalf;
-
-            // Match curve parameters of other lines, accounting for longer horizontal
-            const esasRightEdgeApprox = window.pexaLineData.startX + 200;
-            const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80) + 40;
-
-            // Calculate vertical distance
-            const actualVerticalDistance = window.pexaLineData.horizontalY - targetY;
-
-            // Get current path
-            const currentPath = pexaLineExtension.getAttribute('d');
-
-            // Create curve up to ADIs box (same shape as Sympli)
-            const extensionPath = currentPath + ' ' +
-                      `L ${curveStartX} ${window.pexaLineData.horizontalY} ` +
-                      `C ${curveStartX + 60} ${window.pexaLineData.horizontalY}, ` +
-                      `${targetX - 30} ${window.pexaLineData.horizontalY - actualVerticalDistance * 0.15}, ` +
-                      `${targetX} ${targetY}`;
-
-            pexaLineExtension.setAttribute('d', extensionPath);
-          }
-        }
         }
       }
 
@@ -5968,8 +5845,10 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       try {
         const totalLength = clsNeonPath.getTotalLength();
         const point = clsNeonPath.getPointAtLength(totalLength);
-        startX = point.x;
-        startY = point.y;
+        if (Number.isFinite(point.x) && Number.isFinite(point.y)) {
+          startX = point.x;
+          startY = point.y;
+        }
       } catch (err) {
         console.warn('Unable to sample CLS neon path endpoint:', err);
       }
