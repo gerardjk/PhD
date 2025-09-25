@@ -2778,8 +2778,11 @@ function initializeDiagram() {
           const shift = essbY - baseEftposY;
           const eftposY = baseEftposY + shift;
           const mastercardY = eftposY - gapSympliPexa - stackedHeight;
+          const visaY = mastercardY - (gapSympliPexa * 2) - stackedHeight; // Double gap above Mastercard
+          const otherCardsY = visaY - gapSympliPexa - stackedHeight; // Same gap as eftpos-mastercard
 
           const createStackedRect = (y, fillColor, label) => {
+            console.log(`Creating ${label} box at X: ${baseX}, Y: ${y}`);
             const rect = createStyledRect(baseX, y, boxWidth, stackedHeight, {
               fill: fillColor,
               stroke: 'none',
@@ -2822,7 +2825,40 @@ function initializeDiagram() {
           };
 
           const eftpos = createStackedRect(eftposY, 'rgb(100,80,180)', 'eftpos');
-          const mastercard = createStackedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
+
+          // Get the actual X position from the eftpos rect that was just created
+          const eftposRect = eftpos.rect;
+          const eftposActualX = parseFloat(eftposRect.getAttribute('x'));
+          console.log('Eftpos actual X:', eftposActualX, 'vs baseX:', baseX);
+
+          // Override the createStackedRect function to use the actual X
+          const createAlignedRect = (y, fillColor, label) => {
+            console.log(`Creating aligned ${label} box at X: ${eftposActualX}, Y: ${y}`);
+            const rect = createStyledRect(eftposActualX, y, boxWidth, stackedHeight, {
+              fill: fillColor,
+              stroke: 'none',
+              rx: '8',
+              ry: '8'
+            });
+            labelsGroup.appendChild(rect);
+
+            const text = createStyledText(
+              eftposActualX + boxWidth / 2,
+              y + stackedHeight / 2,
+              label,
+              {
+                fill: '#ffffff',
+                fontSize: '12'
+              }
+            );
+            labelsGroup.appendChild(text);
+
+            return { rect, text };
+          };
+
+          const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
+          const visa = createAlignedRect(visaY, '#faaa13', 'Visa');
+          const otherCards = createAlignedRect(otherCardsY, '#629F86', 'Other cards');
 
           const eftposLines = createDoubleLine(
             baseX + boxWidth,
@@ -5691,7 +5727,8 @@ function initializeDiagram() {
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkEndX = orangeEndX + offsetBetweenLines;
+            const pinkHorizontalOffset = offsetBetweenLines + 5;
+            const pinkEndX = orangeEndX + pinkHorizontalOffset;
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
