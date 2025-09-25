@@ -1699,6 +1699,19 @@ function initializeDiagram() {
         const nppCenterY = nppY + nppRectHeight / 2;
         const nppLineOffset = 10;
 
+        const nppPurpleLabel = createStyledText(
+          nppCenterX,
+          nppCenterY,
+          'NPP',
+          {
+            fill: '#0f766e',
+            fontSize: '18',
+            fontWeight: 'bold'
+          }
+        );
+        labelsGroup.appendChild(nppPurpleLabel);
+        window.nppLabelElement = nppPurpleLabel;
+
         const nppTopText = createStyledText(nppCenterX, nppCenterY - nppLineOffset, 'NPP BI', {
           fill: '#0f766e',
           fontSize: '18',
@@ -2668,44 +2681,13 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(sympliText);
 
-        // Add orange line from Sympli to ADIs
-        // This line goes from left side of Sympli, curves down, follows under the blue lines, then curves up to ADIs
-        if (window.asxLineData && window.adiBoxData) {
-          const sympliToAdiPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-
-          // Start from left side of Sympli box (middle height)
-          const startX = sympliX;
-          const startY = sympliY + sympliHeight / 2;
-
-          // Curve down to same Y level as blue lines (where they turn horizontal)
-          const cornerRadius = 20;
-          const downToY = window.asxLineData.horizontalY + 15; // Go 15px below the blue lines
-
-          // Follow horizontally to the right (under the blue lines)
-          const horizontalEndX = window.adiBoxData.x + window.adiBoxData.width / 2; // Center of ADIs box
-
-          // Then curve up to reach bottom of ADIs box
-          const endY = window.adiBoxData.y + window.adiBoxData.height; // Bottom of ADIs box
-
-          const pathData =
-            `M ${startX} ${startY} ` + // Start at left side of Sympli
-            `L ${startX - 10} ${startY} ` + // Go a bit left
-            `Q ${startX - 10 - cornerRadius} ${startY}, ${startX - 10 - cornerRadius} ${startY + cornerRadius} ` + // Curve down
-            `L ${startX - 10 - cornerRadius} ${downToY - cornerRadius} ` + // Go down
-            `Q ${startX - 10 - cornerRadius} ${downToY}, ${startX - 10} ${downToY} ` + // Curve right
-            `L ${horizontalEndX - cornerRadius} ${downToY} ` + // Go right under the blue lines
-            `Q ${horizontalEndX} ${downToY}, ${horizontalEndX} ${downToY - cornerRadius} ` + // Curve up
-            `L ${horizontalEndX} ${endY}`; // Go up to ADIs box
-
-          const sympliToAdiLineStyled = createStyledPath(pathData, {
-            stroke: 'rgb(239,136,51)', // Same orange as Sympli box
-            strokeWidth: '3',
-            fill: 'none',
-            id: 'sympli-to-adis-line'
-          });
-
-          labelsGroup.appendChild(sympliToAdiLineStyled);
-        }
+        // Store Sympli box data for creating orange line to ADIs later
+        window.sympliBoxData = {
+          x: sympliX,
+          y: sympliY,
+          width: sympliWidth,
+          height: sympliHeight
+        };
 
         const sympliLineGap = 3;
         const sympliLineColor = '#DC143C';
@@ -2835,6 +2817,7 @@ function initializeDiagram() {
                 strokeWidth: '1.5',
                 strokeLinecap: 'round'
               });
+              line.classList.add('admin-double-line');
               if (targetGroup) {
                 targetGroup.appendChild(line);
               } else {
@@ -3170,18 +3153,21 @@ function initializeDiagram() {
             const mastercardEndX = window.hexagonPositions.mastercardX;
             const mastercardMidY = mastercardY + stackedHeight / 2;
             if (window.pexaExtensions.mastercardLines) {
-              window.pexaExtensions.mastercardLines.forEach((line, idx) => {
-                if (!line) return;
-                const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
-                line.setAttribute('x1', mastercardStartX.toFixed(2));
-                line.setAttribute('y1', (mastercardMidY + offset).toFixed(2));
-                line.setAttribute('x2', mastercardEndX.toFixed(2));
-                line.setAttribute('y2', (mastercardMidY + offset).toFixed(2));
-              });
-            }
+            window.pexaExtensions.mastercardLines.forEach((line, idx) => {
+              if (!line) return;
+              const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+              line.setAttribute('x1', mastercardStartX.toFixed(2));
+              line.setAttribute('y1', (mastercardMidY + offset).toFixed(2));
+              line.setAttribute('x2', mastercardEndX.toFixed(2));
+              line.setAttribute('y2', (mastercardMidY + offset).toFixed(2));
+            });
           }
+          if (typeof window.updateOskoLine === 'function') {
+            window.updateOskoLine();
+          }
+        }
 
-          if (window.pexaHorizontalLines && window.pexaHorizontalLines.length) {
+        if (window.pexaHorizontalLines && window.pexaHorizontalLines.length) {
             const pexaStart = newPexaConveyX + pexaConveyWidth;
             let pexaEnd = pexaStart;
             if (window.hexagonPositions) {
@@ -4163,22 +4149,29 @@ function initializeDiagram() {
       bdfLabel.setAttribute('dominant-baseline', 'middle');
       labelsGroup.appendChild(bdfLabel);
 
-      // Add TSY box to the left of RBA dot
+      // Add OPA box to the left of RBA dot
       if (window.dotPositions && window.dotPositions[0]) {
-        const tsyBoxSize = 60; // Same as BDF box
+        const opaBoxSize = 45; // 25% smaller than BDF box (60 * 0.75 = 45)
         const rbaX = window.dotPositions[0].x;
         const rbaY = window.dotPositions[0].y;
 
-        // Position TSY box to the left of RBA
-        const tsyX = rbaX - 150; // 150px to the left of RBA
-        const tsyY = rbaY;
+        // Position OPA box closer to ESAs edge
+        // If ESAs box data is available, position relative to its right edge
+        let opaX;
+        if (window.esasBoxData) {
+          const esasRightEdge = window.esasBoxData.x + window.esasBoxData.width;
+          opaX = esasRightEdge + 40; // 40px from ESAs right edge
+        } else {
+          opaX = rbaX - 100; // Fallback position
+        }
+        const opaY = rbaY;
 
-        // Create the black TSY box
-        const tsySquare = createStyledRect(
-          tsyX - tsyBoxSize/2,
-          tsyY - tsyBoxSize/2,
-          tsyBoxSize,
-          tsyBoxSize,
+        // Create the black OPA box
+        const opaSquare = createStyledRect(
+          opaX - opaBoxSize/2,
+          opaY - opaBoxSize/2,
+          opaBoxSize,
+          opaBoxSize,
           {
             fill: '#000000',
             stroke: '#991b1b',
@@ -4187,32 +4180,32 @@ function initializeDiagram() {
             ry: '0'
           }
         );
-        labelsGroup.appendChild(tsySquare);
+        labelsGroup.appendChild(opaSquare);
 
-        // Add TSY label
-        const tsyLabel = createStyledText(
-          tsyX,
-          tsyY,
-          'TSY',
+        // Add OPA label
+        const opaLabel = createStyledText(
+          opaX,
+          opaY,
+          'OPA',
           {
             fill: '#ffffff',
-            fontSize: '24',
+            fontSize: '16',
             fontWeight: 'bold'
           }
         );
-        tsyLabel.setAttribute('text-anchor', 'middle');
-        tsyLabel.setAttribute('dominant-baseline', 'middle');
-        labelsGroup.appendChild(tsyLabel);
+        opaLabel.setAttribute('text-anchor', 'middle');
+        opaLabel.setAttribute('dominant-baseline', 'middle');
+        labelsGroup.appendChild(opaLabel);
 
-        // Draw horizontal line from TSY box to RBA dot
-        const tsyLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        tsyLine.setAttribute('x1', tsyX + tsyBoxSize/2);
-        tsyLine.setAttribute('y1', tsyY);
-        tsyLine.setAttribute('x2', rbaX - 6); // Stop just before RBA dot
-        tsyLine.setAttribute('y2', rbaY);
-        tsyLine.setAttribute('stroke', '#000000');
-        tsyLine.setAttribute('stroke-width', '1');
-        labelsGroup.appendChild(tsyLine);
+        // Draw red horizontal line from OPA box to RBA dot
+        const opaLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        opaLine.setAttribute('x1', opaX + opaBoxSize/2);
+        opaLine.setAttribute('y1', opaY);
+        opaLine.setAttribute('x2', rbaX - 6); // Stop just before RBA dot
+        opaLine.setAttribute('y2', rbaY);
+        opaLine.setAttribute('stroke', '#991b1b'); // Same red as border
+        opaLine.setAttribute('stroke-width', '2');
+        labelsGroup.appendChild(opaLine);
       }
 
       // Add kinked lines from dots 50-53 to the square
@@ -4747,13 +4740,20 @@ function initializeDiagram() {
               const nppTexts = Array.from(labelsGroup.getElementsByTagName('text')).filter(text => 
                 text.textContent === 'NPP BI' || text.textContent === '(SWIFT)'
               );
-              nppTexts.forEach(text => {
-                const currentY = parseFloat(text.getAttribute('y'));
-                text.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
-              });
-            }
+            nppTexts.forEach(text => {
+              const currentY = parseFloat(text.getAttribute('y'));
+              text.setAttribute('y', (currentY + nppAdjustment).toFixed(2));
+            });
+          }
 
-            // Update NPP to FSS sigmoid curve
+          if (window.nppLabelElement) {
+            const labelX = window.nppBoxData ? window.nppBoxData.x + window.nppBoxData.width / 2 : (parseFloat(nppBox.getAttribute('x')) + parseFloat(nppBox.getAttribute('width')) / 2);
+            const labelY = newNppY + window.nppBoxData.height / 2;
+            window.nppLabelElement.setAttribute('x', labelX.toFixed(2));
+            window.nppLabelElement.setAttribute('y', labelY.toFixed(2));
+          }
+
+          // Update NPP to FSS sigmoid curve
             const nppToFssPath = document.getElementById('npp-to-fss-path');
             if (nppToFssPath) {
               const d = nppToFssPath.getAttribute('d');
@@ -5025,7 +5025,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const maroonColor = '#800000'; // Maroon color
+          const maroonColor = '#660033'; // Burgundy color
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -5544,6 +5544,52 @@ function initializeDiagram() {
           window.adiBoxData.width = adiBoxWidth;
           window.adiBoxData.height = adiBoxHeight;
 
+          // Create orange line from Sympli to ADIs now that both box data are available
+          if (window.sympliBoxData && window.adiBoxData && window.asxLineData) {
+            const sympliToAdiPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+            // Recalculate actual Sympli box position (it may have been adjusted after initial creation)
+            let actualSympliX = window.sympliBoxData.x;
+            if (window.finalAsxBox) {
+              // If ASX box data is available, recalculate Sympli position to be centered over ASX
+              const asxBoxCenter = window.finalAsxBox.x + window.finalAsxBox.width / 2;
+              actualSympliX = asxBoxCenter - window.sympliBoxData.width / 2;
+            }
+
+            // Start from left side of Sympli box (middle height)
+            const startX = actualSympliX;
+            const startY = window.sympliBoxData.y + window.sympliBoxData.height / 2;
+
+            // Curve down to same Y level as blue lines (where they turn horizontal)
+            const cornerRadius = 35; // Increased for more rounded corners
+            const downToY = window.asxLineData.horizontalY + 20; // Go 20px below the blue lines
+
+            // Follow horizontally to the right (under the blue lines)
+            const horizontalEndX = window.adiBoxData.x + window.adiBoxData.width / 2; // Center of ADIs box
+
+            // Then curve up to reach bottom of ADIs box
+            const endY = window.adiBoxData.y + window.adiBoxData.height; // Bottom of ADIs box
+
+            const pathData =
+              `M ${startX} ${startY} ` + // Start at left side of Sympli
+              `L ${startX - 5} ${startY} ` + // Go slightly left from the box edge
+              `Q ${startX - 5 - cornerRadius} ${startY}, ${startX - 5 - cornerRadius} ${startY + cornerRadius} ` + // Curve down
+              `L ${startX - 5 - cornerRadius} ${downToY - cornerRadius} ` + // Go down
+              `Q ${startX - 5 - cornerRadius} ${downToY}, ${startX - 5 - cornerRadius + cornerRadius} ${downToY} ` + // Curve right
+              `L ${horizontalEndX - cornerRadius} ${downToY} ` + // Go right under the blue lines
+              `Q ${horizontalEndX} ${downToY}, ${horizontalEndX} ${downToY - cornerRadius} ` + // Curve up
+              `L ${horizontalEndX} ${endY}`; // Go up to ADIs box
+
+            const sympliToAdiLineStyled = createStyledPath(pathData, {
+              stroke: 'rgb(239,136,51)', // Same orange as Sympli box
+              strokeWidth: '3',
+              fill: 'none',
+              id: 'sympli-to-adis-line'
+            });
+
+            labelsGroup.appendChild(sympliToAdiLineStyled);
+          }
+
           // Position: same left edge as ADI box, top edge below ADI box
           const rectX = adiBoxX;
 
@@ -6046,9 +6092,15 @@ const pacsBoxX = newBoundingBoxX + internalPadding; // Inside the bounding box
 // Position BSCT at the TRUE vertical center of the NPP BI (SWIFT) bounding box
 // The bounding box center should be LOWER than the NPP center since NPP is at the top
 const nppBiBoundingBoxCenterY = boundingBoxY + (newBoundingBoxHeight / 2);
-// Add offset to push BSCT down from where it's appearing (at NPP center) to the actual bounding box center
-const bsctVerticalOffset = 45; // Push down more to reach the actual bounding box center
-const pacsBoxY = nppBiBoundingBoxCenterY - (pacsBoxHeight / 2) + bsctVerticalOffset;
+// Recalculate vertical placement so BSCT sits between PayID and PayTo
+const boxGap = 5; // Same vertical gap used between stacked boxes
+const bottomPadding = 5; // Match padding used below
+const payToBoxY = boundingBoxY + newBoundingBoxHeight - bottomPadding - pacsBoxHeight;
+const bsctBaseY = payToBoxY - pacsBoxHeight - boxGap;
+const adjustedBsctY = bsctBaseY - 1; // Slight upward adjustment for BSCT
+const payIdBoxY = bsctBaseY - pacsBoxHeight - boxGap;
+const adjustedPayIdBoxY = payIdBoxY + 1; // Slight downward adjustment for PayID
+const pacsBoxY = adjustedBsctY;
 
 // Debug logging
 console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBoxHeight, 'center=', nppBiBoundingBoxCenterY);
@@ -6056,55 +6108,18 @@ console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBox
 const newPacsBox = createStyledRect(pacsBoxX, pacsBoxY, pacsBoxWidth, pacsBoxHeight, pacsStyle);
 labelsGroup.appendChild(newPacsBox);
 
-// Add label for the new box (already centered based on new pacsBoxY)
 const newPacsText = createStyledText(
   pacsBoxX + pacsBoxWidth / 2,
   pacsBoxY + pacsBoxHeight / 2,
   'BSCT',
   {
-    fill: '#ffffff', // White text (to contrast with dark background)
-    fontSize: '11' // Match pacs box font size
+    fill: '#ffffff',
+    fontSize: '11'
   }
 );
 labelsGroup.appendChild(newPacsText);
 
-// Add NPP label centered in space above PayID box
-// PayID box Y will be calculated below, so we need to calculate it here too
-const bottomPaddingTemp = 5;
-const bsctNewYTemp = boundingBoxY + newBoundingBoxHeight - bottomPaddingTemp - pacsBoxHeight;
-const boxGapTemp = 5;
-const payToBoxYTemp = bsctNewYTemp - pacsBoxHeight - boxGapTemp;
-const payIdBoxYTemp = payToBoxYTemp - pacsBoxHeight - boxGapTemp;
-const adjustedPayIdBoxYTemp = payIdBoxYTemp + 1;
-
-// Center NPP label in space between top of bounding box and top of PayID box
-const availableSpaceTop = boundingBoxY;
-const availableSpaceBottom = adjustedPayIdBoxYTemp;
-const nppLabelY = (availableSpaceTop + availableSpaceBottom) / 2;
-
-const nppLabelText = createStyledText(
-  newBoundingBoxX + hvcsBoxWidth / 2,
-  nppLabelY,
-  'NPP',
-  {
-    fill: 'rgb(100,80,180)',  // Purple color matching the NPP box border
-    fontSize: '24',  // Larger font size
-    fontWeight: 'bold'
-  }
-);
-labelsGroup.appendChild(nppLabelText);
-
-// Add PayID and PayTo boxes above BSCT
-const boxGap = 5; // Use same gap as pacs boxes (verticalGap)
-
-// Calculate positions to minimize bottom margin
-// Put BSCT as close to bottom as pacs.009 is to top (boundingBoxPaddingV = 5)
-const bottomPadding = 5; // Same padding as pacs.009 has from top
-const bsctNewY = boundingBoxY + newBoundingBoxHeight - bottomPadding - pacsBoxHeight;
-const adjustedBsctY = bsctNewY - 1; // Shift BSCT up slightly
-
-// PayTo box (directly above BSCT) - dark purple style
-const payToBoxY = bsctNewY - pacsBoxHeight - boxGap;
+// PayTo box (bottom) - dark purple style
 const purpleBoxStyle = {
   fill: 'rgb(100,80,180)', // Dark purple (same as NPP BI border)
   stroke: 'none',
@@ -6126,9 +6141,6 @@ const payToText = createStyledText(
 labelsGroup.appendChild(payToText);
 
 // PayID box (above PayTo) - dark purple style
-const payIdBoxY = payToBoxY - pacsBoxHeight - boxGap;
-const adjustedPayIdBoxY = payIdBoxY + 1; // Shift PayID down slightly
-
 // Now update BSCT box position to use the new Y
 // First remove the old BSCT box
 const oldBsctBox = newPacsBox;
@@ -6262,25 +6274,53 @@ labelsGroup.appendChild(oskoText);
 
 const oskoLine = createStyledLine(
   oskoX + oskoWidth / 2,
-  oskoY + oskoHeight / 2,
-  window.nppBoxData.x,
-  desiredNppY + nppHeight / 2,
+  oskoY,
+  window.nppBoxData.x + window.nppBoxData.width / 2,
+  desiredNppY + nppHeight,
   {
     stroke: 'rgb(100,80,180)',
-    strokeWidth: '2',
+    strokeWidth: '4',
     strokeLinecap: 'round'
   }
 );
 labelsGroup.appendChild(oskoLine);
 
-console.log('Added Osko box below NPP:', {
-  x: nppX,
-  y: oskoY,
-  width: oskoWidth,
-  height: oskoHeight
-});
+const updateOskoLine = () => {
+  if (!window.oskoElements || !window.oskoElements.line) {
+    return;
+  }
+  const oskoRect = window.oskoElements.box;
+  const oskoXPos = parseFloat(oskoRect.getAttribute('x'));
+  const oskoWidthPos = parseFloat(oskoRect.getAttribute('width'));
+  const oskoYPos = parseFloat(oskoRect.getAttribute('y'));
+  if (!Number.isFinite(oskoXPos) || !Number.isFinite(oskoWidthPos) || !Number.isFinite(oskoYPos)) {
+    return;
+  }
+  const nppRect = document.getElementById('npp-box');
+  if (!nppRect) {
+    return;
+  }
+  const nppXPos = parseFloat(nppRect.getAttribute('x'));
+  const nppWidthPos = parseFloat(nppRect.getAttribute('width'));
+  const nppYPos = parseFloat(nppRect.getAttribute('y'));
+  const nppHeightPos = parseFloat(nppRect.getAttribute('height'));
+  if (![nppXPos, nppWidthPos, nppYPos, nppHeightPos].every(Number.isFinite)) {
+    return;
+  }
+  const lineEl = window.oskoElements.line;
+  lineEl.setAttribute('x1', (oskoXPos + oskoWidthPos / 2).toFixed(2));
+  lineEl.setAttribute('y1', oskoYPos.toFixed(2));
+  lineEl.setAttribute('x2', (nppXPos + nppWidthPos / 2).toFixed(2));
+  lineEl.setAttribute('y2', (nppYPos + nppHeightPos).toFixed(2));
+};
 
-updateNppToAdiLine();
+window.oskoElements = {
+  box: oskoBox,
+  text: oskoText,
+  line: oskoLine
+};
+window.updateOskoLine = updateOskoLine;
+updateOskoLine();
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
 
