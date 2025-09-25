@@ -253,6 +253,7 @@ function initializeDiagram() {
     const orangeLinesGroup = document.getElementById('orange-connecting-lines');
     const redLinesGroup = document.getElementById('red-connecting-lines');
     const adminLinesGroup = document.getElementById('admin-connecting-lines');
+    const yellowLinesGroup = document.getElementById('admin-connecting-lines');
     const bigGroupElement = document.getElementById('big-group');
 
     // Ensure orange connectors render above the RITS circle
@@ -2667,6 +2668,45 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(sympliText);
 
+        // Add orange line from Sympli to ADIs
+        // This line goes from left side of Sympli, curves down, follows under the blue lines, then curves up to ADIs
+        if (window.asxLineData && window.adiBoxData) {
+          const sympliToAdiPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+          // Start from left side of Sympli box (middle height)
+          const startX = sympliX;
+          const startY = sympliY + sympliHeight / 2;
+
+          // Curve down to same Y level as blue lines (where they turn horizontal)
+          const cornerRadius = 20;
+          const downToY = window.asxLineData.horizontalY + 15; // Go 15px below the blue lines
+
+          // Follow horizontally to the right (under the blue lines)
+          const horizontalEndX = window.adiBoxData.x + window.adiBoxData.width / 2; // Center of ADIs box
+
+          // Then curve up to reach bottom of ADIs box
+          const endY = window.adiBoxData.y + window.adiBoxData.height; // Bottom of ADIs box
+
+          const pathData =
+            `M ${startX} ${startY} ` + // Start at left side of Sympli
+            `L ${startX - 10} ${startY} ` + // Go a bit left
+            `Q ${startX - 10 - cornerRadius} ${startY}, ${startX - 10 - cornerRadius} ${startY + cornerRadius} ` + // Curve down
+            `L ${startX - 10 - cornerRadius} ${downToY - cornerRadius} ` + // Go down
+            `Q ${startX - 10 - cornerRadius} ${downToY}, ${startX - 10} ${downToY} ` + // Curve right
+            `L ${horizontalEndX - cornerRadius} ${downToY} ` + // Go right under the blue lines
+            `Q ${horizontalEndX} ${downToY}, ${horizontalEndX} ${downToY - cornerRadius} ` + // Curve up
+            `L ${horizontalEndX} ${endY}`; // Go up to ADIs box
+
+          const sympliToAdiLineStyled = createStyledPath(pathData, {
+            stroke: 'rgb(239,136,51)', // Same orange as Sympli box
+            strokeWidth: '3',
+            fill: 'none',
+            id: 'sympli-to-adis-line'
+          });
+
+          labelsGroup.appendChild(sympliToAdiLineStyled);
+        }
+
         const sympliLineGap = 3;
         const sympliLineColor = '#DC143C';
         const sympliLineOffsets = [-sympliLineGap / 2, sympliLineGap / 2];
@@ -2786,8 +2826,42 @@ function initializeDiagram() {
             return { rect, text };
           };
 
+
+          const createDoubleLine = (startX, startY, endX, color, targetGroup) => {
+            const offsets = [-1.5, 1.5];
+            return offsets.map((offset, idx) => {
+              const line = createStyledLine(startX, startY + offset, endX, startY + offset, {
+                stroke: color,
+                strokeWidth: '1.5',
+                strokeLinecap: 'round'
+              });
+              if (targetGroup) {
+                targetGroup.appendChild(line);
+              } else {
+                labelsGroup.appendChild(line);
+              }
+              return line;
+            });
+          };
+
           const eftpos = createStackedRect(eftposY, 'rgb(100,80,180)', 'eftpos');
           const mastercard = createStackedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
+
+          const eftposLines = createDoubleLine(
+            baseX + boxWidth,
+            eftposY + stackedHeight / 2,
+            window.hexagonPositions.mastercardX,
+            '#FFA500',
+            yellowLinesGroup
+          );
+
+          const mastercardLines = createDoubleLine(
+            baseX + boxWidth,
+            mastercardY + stackedHeight / 2,
+            window.hexagonPositions.mastercardX,
+            '#FFA500',
+            yellowLinesGroup
+          );
 
           const actualGap = pexaConveyY - (eftposY + stackedHeight);
 
@@ -2797,7 +2871,9 @@ function initializeDiagram() {
             gap: actualGap,
             stackedHeight,
             baseX,
-            width: boxWidth
+            width: boxWidth,
+            eftposLines,
+            mastercardLines
           };
         }
 
@@ -2840,7 +2916,7 @@ function initializeDiagram() {
         if (window.asxGroupShiftAmount) {
           alignedTradeByTradeX += window.asxGroupShiftAmount;
         }
-        const tradeByTradeY = moneyMarketY - 2 * smallRectHeight - 3 * verticalGap + 10 - 4; // Moved down by 3 more pixels to align with dotted line
+        const tradeByTradeY = moneyMarketY - 2 * smallRectHeight - 3 * verticalGap + 10 - 4 - 1; // Moved up by 1 pixel
 
         const tradeByTradeRect = createStyledRect(alignedTradeByTradeX, tradeByTradeY, tradeByTradeWidth, smallRectHeight * 0.9, {
           fill: '#071f6a',
@@ -3074,6 +3150,35 @@ function initializeDiagram() {
             const actualGap = pexaConveyY - (eftposY + stackedHeight);
             window.pexaExtensions.gap = actualGap;
             window.pexaExtensions.baseX = baseX;
+
+            const eftposStartX = baseX + stackWidth;
+            const eftposEndX = window.hexagonPositions.mastercardX;
+            const eftposMidY = eftposY + stackedHeight / 2;
+            const offsets = [-1.5, 1.5];
+            if (window.pexaExtensions.eftposLines) {
+              window.pexaExtensions.eftposLines.forEach((line, idx) => {
+                if (!line) return;
+                const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+                line.setAttribute('x1', eftposStartX.toFixed(2));
+                line.setAttribute('y1', (eftposMidY + offset).toFixed(2));
+                line.setAttribute('x2', eftposEndX.toFixed(2));
+                line.setAttribute('y2', (eftposMidY + offset).toFixed(2));
+              });
+            }
+
+            const mastercardStartX = baseX + stackWidth;
+            const mastercardEndX = window.hexagonPositions.mastercardX;
+            const mastercardMidY = mastercardY + stackedHeight / 2;
+            if (window.pexaExtensions.mastercardLines) {
+              window.pexaExtensions.mastercardLines.forEach((line, idx) => {
+                if (!line) return;
+                const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+                line.setAttribute('x1', mastercardStartX.toFixed(2));
+                line.setAttribute('y1', (mastercardMidY + offset).toFixed(2));
+                line.setAttribute('x2', mastercardEndX.toFixed(2));
+                line.setAttribute('y2', (mastercardMidY + offset).toFixed(2));
+              });
+            }
           }
 
           if (window.pexaHorizontalLines && window.pexaHorizontalLines.length) {
@@ -3107,7 +3212,7 @@ function initializeDiagram() {
           {
             fill: '#071f6a', // Dark blue text
             fontSize: '22', // Slightly larger label
-            fontWeight: 'normal' // Non-bold
+            fontWeight: 'bold' // Bold font
           }
         );
         labelsGroup.appendChild(asxLabel);
@@ -3461,65 +3566,6 @@ function initializeDiagram() {
         // Removed horizontal lines from eftpos and Mastercard boxes
 
         // Removed the Visa-PEXA connection line
-        // Calculate Visa position (still needed for Visa box placement)
-        const pexaConveyCenterX = pexaConveyX + pexaConveyWidth / 2;
-        const visaX = pexaConveyCenterX - updatedBridgeWidth / 2; // Center Visa above PEXA e-conveyancing
-        // Position Visa above Mastercard stacked box
-        const stackedHeight = pexaConveyHeight;
-        const verticalGapStack = 12;
-        const mastercardStackedY = pexaConveyY - (stackedHeight + verticalGapStack) * 2;
-        const mastercardCenterY = mastercardStackedY + stackedHeight / 2;
-        const yellowEndY = mastercardCenterY - 23; // Position Visa above Mastercard line
-
-        // Add Visa rectangle at the right end of the yellow line
-        const visaY = yellowEndY - hexHeight / 2; // Center the box vertically at the line's end Y position
-
-        const visaBox = createStyledRect(visaX, visaY, updatedBridgeWidth, hexHeight, {
-          fill: 'rgb(255,243,224)', // Light gold/amber interior
-          stroke: 'rgb(243,194,70)', // Specified RGB border color
-          strokeWidth: '2',
-          rx: '5', // Rounded corners
-          ry: '5' // Rounded corners
-        });
-        labelsGroup.appendChild(visaBox);
-
-        // Add Visa label
-        const visaText = createStyledText(
-          visaX + updatedBridgeWidth / 2,
-          visaY + hexHeight / 2,
-          'Visa',
-          {
-            fill: 'rgb(243,194,70)', // Specified RGB text color
-            fontSize: '12'
-          }
-        );
-        labelsGroup.appendChild(visaText);
-
-        // Add Medicare refund box above Visa box
-        const medicareX = visaX; // Same X position as Visa
-        const medicareY = visaY - hexHeight - squareRectGap; // Above Visa with same gap as IAC-CSHD
-
-        const medicareBox = createStyledRect(medicareX, medicareY, updatedBridgeWidth, hexHeight, {
-          fill: 'rgb(200,230,210)', // Light green interior
-          stroke: 'rgb(57,130,73)', // Dark green border
-          strokeWidth: '2',
-          rx: '5', // Rounded corners
-          ry: '5' // Rounded corners
-        });
-        labelsGroup.appendChild(medicareBox);
-
-        // Add Medicare refund label
-        const medicareText = createStyledText(
-          medicareX + updatedBridgeWidth / 2,
-          medicareY + hexHeight / 2,
-          'Medicare refund',
-          {
-            fill: 'rgb(57,130,73)', // Dark green text
-            fontSize: '12'
-          }
-        );
-        labelsGroup.appendChild(medicareText);
-
         // Horizontal line connecting SSS/CCP to DvP RTGS
         const sssCcpLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const sssCcpLineY = sssCcpY + smallRectHeight * 0.9 / 2; // Middle of SSS/CCP box
@@ -4109,13 +4155,65 @@ function initializeDiagram() {
         'BDF',
         {
           fill: '#ffffff',
-          fontSize: '20',
+          fontSize: '24',
           fontWeight: 'bold'
         }
       );
       bdfLabel.setAttribute('text-anchor', 'middle');
       bdfLabel.setAttribute('dominant-baseline', 'middle');
       labelsGroup.appendChild(bdfLabel);
+
+      // Add TSY box to the left of RBA dot
+      if (window.dotPositions && window.dotPositions[0]) {
+        const tsyBoxSize = 60; // Same as BDF box
+        const rbaX = window.dotPositions[0].x;
+        const rbaY = window.dotPositions[0].y;
+
+        // Position TSY box to the left of RBA
+        const tsyX = rbaX - 150; // 150px to the left of RBA
+        const tsyY = rbaY;
+
+        // Create the black TSY box
+        const tsySquare = createStyledRect(
+          tsyX - tsyBoxSize/2,
+          tsyY - tsyBoxSize/2,
+          tsyBoxSize,
+          tsyBoxSize,
+          {
+            fill: '#000000',
+            stroke: '#991b1b',
+            strokeWidth: '3',
+            rx: '0',
+            ry: '0'
+          }
+        );
+        labelsGroup.appendChild(tsySquare);
+
+        // Add TSY label
+        const tsyLabel = createStyledText(
+          tsyX,
+          tsyY,
+          'TSY',
+          {
+            fill: '#ffffff',
+            fontSize: '24',
+            fontWeight: 'bold'
+          }
+        );
+        tsyLabel.setAttribute('text-anchor', 'middle');
+        tsyLabel.setAttribute('dominant-baseline', 'middle');
+        labelsGroup.appendChild(tsyLabel);
+
+        // Draw horizontal line from TSY box to RBA dot
+        const tsyLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tsyLine.setAttribute('x1', tsyX + tsyBoxSize/2);
+        tsyLine.setAttribute('y1', tsyY);
+        tsyLine.setAttribute('x2', rbaX - 6); // Stop just before RBA dot
+        tsyLine.setAttribute('y2', rbaY);
+        tsyLine.setAttribute('stroke', '#000000');
+        tsyLine.setAttribute('stroke-width', '1');
+        labelsGroup.appendChild(tsyLine);
+      }
 
       // Add kinked lines from dots 50-53 to the square
       const boxLeftX = bdfX - squareSize/2;
@@ -4203,8 +4301,6 @@ function initializeDiagram() {
 
 
   // Draw refreshed double lines from admin boxes into RITS once positions are ready
-  const yellowLinesGroup = adminLinesGroup || document.getElementById('admin-connecting-lines');
-
   const removeAdminLines = group => {
     if (!group) {
       return;
@@ -4318,11 +4414,11 @@ function initializeDiagram() {
         const hexHeightValue = window.hexagonPositions.hexHeight;
 
         const redColor = '#DC143C';
-        const yellowColor = '#FFA500';
+      const yellowColor = '#FFA500';
 
-        const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
-        const pexaStartY = window.hexagonPositions.pexaY + hexHeightValue / 2;
-        drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup);
+      const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
+      const pexaStartY = window.hexagonPositions.pexaY + hexHeightValue / 2;
+      drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup);
 
         const asxfStartX = window.hexagonPositions.asxfX + window.hexagonPositions.asxfWidth;
         const asxfStartY = window.hexagonPositions.asxfY + window.hexagonPositions.asxfHeight / 2;
@@ -4618,8 +4714,7 @@ function initializeDiagram() {
 
       if (window.nppBoxData && window.esasBoxData) {
         // Calculate where NPP should be positioned (align tops)
-        const nppAlignmentOffset = 0; // Align tops exactly with ESAs box
-        const newNppY = window.esasBoxData.y + nppAlignmentOffset;
+        const newNppY = window.esasBoxData.y;
 
         // Get NPP box element
         const nppBox = document.getElementById('npp-box');
@@ -5872,6 +5967,13 @@ const nppY = parseFloat(finalNppBox.getAttribute('y'));
 const nppWidth = parseFloat(finalNppBox.getAttribute('width'));
 const nppHeight = parseFloat(finalNppBox.getAttribute('height'));
 
+// Verify NPP BI is aligned with ESAs
+console.log('NPP BI (SWIFT) box position check:', {
+  nppY: nppY,
+  esasY: window.esasBoxData ? window.esasBoxData.y : 'not set',
+  aligned: window.esasBoxData && Math.abs(nppY - window.esasBoxData.y) < 1
+});
+
 // Get SWIFT HVCS bounding box dimensions for reference
 const swiftHvcsBox = window.swiftHvcsElements.boundingBox;
 const hvcsBoxWidth = parseFloat(swiftHvcsBox.getAttribute('width'));
@@ -6129,9 +6231,9 @@ console.log('Moved NPP box to align bottom with NPP BI bounding box:', {
   newNppY: desiredNppY
 });
 
-// Add Osko box below NPP BI (SWIFT) bounding box
-const oskoGap = 15; // Gap between NPP BI bounding box and Osko box
-const oskoY = nppBiBoundingBoxBottom + oskoGap; // Position below NPP BI (SWIFT) bounding box
+// Add Osko box directly below NPP box with no gap (like NPP to NPP BI alignment)
+const oskoGap = 5; // Small gap like between pacs boxes
+const oskoY = desiredNppY + nppHeight + oskoGap; // Position directly under NPP box
 // Get EFTPOS stacked box height for reference
 const eftposStackedHeight = typeof pexaConveyHeight !== 'undefined' ? pexaConveyHeight : (window.smallRectHeight ? window.smallRectHeight * 0.9 * 1.2 * 0.95 : 25);
 const oskoHeight = eftposStackedHeight; // Same height as EFTPOS stacked box
@@ -6157,6 +6259,19 @@ const oskoText = createStyledText(
   }
 );
 labelsGroup.appendChild(oskoText);
+
+const oskoLine = createStyledLine(
+  oskoX + oskoWidth / 2,
+  oskoY + oskoHeight / 2,
+  window.nppBoxData.x,
+  desiredNppY + nppHeight / 2,
+  {
+    stroke: 'rgb(100,80,180)',
+    strokeWidth: '2',
+    strokeLinecap: 'round'
+  }
+);
+labelsGroup.appendChild(oskoLine);
 
 console.log('Added Osko box below NPP:', {
   x: nppX,
