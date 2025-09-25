@@ -1851,7 +1851,7 @@ function initializeDiagram() {
         const acptText = createStyledText(
           acptX + newSingleSmallBoxWidth / 2, 
           smallBoxY + apceApcrAcptHeight / 2, 
-          'ACPT',
+          'APCT',
           {
             fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
             fontSize: '10'
@@ -2935,7 +2935,7 @@ function initializeDiagram() {
         const clearingText = createStyledText(
           alignedClearingX + clearingWidth / 2,
           clearingY + smallRectHeight * 0.9 / 2,
-          'clearing/netting',
+          'clearing / netting',
           {
             fill: '#ffffff',
             fontSize: '11'
@@ -4184,15 +4184,17 @@ function initializeDiagram() {
         opaLabel.setAttribute('dominant-baseline', 'middle');
         labelsGroup.appendChild(opaLabel);
 
-        // Draw red horizontal line from OPA box to RBA dot
+        // Draw red horizontal line from OPA box to RBA dot (UNDER the black circle)
         const opaLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         opaLine.setAttribute('x1', opaX + opaBoxSize/2);
         opaLine.setAttribute('y1', opaY);
-        opaLine.setAttribute('x2', rbaX - 7.2); // Stop at edge of RBA circle (radius = 2.4 * 3)
+        opaLine.setAttribute('x2', rbaX); // Extend to center since it will be behind the circle
         opaLine.setAttribute('y2', rbaY);
         opaLine.setAttribute('stroke', '#991b1b'); // Same red as border
         opaLine.setAttribute('stroke-width', '2');
-        labelsGroup.appendChild(opaLine);
+        // Insert BEFORE the circles group so it renders UNDER the black RBA circle
+        const circlesGroup = document.getElementById('arc-circles');
+        svg.insertBefore(opaLine, circlesGroup);
       }
 
       // Add kinked lines from dots 50-53 to the square
@@ -5551,22 +5553,32 @@ function initializeDiagram() {
             const cornerRadius = 20;
             const downToY = window.asxLineData.horizontalY + 20; // Go 20px below the blue lines
 
-            // Follow horizontally to the right (under the blue lines)
-            const horizontalEndX = window.adiBoxData.x + window.adiBoxData.width / 2; // Center of ADIs box
+            // Follow the same curve pattern as the blue line but extend much further right
+            const nonAdiRightEdge = window.nonAdiBoxData ? window.nonAdiBoxData.x + window.nonAdiBoxData.width : 0;
+            // Start curving up much closer to the ADIs box
+            const curveStartX = window.adiBoxData.x - 150; // Start curve 150px before ADI box left edge
+            const extendPastNonAdi = window.adiBoxData.x - 50; // Control point for curve
 
-            // Then curve up to reach bottom of ADIs box
-            const endY = window.adiBoxData.y + window.adiBoxData.height; // Bottom of ADIs box
+            // End point for orange line - next to where blue line connects
+            const greenEndX = extendPastNonAdi + 15; // Where green line ends
+            const blueEndX = greenEndX + 20; // Where blue line ends
+            const orangeEndX = blueEndX + 20; // 20px to the right of blue line
 
-            const bottomCornerRadius = 100; // Extra large radius for very rounded corner
+            // Bottom of ADIs box
+            const endY = window.adiBoxData.y + window.adiBoxData.height;
+            const actualVerticalDistance = downToY - endY;
+
+            const bottomCornerRadius = 100; // Back to 100 for very rounded corner
             const pathData =
               `M ${startX} ${startY} ` + // Start at left side of Sympli
               `L ${startX - 5} ${startY} ` + // Go slightly left from the box edge
               `Q ${startX - 5 - cornerRadius} ${startY}, ${startX - 5 - cornerRadius} ${startY + cornerRadius} ` + // Curve down
-              `L ${startX - 5 - cornerRadius} ${downToY - bottomCornerRadius} ` + // Go down (stop earlier for larger curve)
+              `L ${startX - 5 - cornerRadius} ${downToY - bottomCornerRadius} ` + // Go down (stop earlier for large curve)
               `Q ${startX - 5 - cornerRadius} ${downToY}, ${startX - 5 - cornerRadius + bottomCornerRadius} ${downToY} ` + // Larger curve right
-              `L ${horizontalEndX - cornerRadius} ${downToY} ` + // Go right under the blue lines
-              `Q ${horizontalEndX} ${downToY}, ${horizontalEndX} ${downToY - cornerRadius} ` + // Curve up
-              `L ${horizontalEndX} ${endY}`; // Go up to ADIs box
+              `L ${curveStartX} ${downToY} ` + // Go right under the blue lines to where curve starts
+              `C ${curveStartX + 60} ${downToY}, ` + // Same curve as blue line
+              `${extendPastNonAdi} ${downToY - actualVerticalDistance * 0.15}, ` + // Gradual rise like blue line
+              `${orangeEndX} ${endY}`; // Curve up to ADIs box
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
               stroke: 'rgb(239,136,51)', // Same orange as Sympli box
