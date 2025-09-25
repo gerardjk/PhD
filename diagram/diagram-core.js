@@ -179,8 +179,7 @@ function initializeDiagram() {
 
     const smallGear = document.getElementById('small-gear');
     if (smallGear) {
-      const smallInnerRadius = rSmall - strokeW * 2;
-      const smallGearRadius = smallInnerRadius - 8; // Leave 8px border
+      const smallGearRadius = (rSmall - strokeW * 2) - 8; // Leave 8px border
       const smallToothHeight = 4;
       smallGear.setAttribute('d', createGearPath(smallGearRadius - smallToothHeight, 10, smallToothHeight, 0.25));
       smallGear.setAttribute('transform', `translate(${cx}, ${cySmall})`);
@@ -252,6 +251,25 @@ function initializeDiagram() {
     // Get the pre-existing lines groups
     const blueLinesGroup = document.getElementById('blue-connecting-lines');
     const orangeLinesGroup = document.getElementById('orange-connecting-lines');
+    const adminLinesGroup = document.getElementById('admin-connecting-lines');
+    const bigGroupElement = document.getElementById('big-group');
+
+    // Ensure orange connectors render above the RITS circle
+    if (svg && orangeLinesGroup && bigGroupElement) {
+      const nextSibling = bigGroupElement.nextSibling;
+      if (nextSibling !== orangeLinesGroup) {
+        svg.insertBefore(orangeLinesGroup, nextSibling);
+      }
+    }
+
+    if (orangeLinesGroup) {
+      const bigLabelNode = document.getElementById('big-label');
+      if (bigLabelNode && bigLabelNode.parentNode === svg) {
+        svg.insertBefore(orangeLinesGroup, bigLabelNode);
+      } else {
+        svg.appendChild(orangeLinesGroup);
+      }
+    }
 
     // Create a group for the small circles
     const circlesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -515,7 +533,7 @@ function initializeDiagram() {
       }
 
       line.setAttribute('stroke', '#3b82f6'); // same blue as circles
-      line.setAttribute('stroke-width', '1'); // same thickness as orange lines
+      line.setAttribute('stroke-width', '1.5'); // thicker blue spokes
       line.setAttribute('opacity', '0.9'); // more visible
 
       if (!skipBlueLines) {
@@ -1351,9 +1369,9 @@ function initializeDiagram() {
         if (!window.hexagonPositions) {
           window.hexagonPositions = {};
         }
-        window.hexagonPositions.pexaX = updatedBridgeX;
+        window.hexagonPositions.pexaX = widerAdminBoxX;
         window.hexagonPositions.pexaY = pexaY;
-        window.hexagonPositions.pexaWidth = updatedBridgeWidth;
+        window.hexagonPositions.pexaWidth = widerAdminBoxWidth;
         window.hexagonPositions.asxfX = updatedBridgeX;
         window.hexagonPositions.asxfY = asxfY - hexHeight - (verticalGap * 2);
         window.hexagonPositions.asxfWidth = updatedBridgeWidth;
@@ -1615,7 +1633,10 @@ function initializeDiagram() {
         const nppToFssPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         // NPP right edge and center Y
         const nppRightX = nppRectX + nppSwiftRectWidth;
+        // Store original center Y for later use
         const nppCenterYForPath = nppCenterY;
+        // We'll update this Y later to match BSCT line
+        window.nppToFssOriginalY = nppCenterYForPath;
         // FSS circle position (orange circle)
         const fssCenterX = 300;
         const fssCenterY = 222;
@@ -1651,7 +1672,7 @@ function initializeDiagram() {
         const referenceGabsY = typeof gabsY === 'number'
           ? gabsY
           : (nppBottomY !== null ? nppBottomY - squareRectGap - boxHeight : 0);
-        const smallBoxY = referenceGabsY - apceApcrAcptHeight - squareRectGap; // One level above GABS with same gap
+        const smallBoxY = referenceGabsY; // Align with GABS box (same Y position)
 
         // Calculate Cheques box width and position first
         const chequesTargetWidth = (window.hexagonPositions && typeof window.hexagonPositions.mastercardWidth === 'number')
@@ -1749,8 +1770,8 @@ function initializeDiagram() {
         window.apceApcrAcptData.ACPT.text = acptText;
 
         // Add Cheques box above the three small boxes
-        const chequesBoxExtraGap = 12; // Additional breathing room above the APCE/APCR/ACPT row
-        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Maintain visible separation
+        const chequesBoxExtraGap = 0; // No extra gap - match DE box spacing
+        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Same gap as DE box
         // chequesBoxX and chequesBoxWidth already calculated above
         const chequesBoxHeight = boxHeight; // Same height as other boxes
         const chequesBaseY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Baseline position shared with BEC*/DE
@@ -2185,7 +2206,7 @@ function initializeDiagram() {
         // Calculate chessEquitiesY based on where clearing/netting will be
         const tradeByTradeYCalc = moneyMarketY - 2 * smallRectHeight - 3 * verticalGap - 5; // Same as trade-by-trade calculation
         const clearingYCalc = tradeByTradeYCalc - smallRectHeight * 0.9 - verticalGap; // Same as clearing calculation
-        const chessEquitiesY = clearingYCalc - 11; // Shifted down by 2 more pixels (was -13, now -11)
+        let chessEquitiesY = clearingYCalc - 11; // Shifted down by 2 more pixels (was -13, now -11)
 
         // ASX bounding box will be created after CHESS equities box to ensure proper alignment
 
@@ -2467,7 +2488,8 @@ function initializeDiagram() {
         // Position already calculated above
         const chessEquitiesWidth = rectWidth + 20; // Width to encompass interior boxes with padding
         // Height to encompass clearing/netting and trade-by-trade with padding
-        const chessEquitiesHeight = (tradeByTradeYCalc + smallRectHeight * 0.9) - clearingYCalc + 27 + 1; // Reduced height by 5 more pixels for bottom margin (was +6, now +1)
+        const extraChessHeight = 6; // Slightly taller interior box
+        const chessEquitiesHeight = (tradeByTradeYCalc + smallRectHeight * 0.9) - clearingYCalc + 27 + 1 + extraChessHeight;
 
         let alignedChessEquitiesX = window.asxBoxesAlignment ? window.asxBoxesAlignment.center - (chessEquitiesWidth / 2) : chessEquitiesX;
         if (window.asxGroupShiftAmount) {
@@ -2475,7 +2497,19 @@ function initializeDiagram() {
         }
         const alignedChessEquitiesWidth = chessEquitiesWidth;
 
-        const chessEquitiesRect = createStyledRect(alignedChessEquitiesX, chessEquitiesY, alignedChessEquitiesWidth, chessEquitiesHeight, {
+        const tradeByTradeHeight = smallRectHeight * 0.9;
+        const tradeByTradeYAdjusted = moneyMarketY - 2 * smallRectHeight - 3 * verticalGap + 6; // Matches later trade-by-trade positioning
+        const tradeByTradeBottom = tradeByTradeYAdjusted + tradeByTradeHeight;
+        const desiredChessBottom = tradeByTradeBottom + (sssCcpY - tradeByTradeBottom) / 2;
+        const currentChessBottom = chessEquitiesY + chessEquitiesHeight;
+        const chessVerticalShift = currentChessBottom - desiredChessBottom;
+        chessEquitiesY -= chessVerticalShift;
+
+        const chessTopPadding = 3; // Extra breathing room above content
+        chessEquitiesY -= chessTopPadding;
+        const chessEquitiesAdjustedHeight = chessEquitiesHeight + chessTopPadding;
+
+        const chessEquitiesRect = createStyledRect(alignedChessEquitiesX, chessEquitiesY, alignedChessEquitiesWidth, chessEquitiesAdjustedHeight, {
           fill: '#4a5a8a', // Darker shade
           stroke: 'none', // No border
           strokeWidth: '0',
@@ -2488,11 +2522,11 @@ function initializeDiagram() {
         // Add CHESS equities label
         const chessEquitiesText = createStyledText(
           alignedChessEquitiesX + alignedChessEquitiesWidth / 2,
-          chessEquitiesY + 14, // Adjusted to keep text in same position after box shift
+          chessEquitiesY + 18, // Nudged slightly downward inside the panel
           'CHESS equities',
           {
             fill: '#ffffff', // White text
-            fontSize: '12'
+            fontSize: '14'
           }
         );
         labelsGroup.appendChild(chessEquitiesText);
@@ -2616,12 +2650,12 @@ function initializeDiagram() {
         const pexaConnectorStartX = pexaConveyX + pexaConveyWidth;
         let pexaConnectorEndX = pexaConnectorStartX;
         if (window.hexagonPositions) {
-          const left = window.hexagonPositions.pexaX;
-          const right = left + window.hexagonPositions.pexaWidth;
-          pexaConnectorEndX = left;
-          if (left <= pexaConnectorStartX) {
-            pexaConnectorEndX = right;
-          }
+          // Connect to the left edge of PEXA box
+          pexaConnectorEndX = window.hexagonPositions.pexaX;
+          console.log('=== PEXA LINE DEBUG ===');
+          console.log('PEXA e-conveyancing right edge (start):', pexaConnectorStartX);
+          console.log('PEXA box left edge (end):', pexaConnectorEndX);
+          console.log('Distance to cover:', pexaConnectorEndX - pexaConnectorStartX);
         }
         const pexaLineGap = 3;
         const pexaLineColor = '#DC143C';
@@ -2684,7 +2718,7 @@ function initializeDiagram() {
         if (window.asxGroupShiftAmount) {
           alignedClearingX += window.asxGroupShiftAmount;
         }
-        const clearingY = tradeByTradeY - smallRectHeight * 0.9 - verticalGap / 2 - 1; // Lowered by 3 pixels, plus 1 more pixel gap
+        const clearingY = tradeByTradeY - smallRectHeight * 0.9 - verticalGap; // Match gap with DvP cash leg → cash transfer spacing
 
         const clearingRect = createStyledRect(alignedClearingX, clearingY, clearingWidth, smallRectHeight * 0.9, {
           fill: '#071f6a',
@@ -2739,7 +2773,7 @@ function initializeDiagram() {
         labelsGroup.appendChild(sssCcpText);
 
         // Create ASX bounding box around CHESS equities, DvP cash leg, and cash transfer only
-        const symmetricPaddingForBox = 15;
+        const symmetricPaddingForBox = 13;
 
         // Get positions of the three boxes we want to bound
         const actualChessX = alignedChessEquitiesX;
@@ -2756,10 +2790,10 @@ function initializeDiagram() {
 
         // Calculate box dimensions with symmetric padding
         const asxBoxX = contentLeftMost - symmetricPaddingForBox;
-        const asxBoxY = chessEquitiesY - 10; // Small top margin
         const asxBoxWidth = (contentRightMost - contentLeftMost) + (2 * symmetricPaddingForBox);
-        // Height to include all three boxes plus space for label at bottom
-        const asxBoxHeight = (moneyMarketY + smallRectHeight * 0.9) - chessEquitiesY + 10 + 37; // Reduced by 5 more pixels (was +42, now +37) for label at bottom
+        const asxBoxBottom = moneyMarketY + smallRectHeight * 0.9 + 37; // Keep bottom aligned with money market row + label space
+        const asxBoxY = chessEquitiesY - 12; // Reduce extra top padding by 2px (bottom stays fixed)
+        const asxBoxHeight = asxBoxBottom - asxBoxY;
 
         // Debug: Log ASX box alignment
         console.log('ASX Box Alignment:', {
@@ -2850,12 +2884,12 @@ function initializeDiagram() {
             const pexaStart = newPexaConveyX + pexaConveyWidth;
             let pexaEnd = pexaStart;
             if (window.hexagonPositions) {
-              const left = window.hexagonPositions.pexaX;
-              const right = left + window.hexagonPositions.pexaWidth;
-              pexaEnd = left;
-              if (left <= pexaStart) {
-                pexaEnd = right;
-              }
+              // Connect to the left edge of PEXA box
+              pexaEnd = window.hexagonPositions.pexaX;
+              console.log('=== PEXA LINE UPDATE DEBUG ===');
+              console.log('New PEXA e-conveyancing right edge (start):', pexaStart);
+              console.log('PEXA box left edge (end):', pexaEnd);
+              console.log('Distance to cover:', pexaEnd - pexaStart);
             }
             const pexaYCenter = pexaConveyY + pexaConveyHeight / 2;
             const offsets = [-1.5, 1.5];
@@ -2880,7 +2914,7 @@ function initializeDiagram() {
           'ASX',
           {
             fill: '#071f6a', // Dark blue text
-            fontSize: '20', // Increased font size
+            fontSize: '22', // Slightly larger label
             fontWeight: 'normal' // Non-bold
           }
         );
@@ -3651,7 +3685,7 @@ function initializeDiagram() {
         orangeLine.setAttribute('x2', innerCircleX.toFixed(2));
         orangeLine.setAttribute('y2', innerCircleY.toFixed(2));
         orangeLine.setAttribute('stroke', '#f59e0b'); // orange color
-        orangeLine.setAttribute('stroke-width', '2'); // thicker line
+        orangeLine.setAttribute('stroke-width', '2.5'); // increased thickness for emphasis
         orangeLine.setAttribute('opacity', '1'); // fully visible
 
         orangeLinesGroup.appendChild(orangeLine);
@@ -3987,7 +4021,7 @@ function initializeDiagram() {
 
   // Draw refreshed double lines from admin boxes into RITS once positions are ready
   const redLinesGroup = document.getElementById('red-connecting-lines');
-  const yellowLinesGroup = document.getElementById('orange-connecting-lines');
+  const yellowLinesGroup = adminLinesGroup || document.getElementById('admin-connecting-lines');
 
   const removeAdminLines = group => {
     if (!group) {
@@ -4018,12 +4052,40 @@ function initializeDiagram() {
     const horizontalDelta = endX - startX;
     const verticalDelta = endY - startY;
 
+    const offsetMagnitude = 1.5;
+    const nearlyHorizontal = Math.abs(verticalDelta) < 1.0;
+
+    if (nearlyHorizontal) {
+      const lineOffsets = [offsetMagnitude, -offsetMagnitude];
+      lineOffsets.forEach(offset => {
+        const yLine = startY + offset;
+        const deltaY = yLine - cyBig;
+        const spanSquared = (rBig * rBig) - (deltaY * deltaY);
+        if (spanSquared <= 0) {
+          return;
+        }
+        const horizontalReach = Math.sqrt(spanSquared);
+        const lineEndX = Math.max(startX, cx + horizontalReach);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', startX.toFixed(2));
+        line.setAttribute('y1', yLine.toFixed(2));
+        line.setAttribute('x2', lineEndX.toFixed(2));
+        line.setAttribute('y2', yLine.toFixed(2));
+        line.setAttribute('stroke', strokeColor);
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-linecap', 'round');
+        line.classList.add('admin-double-line');
+        targetGroup.appendChild(line);
+      });
+      return;
+    }
+
     const control1X = startX + Math.max(40, Math.abs(horizontalDelta) * 0.6);
     const control1Y = startY;
     const control2X = endX - Math.max(25, Math.abs(horizontalDelta) * 0.2);
     const control2Y = endY - verticalDelta * 0.3;
 
-    const offsetMagnitude = 1.25;
     const normX = verticalDelta === 0 && horizontalDelta === 0 ? 0 : -verticalDelta;
     const normY = horizontalDelta;
     const normLength = Math.sqrt(normX * normX + normY * normY) || 1;
@@ -4037,7 +4099,7 @@ function initializeDiagram() {
         c1x: control1X + offsetX,
         c1y: control1Y + offsetY,
         c2x: control2X + offsetX,
-        c2y: control2Y - offsetY,
+        c2y: control2Y + offsetY,
         ex: endX + offsetX,
         ey: endY + offsetY
       },
@@ -4056,13 +4118,14 @@ function initializeDiagram() {
     points.forEach(pt => {
       const d = 'M ' + pt.sx.toFixed(2) + ' ' + pt.sy.toFixed(2) +
                 ' C ' + pt.c1x.toFixed(2) + ' ' + pt.c1y.toFixed(2) + ', ' +
-                pt.c2x.toFixed(2) + ' ' + pt.c2y.toFixed(2) + ', ' +
-                pt.ex.toFixed(2) + ' ' + pt.ey.toFixed(2);
+                 pt.c2x.toFixed(2) + ' ' + pt.c2y.toFixed(2) + ', ' +
+                 pt.ex.toFixed(2) + ' ' + pt.ey.toFixed(2);
       const path = createStyledPath(d, {
         stroke: strokeColor,
         strokeWidth: '1.5',
         fill: 'none',
-        strokeLinecap: 'round'
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
       });
       path.classList.add('admin-double-line');
       targetGroup.appendChild(path);
@@ -4373,7 +4436,7 @@ function initializeDiagram() {
 
       if (window.nppBoxData && window.esasBoxData) {
         // Calculate where NPP should be positioned (align tops)
-        const nppAlignmentOffset = 24; // Drop NPP slightly so its base lines up with the NPP BI bounding box
+        const nppAlignmentOffset = 0; // Align tops exactly with ESAs box
         const newNppY = window.esasBoxData.y + nppAlignmentOffset;
 
         // Get NPP box element
@@ -5694,17 +5757,24 @@ const pacsStyle = {
 const existingPacsRectForBSCT = window.swiftHvcsElements.pacsElements[1].rect; // pacs.008
 const pacsBoxHeight = parseFloat(existingPacsRectForBSCT.getAttribute('height'));
 
-// Center the pacs box in the bounding box (accounting for padding)
+// Position BSCT box INSIDE the NPP BI bounding box
 const internalPadding = 10;
-const pacsBoxX = newBoundingBoxX + internalPadding;
 const pacsBoxWidth = hvcsBoxWidth - (internalPadding * 2);
-// Position at vertical middle of NPP box
-const pacsBoxY = nppY + nppHeight / 2 - pacsBoxHeight / 2;
+const pacsBoxX = newBoundingBoxX + internalPadding; // Inside the bounding box
+// Position BSCT at the TRUE vertical center of the NPP BI (SWIFT) bounding box
+// The bounding box center should be LOWER than the NPP center since NPP is at the top
+const nppBiBoundingBoxCenterY = boundingBoxY + (newBoundingBoxHeight / 2);
+// Add offset to push BSCT down from where it's appearing (at NPP center) to the actual bounding box center
+const bsctVerticalOffset = 45; // Push down more to reach the actual bounding box center
+const pacsBoxY = nppBiBoundingBoxCenterY - (pacsBoxHeight / 2) + bsctVerticalOffset;
+
+// Debug logging
+console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBoxHeight, 'center=', nppBiBoundingBoxCenterY);
 
 const newPacsBox = createStyledRect(pacsBoxX, pacsBoxY, pacsBoxWidth, pacsBoxHeight, pacsStyle);
 labelsGroup.appendChild(newPacsBox);
 
-// Add label for the new box
+// Add label for the new box (already centered based on new pacsBoxY)
 const newPacsText = createStyledText(
   pacsBoxX + pacsBoxWidth / 2,
   pacsBoxY + pacsBoxHeight / 2,
@@ -5716,37 +5786,79 @@ const newPacsText = createStyledText(
 );
 labelsGroup.appendChild(newPacsText);
 
-// Add label for the bounding box (like SWIFT HVCS has)
-const boundingBoxLabel = createStyledText(
-  newBoundingBoxX + hvcsBoxWidth / 2,
-  boundingBoxY + newBoundingBoxHeight - labelSpaceUpdated / 2 - 5, // Position near bottom
-  'NPP',
+// NPP label removed - no label for the bounding box
+
+// Add PayID and PayTo boxes above BSCT
+const boxGap = 5; // Use same gap as pacs boxes (verticalGap)
+
+// Calculate positions to minimize bottom margin
+// Put BSCT as close to bottom as pacs.009 is to top (boundingBoxPaddingV = 5)
+const bottomPadding = 5; // Same padding as pacs.009 has from top
+const bsctNewY = boundingBoxY + newBoundingBoxHeight - bottomPadding - pacsBoxHeight;
+
+// PayTo box (directly above BSCT) - dark purple style
+const payToBoxY = bsctNewY - pacsBoxHeight - boxGap;
+const purpleBoxStyle = {
+  fill: 'rgb(100,80,180)', // Dark purple (same as NPP BI border)
+  stroke: 'none',
+  rx: '12',
+  ry: '12'
+};
+const payToBox = createStyledRect(pacsBoxX, payToBoxY, pacsBoxWidth, pacsBoxHeight, purpleBoxStyle);
+labelsGroup.appendChild(payToBox);
+
+const payToText = createStyledText(
+  pacsBoxX + pacsBoxWidth / 2,
+  payToBoxY + pacsBoxHeight / 2,
+  'PayTo',
   {
-    fill: 'rgb(80,60,150)', // Purple text to match purple box
-    fontSize: '16', // Same as SWIFT HVCS
-    fontWeight: 'bold'
+    fill: '#ffffff',
+    fontSize: '11'
   }
 );
-labelsGroup.appendChild(boundingBoxLabel);
+labelsGroup.appendChild(payToText);
 
-// Draw connecting line from new pacs box to NPP
+// PayID box (above PayTo) - dark purple style
+const payIdBoxY = payToBoxY - pacsBoxHeight - boxGap;
+
+// Now update BSCT box position to use the new Y
+// First remove the old BSCT box
+const oldBsctBox = newPacsBox;
+oldBsctBox.setAttribute('y', bsctNewY.toFixed(2));
+// Update BSCT text position
+newPacsText.setAttribute('y', (bsctNewY + pacsBoxHeight / 2).toFixed(2));
+const payIdBox = createStyledRect(pacsBoxX, payIdBoxY, pacsBoxWidth, pacsBoxHeight, purpleBoxStyle);
+labelsGroup.appendChild(payIdBox);
+
+const payIdText = createStyledText(
+  pacsBoxX + pacsBoxWidth / 2,
+  payIdBoxY + pacsBoxHeight / 2,
+  'PayID',
+  {
+    fill: '#ffffff',
+    fontSize: '11'
+  }
+);
+labelsGroup.appendChild(payIdText);
+
+// Draw connecting line from BSCT box to NPP BI (SWIFT) bounding box
 const connectingLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 connectingLine.setAttribute('id', 'new-pacs-to-npp-line');
 
-// Start from right edge of new pacs box, middle height
+// Start from right edge of BSCT box (using new position), middle height
 const lineStartX = pacsBoxX + pacsBoxWidth;
-const lineStartY = pacsBoxY + pacsBoxHeight / 2;
+const lineStartY = bsctNewY + pacsBoxHeight / 2;
 
-// End at left edge of NPP box at middle height
+// End at left edge of purple NPP box at BSCT height (horizontal line)
 const lineEndX = nppX;
-const lineEndY = nppY + nppHeight / 2;
+const lineEndY = lineStartY; // Same Y for horizontal line
 
 connectingLine.setAttribute('x1', lineStartX.toFixed(2));
 connectingLine.setAttribute('y1', lineStartY.toFixed(2));
 connectingLine.setAttribute('x2', lineEndX.toFixed(2));
 connectingLine.setAttribute('y2', lineEndY.toFixed(2));
-connectingLine.setAttribute('stroke', '#3da88a'); // Same color as other pacs lines
-connectingLine.setAttribute('stroke-width', '4'); // Same width
+connectingLine.setAttribute('stroke', '#3da88a'); // Same color as NPP to FSS line
+connectingLine.setAttribute('stroke-width', '6'); // Same width as NPP to FSS line (thicker)
 connectingLine.setAttribute('stroke-linecap', 'round');
 
 // Insert line before labels so it appears behind
@@ -5757,6 +5869,58 @@ console.log('Created new pacs-style box and bounding box:', {
   pacsBox: { x: pacsBoxX, y: pacsBoxY, width: pacsBoxWidth, height: pacsBoxHeight },
   line: { from: [lineStartX, lineStartY], to: [lineEndX, lineEndY] }
 });
+
+// Now move ONLY the purple NPP box to align its bottom with NPP BI (SWIFT) bounding box bottom
+// The NPP BI bounding box bottom is at: boundingBoxY + newBoundingBoxHeight
+const nppBiBoundingBoxBottom = boundingBoxY + newBoundingBoxHeight;
+// We want NPP bottom to align with that
+const desiredNppBottom = nppBiBoundingBoxBottom;
+const desiredNppY = desiredNppBottom - nppHeight;
+
+// Update NPP to FSS path to exit at same Y as BSCT line
+const nppToFssPathElement = document.getElementById('npp-to-fss-path');
+if (nppToFssPathElement && desiredNppY !== undefined) {
+  // The BSCT line enters NPP at lineStartY
+  const alignedY = lineStartY;
+
+  // Get the current path data
+  const currentPath = nppToFssPathElement.getAttribute('d');
+
+  // Update the starting Y coordinate in the path
+  // The path starts with M [x] [y] where y is what we want to change
+  const updatedPath = currentPath.replace(/M ([\d.]+) ([\d.]+)/, `M $1 ${alignedY.toFixed(2)}`);
+
+  // Also update the first control point Y to maintain smooth curve
+  const updatedPathWithControl = updatedPath.replace(/C ([\d.]+) ([\d.]+)/, `C $1 ${alignedY.toFixed(2)}`);
+
+  nppToFssPathElement.setAttribute('d', updatedPathWithControl);
+
+  console.log('Aligned NPP to FSS exit with BSCT entry at Y:', alignedY);
+}
+
+// Move the NPP box
+finalNppBox.setAttribute('y', desiredNppY.toFixed(2));
+
+// Update NPP text positions
+if (window.nppTextElements) {
+  const nppYAdjustment = desiredNppY - nppY;
+  ['top', 'bottom'].forEach(key => {
+    const el = window.nppTextElements[key];
+    if (el) {
+      const currentY = parseFloat(el.getAttribute('y'));
+      el.setAttribute('y', (currentY + nppYAdjustment).toFixed(2));
+    }
+  });
+}
+
+// No need to update the connecting line - it stays horizontal to NPP BI bounding box
+
+console.log('Moved NPP box to align bottom with NPP BI bounding box:', {
+  nppBiBoundingBoxBottom,
+  oldNppY: nppY,
+  newNppY: desiredNppY
+});
+
   } // Close if (finalNppBox && window.swiftHvcsElements)
 
   // Add CLS AUD to RITS line at the end after all adjustments
@@ -5825,12 +5989,67 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
 // Create S-curve from CLS AUD line to CLS dot at the very end
   console.log('End of script - checking for S-curve creation.');
   console.log('window.clsEndpoints:', window.clsEndpoints);
-    if (window.clsEndpoints) {
+
+  if (!window.clsEndpoints) {
+    window.clsEndpoints = {};
+  }
+
+  const ensureClsEndpointData = () => {
+    const endpoints = window.clsEndpoints;
+
+    // Ensure we have CLS dot geometry (center + radius) to derive edge position
+    if ((endpoints.clsCircleCenterX === undefined ||
+         endpoints.clsCircleCenterY === undefined ||
+         endpoints.clsCircleRadius === undefined) && typeof document !== 'undefined') {
+      const arcGroup = document.getElementById('arc-circles');
+      if (arcGroup) {
+        const clsCircle = arcGroup.querySelector('circle:last-of-type');
+        if (clsCircle) {
+          const centerX = parseFloat(clsCircle.getAttribute('cx'));
+          const centerY = parseFloat(clsCircle.getAttribute('cy'));
+          const radius = parseFloat(clsCircle.getAttribute('r'));
+          if (Number.isFinite(centerX) && Number.isFinite(centerY) && Number.isFinite(radius)) {
+            endpoints.clsCircleCenterX = centerX;
+            endpoints.clsCircleCenterY = centerY;
+            endpoints.clsCircleRadius = radius;
+          }
+        }
+      }
+    }
+
+    if ((endpoints.clsCircleEdgeX === undefined || endpoints.clsCircleEdgeY === undefined) &&
+        endpoints.clsCircleCenterX !== undefined && endpoints.clsCircleRadius !== undefined) {
+      endpoints.clsCircleEdgeX = endpoints.clsCircleCenterX - endpoints.clsCircleRadius;
+      endpoints.clsCircleEdgeY = endpoints.clsCircleCenterY;
+    }
+
+    // Fallback for neon line endpoint - sample path if coordinates missing
+    if ((endpoints.neonLineEndX === undefined || endpoints.neonLineEndY === undefined) && typeof document !== 'undefined') {
+      const neonPath = document.getElementById('cls-aud-line-new') || document.getElementById('cls-to-rits-line-final');
+      if (neonPath && typeof neonPath.getTotalLength === 'function') {
+        try {
+          const totalLength = neonPath.getTotalLength();
+          const point = neonPath.getPointAtLength(totalLength);
+          if (Number.isFinite(point.x) && Number.isFinite(point.y)) {
+            endpoints.neonLineEndX = point.x;
+            endpoints.neonLineEndY = point.y;
+          }
+        } catch (err) {
+          console.warn('Unable to sample CLS neon path endpoint (fallback):', err);
+        }
+      }
+    }
+  };
+
+  ensureClsEndpointData();
+
+  if (window.clsEndpoints) {
     console.log('audLineEndX:', window.clsEndpoints.audLineEndX);
     console.log('audLineEndY:', window.clsEndpoints.audLineEndY);
     console.log('dotLineEndX:', window.clsEndpoints.dotLineEndX);
     console.log('dotLineEndY:', window.clsEndpoints.dotLineEndY);
   }
+
   if (window.clsEndpoints &&
       (window.clsEndpoints.neonLineEndX !== undefined || window.clsEndpoints.audLineEndX !== undefined) &&
       (window.clsEndpoints.neonLineEndY !== undefined || window.clsEndpoints.audLineEndY !== undefined) &&
@@ -5851,6 +6070,21 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         }
       } catch (err) {
         console.warn('Unable to sample CLS neon path endpoint:', err);
+      }
+    } else if (window.clsEndpoints.neonLineEndX === undefined && window.clsEndpoints.neonLineEndY === undefined) {
+      // Last resort: sample the final CLS-to-RITS line
+      const fallbackPath = document.getElementById('cls-to-rits-line-final');
+      if (fallbackPath && typeof fallbackPath.getTotalLength === 'function') {
+        try {
+          const totalLength = fallbackPath.getTotalLength();
+          const point = fallbackPath.getPointAtLength(totalLength);
+          if (Number.isFinite(point.x) && Number.isFinite(point.y)) {
+            startX = point.x;
+            startY = point.y;
+          }
+        } catch (err) {
+          console.warn('Unable to sample CLS fallback line endpoint:', err);
+        }
       }
     }
     const endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
