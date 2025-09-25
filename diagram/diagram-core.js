@@ -1765,11 +1765,8 @@ function initializeDiagram() {
           : (nppBottomY !== null ? nppBottomY - squareRectGap - boxHeight : 0);
         const smallBoxY = referenceGabsY; // Align with GABS box (same Y position)
 
-        // Calculate Cheques box width and position first
-        const chequesTargetWidth = (window.hexagonPositions && typeof window.hexagonPositions.mastercardWidth === 'number')
-          ? window.hexagonPositions.mastercardWidth
-          : 0;
-        const chequesBoxWidth = chequesTargetWidth || nppSwiftRectWidth || 0; // Prefer MCAU/ESSB width, fall back to NPP width
+        // Calculate Cheques box width to match Mastercard exactly
+        const chequesBoxWidth = window.hexagonPositions.mastercardWidth; // Use exact same width as Mastercard stacked boxes
         // Use fixed position based on original layout, not dependent on moveable boxes
         const originalGabsX = adminBatchesLeftEdge; // Original position before any moves
         const chequesBoxX = originalGabsX - chequesBoxWidth; // Right edge aligns with original GABS position
@@ -1967,6 +1964,11 @@ function initializeDiagram() {
           { fill: '#ffffff', fontSize: '14' }
         );
         labelsGroup.appendChild(deText);
+
+        // Store DE and BEC elements for later repositioning
+        window.deElements = { box: deBox, text: deText };
+        window.becnElements = { box: becnBox, text: becnText };
+        window.becgElements = { box: becgBox, text: becgText };
 
         // Store ASX boxes alignment for later use
         // First calculate the ASX bounding box dimensions
@@ -2778,7 +2780,7 @@ function initializeDiagram() {
           const eftposY = baseEftposY + shift;
           const mastercardY = eftposY - gapSympliPexa - stackedHeight;
           const visaY = mastercardY - (gapSympliPexa * 2) - stackedHeight; // Double gap above Mastercard
-          const otherCardsY = visaY - gapSympliPexa - stackedHeight; // Same gap as eftpos-mastercard
+          const otherCardsY = visaY - (gapSympliPexa / 2) - stackedHeight; // Half the gap used elsewhere
 
           const createStackedRect = (y, fillColor, label, xOverride) => {
             const xPos = xOverride !== undefined ? xOverride : baseX;
@@ -2835,7 +2837,7 @@ function initializeDiagram() {
 
           const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
           const visa = createAlignedRect(visaY, '#faaa13', 'Visa');
-          const otherCards = createAlignedRect(otherCardsY, '#629F86', 'Other cards');
+          const otherCards = createAlignedRect(otherCardsY, '#629F86', 'Other Cards');
 
           const eftposLines = createDoubleLine(
             baseX + boxWidth,
@@ -2869,81 +2871,61 @@ function initializeDiagram() {
           };
 
           // Now update DE box to align above Mastercard box
-          const deElement = document.querySelector('rect[fill="#8B0000"]:not([stroke])');
-          const deTextElement = Array.from(labelsGroup.querySelectorAll('text')).find(t => t.textContent === 'DE');
-          const becnElement = Array.from(labelsGroup.querySelectorAll('rect[fill="#ffc0cb"]')).find(r => {
-            const text = Array.from(labelsGroup.querySelectorAll('text')).find(t => {
-              const x = parseFloat(t.getAttribute('x'));
-              const y = parseFloat(t.getAttribute('y'));
-              const rx = parseFloat(r.getAttribute('x'));
-              const ry = parseFloat(r.getAttribute('y'));
-              const rw = parseFloat(r.getAttribute('width'));
-              const rh = parseFloat(r.getAttribute('height'));
-              return t.textContent === 'BECN' && x > rx && x < rx + rw && y > ry && y < ry + rh;
-            });
-            return !!text;
-          });
-          const becgElement = Array.from(labelsGroup.querySelectorAll('rect[fill="#ffc0cb"]')).find(r => {
-            const text = Array.from(labelsGroup.querySelectorAll('text')).find(t => {
-              const x = parseFloat(t.getAttribute('x'));
-              const y = parseFloat(t.getAttribute('y'));
-              const rx = parseFloat(r.getAttribute('x'));
-              const ry = parseFloat(r.getAttribute('y'));
-              const rw = parseFloat(r.getAttribute('width'));
-              const rh = parseFloat(r.getAttribute('height'));
-              return t.textContent === 'BECG' && x > rx && x < rx + rw && y > ry && y < ry + rh;
-            });
-            return !!text;
-          });
-          const becnTextElement = Array.from(labelsGroup.querySelectorAll('text')).find(t => t.textContent === 'BECN');
-          const becgTextElement = Array.from(labelsGroup.querySelectorAll('text')).find(t => t.textContent === 'BECG');
+          console.log('Updating DE/BECN/BECG positions - Mastercard Y:', mastercardY, 'X:', eftposActualX, 'Width:', boxWidth);
 
-          if (deElement && mastercard) {
-            // Position DE above Mastercard with same width
-            const deGap = 8; // Gap between DE and Mastercard
-            const newDeX = eftposActualX; // Same X as Mastercard
-            const newDeWidth = boxWidth; // Same width as Mastercard
-            const currentDeHeight = parseFloat(deElement.getAttribute('height'));
-            const newDeY = mastercardY - currentDeHeight - deGap;
+          if (window.deElements && window.deElements.box && mastercard) {
+            const nppBoxEl = document.getElementById('npp-box');
+            const targetBecTop = nppBoxEl ? parseFloat(nppBoxEl.getAttribute('y'))
+                                          : (Number.isFinite(window.nppBoxData?.y) ? window.nppBoxData.y : null);
 
-            deElement.setAttribute('x', newDeX.toFixed(2));
-            deElement.setAttribute('y', newDeY.toFixed(2));
-            deElement.setAttribute('width', newDeWidth.toFixed(2));
+            // Horizontal alignment stays centered over the stacked rectangles
+            const deGap = 8; // Gap between DE and the BEC row
+            const becGap = 5; // Gap between DE and BECN/BECG
+            const becnBecgGap = 5; // Gap between BECN and BECG
+            const stackBaseX = Number.isFinite(window.pexaExtensions?.baseX) ? window.pexaExtensions.baseX : eftposActualX;
+            const stackWidth = Number.isFinite(window.pexaExtensions?.width) ? window.pexaExtensions.width : boxWidth;
+            const newDeX = stackBaseX;
+            const newDeWidth = stackWidth;
+            const currentDeHeight = parseFloat(window.deElements.box.getAttribute('height'));
 
-            if (deTextElement) {
-              deTextElement.setAttribute('x', (newDeX + newDeWidth / 2).toFixed(2));
-              deTextElement.setAttribute('y', (newDeY + currentDeHeight / 2).toFixed(2));
+            // If we can't determine the NPP top, fall back to the previous placement
+            const fallbackDeY = mastercardY - currentDeHeight - deGap;
+            const fallbackBecTop = fallbackDeY + currentDeHeight + becGap;
+            const becY = Number.isFinite(targetBecTop) ? targetBecTop : fallbackBecTop;
+            const newDeY = becY - becGap - currentDeHeight;
+
+            window.deElements.box.setAttribute('x', newDeX.toFixed(2));
+            window.deElements.box.setAttribute('y', newDeY.toFixed(2));
+            window.deElements.box.setAttribute('width', newDeWidth.toFixed(2));
+
+            if (window.deElements.text) {
+              window.deElements.text.setAttribute('x', (newDeX + newDeWidth / 2).toFixed(2));
+              window.deElements.text.setAttribute('y', (newDeY + currentDeHeight / 2).toFixed(2));
             }
 
-            // Position BECN and BECG under DE
-            if (becnElement && becgElement) {
-              const becGap = 5; // Gap between DE and BECN/BECG
-              const becnBecgGap = 5; // Gap between BECN and BECG
-              const currentBecWidth = parseFloat(becnElement.getAttribute('width'));
-              const currentBecHeight = parseFloat(becnElement.getAttribute('height'));
+            if (window.becnElements && window.becgElements) {
+              const currentBecWidth = parseFloat(window.becnElements.box.getAttribute('width'));
+              const currentBecHeight = parseFloat(window.becnElements.box.getAttribute('height'));
 
-              // Calculate total width of BECN and BECG with gap
               const totalBecWidth = currentBecWidth * 2 + becnBecgGap;
-              // Center them under DE
               const becStartX = newDeX + (newDeWidth - totalBecWidth) / 2;
-              const becY = newDeY + currentDeHeight + becGap;
 
-              // Position BECN
-              becnElement.setAttribute('x', becStartX.toFixed(2));
-              becnElement.setAttribute('y', becY.toFixed(2));
-              if (becnTextElement) {
-                becnTextElement.setAttribute('x', (becStartX + currentBecWidth / 2).toFixed(2));
-                becnTextElement.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
+              window.becnElements.box.setAttribute('x', becStartX.toFixed(2));
+              window.becnElements.box.setAttribute('y', becY.toFixed(2));
+              if (window.becnElements.text) {
+                window.becnElements.text.setAttribute('x', (becStartX + currentBecWidth / 2).toFixed(2));
+                window.becnElements.text.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
               }
 
-              // Position BECG to the right of BECN
               const becgX = becStartX + currentBecWidth + becnBecgGap;
-              becgElement.setAttribute('x', becgX.toFixed(2));
-              becgElement.setAttribute('y', becY.toFixed(2));
-              if (becgTextElement) {
-                becgTextElement.setAttribute('x', (becgX + currentBecWidth / 2).toFixed(2));
-                becgTextElement.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
+              window.becgElements.box.setAttribute('x', becgX.toFixed(2));
+              window.becgElements.box.setAttribute('y', becY.toFixed(2));
+              if (window.becgElements.text) {
+                window.becgElements.text.setAttribute('x', (becgX + currentBecWidth / 2).toFixed(2));
+                window.becgElements.text.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
               }
+
+              console.log('Repositioned DE to:', newDeX, newDeY, 'BECN/BECG to:', becStartX, becY, 'targetBecTop:', targetBecTop);
             }
           }
         }
@@ -3216,7 +3198,7 @@ function initializeDiagram() {
             const eftposY = baseEftposY + shift;
             const mastercardY = eftposY - gapSympli - stackedHeight;
             const visaY = mastercardY - (gapSympli * 2) - stackedHeight;
-            const otherCardsY = visaY - gapSympli - stackedHeight;
+            const otherCardsY = visaY - (gapSympli / 2) - stackedHeight;
 
             const updateStackItem = (item, y) => {
               if (!item || !item.rect || !item.text) return;
