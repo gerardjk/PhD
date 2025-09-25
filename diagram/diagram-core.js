@@ -1517,8 +1517,8 @@ function initializeDiagram() {
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#FFD2B8', // Light salmon (intermediate orange)
-          stroke: '#FF6347', // Tomato (intermediate orange border)
+          fill: '#ffe4b5', // Peach/cream fill (moved from IAC)
+          stroke: '#ff8c00', // Dark orange border (moved from IAC)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1536,8 +1536,8 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(cshdText);
         const cecsBox = createStyledRect(reducedNarrowBoxX, cecsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#ffe4b5', // Peach/cream fill
-          stroke: '#ff8c00', // Dark orange border
+          fill: '#e6ffd6', // Light green (less yellow)
+          stroke: '#2d5016', // Forest green border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1550,7 +1550,7 @@ function initializeDiagram() {
           cecsY + boxHeight / 2, 
           'IAC (CECS)',
           {
-            fill: '#d2691e' // Chocolate/dark peach text
+            fill: '#2d5016' // Forest green text to match border
           }
         );
         labelsGroup.appendChild(cecsText);
@@ -1581,8 +1581,8 @@ function initializeDiagram() {
         // APCS (fourth from bottom)
         const apcsY = becsY - boxHeight - squareRectGap;
         const apcsBox = createStyledRect(reducedNarrowBoxX, apcsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#F0E8EC', // Lighter grey-pink
-          stroke: '#A8998C', // Darker smoked oyster border
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1789,8 +1789,8 @@ function initializeDiagram() {
 
         // APCE box (leftmost)
         const apceBox = createStyledRect(apceX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
-          fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
-          stroke: '#A8998C', // Darker smoked oyster border
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border
           strokeWidth: '2',
           rx: '4',
           ry: '4'
@@ -1814,8 +1814,8 @@ function initializeDiagram() {
 
         // APCR box (middle)
         const apcrBox = createStyledRect(apcrX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
-          fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
-          stroke: '#A8998C',
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border,
           strokeWidth: '2',
           rx: '4',
           ry: '4'
@@ -1838,8 +1838,8 @@ function initializeDiagram() {
 
         // ACPT box (rightmost)
         const acptBox = createStyledRect(acptX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
-          fill: '#F0E8EC', // Lighter grey-pink (same as APCS)
-          stroke: '#A8998C',
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border,
           strokeWidth: '2',
           rx: '4',
           ry: '4'
@@ -1871,7 +1871,7 @@ function initializeDiagram() {
 
         // Create filled Cheques box
         const chequesBox = createStyledRect(chequesBoxX, chequesBoxY, chequesBoxWidth, chequesBoxHeight, {
-          fill: '#6B5D54', // Dark smoked oyster text color (same as APCS text)
+          fill: '#4b5563', // Dark grey
           stroke: 'none',
           rx: '5',
           ry: '5'
@@ -3536,7 +3536,70 @@ function initializeDiagram() {
           console.log('ASX Settlement text element not found!');
         }
 
-        // Removed horizontal lines from eftpos and Mastercard boxes
+        // Add yellow double lines from eftpos (right) to ESSB (left) and Mastercard (right) to MCAU (left)
+        if (window.hexagonPositions) {
+          // Get stacked box positions (right side)
+          const stackedHeight = pexaConveyHeight;
+          const boxWidth = window.hexagonPositions.mastercardWidth;
+          const centerX = pexaConveyX + pexaConveyWidth / 2;
+          const baseX = centerX - boxWidth / 2;
+
+          // Calculate Y positions for stacked boxes
+          const sympliBottom = sympliY + sympliHeight;
+          let gapSympliPexa = pexaConveyY - sympliBottom;
+          if (!Number.isFinite(gapSympliPexa) || gapSympliPexa <= 0) {
+            gapSympliPexa = 12; // fallback
+          }
+
+          const baseEftposY = pexaConveyY - gapSympliPexa - stackedHeight;
+          const essbY = window.hexagonPositions.eftposY;
+          const shift = essbY - baseEftposY;
+          const stackedEftposY = baseEftposY + shift;
+          const stackedMastercardY = stackedEftposY - gapSympliPexa - stackedHeight;
+
+          // Yellow/orange double lines from eftpos to ESSB
+          const eftposLineGap = 3;
+          const eftposLineColor = '#FFA500'; // Orange color to match other admin lines
+          const eftposLineOffsets = [-eftposLineGap / 2, eftposLineGap / 2];
+
+          // From right side of eftpos (stacked) to left side of ESSB box
+          const eftposStartX = baseX + boxWidth; // Right edge of stacked eftpos
+          const eftposEndX = widerAdminBoxX; // Left edge of ESSB box
+          const eftposLineY = stackedEftposY + stackedHeight / 2;
+
+          eftposLineOffsets.forEach((offset) => {
+            const line = createStyledLine(
+              eftposStartX,
+              eftposLineY + offset,
+              eftposEndX,
+              eftposLineY + offset,
+              {
+                stroke: eftposLineColor,
+                strokeWidth: '2',
+                strokeLinecap: 'round'
+              }
+            );
+            labelsGroup.appendChild(line);
+          });
+
+          // Yellow double lines from Mastercard to MCAU
+          const mastercardLineY = stackedMastercardY + stackedHeight / 2;
+
+          eftposLineOffsets.forEach((offset) => {
+            const line = createStyledLine(
+              eftposStartX, // Same X as eftpos
+              mastercardLineY + offset,
+              eftposEndX, // Same end X as eftpos
+              mastercardLineY + offset,
+              {
+                stroke: eftposLineColor,
+                strokeWidth: '2',
+                strokeLinecap: 'round'
+              }
+            );
+            labelsGroup.appendChild(line);
+          });
+        }
 
         // Removed the Visa-PEXA connection line
         // Horizontal line connecting SSS/CCP to DvP RTGS
@@ -5555,9 +5618,9 @@ function initializeDiagram() {
 
             // Follow the same curve pattern as the blue line but extend much further right
             const nonAdiRightEdge = window.nonAdiBoxData ? window.nonAdiBoxData.x + window.nonAdiBoxData.width : 0;
-            // Start curving up much closer to the ADIs box
-            const curveStartX = window.adiBoxData.x - 150; // Start curve 150px before ADI box left edge
-            const extendPastNonAdi = window.adiBoxData.x - 50; // Control point for curve
+            // Start curving up even closer to the ADIs box
+            const curveStartX = window.adiBoxData.x +300; // Start curve only 50px before ADI box left edge
+            const extendPastNonAdi = window.adiBoxData.x + 420; // Control point for curve
 
             // End point for orange line - next to where blue line connects
             const greenEndX = extendPastNonAdi + 15; // Where green line ends
@@ -6072,25 +6135,12 @@ if (backgroundGroupRef) {
   svg.insertBefore(newBoundingBox, labelsGroup);
 }
 
-const nppBoundingLabel = createStyledText(
-  newBoundingBoxX + hvcsBoxWidth / 2,
-  boundingBoxY + newBoundingBoxHeight / 2,
-  'NPP',
-  {
-    fill: '#4c1d95',
-    fontSize: '20',
-    fontWeight: 'bold'
-  }
-);
-labelsGroup.appendChild(nppBoundingLabel);
-
 window.nppBoundingData = {
   x: newBoundingBoxX,
   y: boundingBoxY,
   width: hvcsBoxWidth,
   height: newBoundingBoxHeight
 };
-window.nppLabelElement = nppBoundingLabel;
 
 // Now create the pacs-style box inside the bounding box
 // Match the style and size of pacs.008
@@ -6125,6 +6175,23 @@ const pacsBoxY = adjustedBsctY;
 
 // Debug logging
 console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBoxHeight, 'center=', nppBiBoundingBoxCenterY);
+
+// Position NPP label centered in the space above PayID box
+// Calculate the center between the top of the purple box and the top of PayID box
+const payIdTopY = adjustedPayIdBoxY; // Now adjustedPayIdBoxY is defined
+const nppLabelY = boundingBoxY + (payIdTopY - boundingBoxY) / 2; // Center between top and PayID
+const nppBoundingLabel = createStyledText(
+  newBoundingBoxX + hvcsBoxWidth / 2,
+  nppLabelY,
+  'NPP',
+  {
+    fill: 'rgb(100,80,180)', // Purple color matching the border
+    fontSize: '24',
+    fontWeight: 'bold'
+  }
+);
+labelsGroup.appendChild(nppBoundingLabel);
+window.nppLabelElement = nppBoundingLabel;
 
 const newPacsBox = createStyledRect(pacsBoxX, pacsBoxY, pacsBoxWidth, pacsBoxHeight, pacsStyle);
 labelsGroup.appendChild(newPacsBox);
@@ -6304,7 +6371,14 @@ const oskoLine = createStyledLine(
     strokeLinecap: 'round'
   }
 );
-labelsGroup.appendChild(oskoLine);
+// Insert the line before the purple box so it renders underneath
+const purpleBox = document.getElementById('npp-purple-box');
+if (purpleBox && purpleBox.parentNode) {
+  purpleBox.parentNode.insertBefore(oskoLine, purpleBox);
+} else {
+  // Fallback: insert at the beginning of the labels group
+  labelsGroup.insertBefore(oskoLine, labelsGroup.firstChild);
+}
 
 const updateOskoLine = () => {
   if (!window.oskoElements || !window.oskoElements.line) {
