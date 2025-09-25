@@ -2781,9 +2781,10 @@ function initializeDiagram() {
           const visaY = mastercardY - (gapSympliPexa * 2) - stackedHeight; // Double gap above Mastercard
           const otherCardsY = visaY - gapSympliPexa - stackedHeight; // Same gap as eftpos-mastercard
 
-          const createStackedRect = (y, fillColor, label) => {
-            console.log(`Creating ${label} box at X: ${baseX}, Y: ${y}`);
-            const rect = createStyledRect(baseX, y, boxWidth, stackedHeight, {
+          const createStackedRect = (y, fillColor, label, xOverride) => {
+            const xPos = xOverride !== undefined ? xOverride : baseX;
+            console.log(`Creating ${label} box at X: ${xPos}, Y: ${y}`);
+            const rect = createStyledRect(xPos, y, boxWidth, stackedHeight, {
               fill: fillColor,
               stroke: 'none',
               rx: '8',
@@ -2792,7 +2793,7 @@ function initializeDiagram() {
             labelsGroup.appendChild(rect);
 
             const text = createStyledText(
-              baseX + boxWidth / 2,
+              xPos + boxWidth / 2,
               y + stackedHeight / 2,
               label,
               {
@@ -2826,34 +2827,11 @@ function initializeDiagram() {
 
           const eftpos = createStackedRect(eftposY, 'rgb(100,80,180)', 'eftpos');
 
-          // Get the actual X position from the eftpos rect that was just created
           const eftposRect = eftpos.rect;
           const eftposActualX = parseFloat(eftposRect.getAttribute('x'));
-          console.log('Eftpos actual X:', eftposActualX, 'vs baseX:', baseX);
 
-          // Override the createStackedRect function to use the actual X
           const createAlignedRect = (y, fillColor, label) => {
-            console.log(`Creating aligned ${label} box at X: ${eftposActualX}, Y: ${y}`);
-            const rect = createStyledRect(eftposActualX, y, boxWidth, stackedHeight, {
-              fill: fillColor,
-              stroke: 'none',
-              rx: '8',
-              ry: '8'
-            });
-            labelsGroup.appendChild(rect);
-
-            const text = createStyledText(
-              eftposActualX + boxWidth / 2,
-              y + stackedHeight / 2,
-              label,
-              {
-                fill: '#ffffff',
-                fontSize: '12'
-              }
-            );
-            labelsGroup.appendChild(text);
-
-            return { rect, text };
+            return createStackedRect(y, fillColor, label, eftposActualX);
           };
 
           const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
