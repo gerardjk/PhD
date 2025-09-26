@@ -394,6 +394,9 @@ function initializeDiagram() {
       if (typeof window.updateChequesToAdiLine === 'function') {
         window.updateChequesToAdiLine();
       }
+      if (typeof window.updateDirectEntryToAdiLine === 'function') {
+        window.updateDirectEntryToAdiLine();
+      }
     };
 
     // Distribute circles in groups: 1, triple gap, 45, gap, 5, double gap, 34, gap, 3, gap, 4, double gap, 8
@@ -1993,9 +1996,9 @@ function initializeDiagram() {
         // apcsCenterY already declared above
 
         // Calculate vertical positions for three connection points on APCS left side
-        const apcsTopThird = apcsY + boxHeight * 0.25;
-        const apcsMiddle = apcsY + boxHeight * 0.5;
-        const apcsBottomThird = apcsY + boxHeight * 0.75;
+        const apcsTopThird = apcsY + boxHeight * 0.1;
+        const apcsMiddle = apcsY + boxHeight * 0.3;
+        const apcsBottomThird = apcsY + boxHeight * 0.5;
 
         // Line from APCE bottom to APCS left side (bottom third - furthest box connects lowest)
         const apceCenterX = apceX + newSingleSmallBoxWidth / 2;
@@ -2901,15 +2904,23 @@ function initializeDiagram() {
             stackHeaderHeight: stackHeaderHeight
           };
 
-          const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           chequesToAdiLine.setAttribute('id', 'cheques-to-adi-line');
           chequesToAdiLine.setAttribute('stroke', '#4b5563');
           chequesToAdiLine.setAttribute('stroke-width', '2');
           chequesToAdiLine.setAttribute('stroke-linecap', 'round');
+          chequesToAdiLine.setAttribute('fill', 'none');
           labelsGroup.appendChild(chequesToAdiLine);
 
           const updateChequesToAdiLine = () => {
-            if (!window.chequesToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.chequesBoxData) return;
+            if (!window.chequesToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
+
+            // Get Cheques box position for the starting point
+            if (!window.chequesBoxData) return;
+            const chequesX = window.chequesBoxData.x;
+            const chequesY = window.chequesBoxData.y;
+            const chequesWidth = window.chequesBoxData.width;
+            const chequesMidX = chequesX + chequesWidth / 2;
 
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
@@ -2917,21 +2928,131 @@ function initializeDiagram() {
             const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
             if (!Number.isFinite(oskoX) || !Number.isFinite(oskoY) || !Number.isFinite(oskoWidth)) return;
 
-            const chequesData = window.chequesBoxData;
-            const targetX = chequesData.x + chequesData.width / 2;
+            // Key Y positions
+            const horizontalY = oskoY - 5; // 5px above Osko
 
-            const y = oskoY - 5;
-            const startX = oskoX;
-            const endX = Math.max(targetX, oskoX + oskoWidth);
+            // Get ADIs box position for the endpoint
+            if (!window.adiBoxData) return;
+            const adiX = window.adiBoxData.x;
+            const adiY = window.adiBoxData.y;
+            const adiWidth = window.adiBoxData.width;
 
-            window.chequesToAdiLine.setAttribute('x1', startX.toFixed(2));
-            window.chequesToAdiLine.setAttribute('y1', y.toFixed(2));
-            window.chequesToAdiLine.setAttribute('x2', endX.toFixed(2));
-            window.chequesToAdiLine.setAttribute('y2', y.toFixed(2));
+            // Use same approach as green line for the horizontal-to-ADI portion
+            const referenceRightEdge = window.nonAdiBoxData ?
+              window.nonAdiBoxData.x + window.nonAdiBoxData.width :
+              oskoX + oskoWidth + 300;
+
+            const extendPastReference = referenceRightEdge + 60;
+            const curveToAdiStartX = Math.max(oskoX + 120, referenceRightEdge - 80);
+
+            // End point - enters ADI box from top
+            const endX = extendPastReference + 25;
+            const endY = adiY;
+
+            // Simple rounded corner radius
+            const cornerRadius = 20;
+
+            // Control points for final curve to ADI
+            const verticalDistance = endY - horizontalY;
+            const control3X = curveToAdiStartX + 60;
+            const control3Y = horizontalY;
+            const control4X = extendPastReference;
+            const control4Y = horizontalY + verticalDistance * 0.15;
+
+            // Create complete path with arc for corner (no overshoot)
+            const pathData = `M ${chequesMidX.toFixed(2)} ${chequesY.toFixed(2)} ` +
+                           `L ${chequesMidX.toFixed(2)} ${(horizontalY + cornerRadius).toFixed(2)} ` +
+                           `A ${cornerRadius} ${cornerRadius} 0 0 1 ${(chequesMidX + cornerRadius).toFixed(2)} ${horizontalY.toFixed(2)} ` +
+                           `L ${curveToAdiStartX.toFixed(2)} ${horizontalY.toFixed(2)} ` +
+                           `C ${control3X.toFixed(2)} ${control3Y.toFixed(2)}, ` +
+                           `${control4X.toFixed(2)} ${control4Y.toFixed(2)}, ` +
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+            window.chequesToAdiLine.setAttribute('d', pathData);
           };
 
           window.chequesToAdiLine = chequesToAdiLine;
           window.updateChequesToAdiLine = updateChequesToAdiLine;
+
+          // Create red line from Direct Entry to ADIs (matching BECN line style)
+          const directEntryToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          directEntryToAdiLine.setAttribute('id', 'directentry-to-adi-line');
+          directEntryToAdiLine.setAttribute('stroke', '#8B0000'); // Dark red like BECN line
+          directEntryToAdiLine.setAttribute('stroke-width', '3'); // Same thickness as BECN line
+          directEntryToAdiLine.setAttribute('stroke-linecap', 'round');
+          directEntryToAdiLine.setAttribute('fill', 'none');
+          labelsGroup.appendChild(directEntryToAdiLine);
+
+          const updateDirectEntryToAdiLine = () => {
+            if (!window.directEntryToAdiLine || !window.adiBoxData) return;
+
+            // Try to get Direct Entry box position from multiple sources
+            let deX, deY, deWidth, deHeight;
+
+            // First try pexaExtensions.stackHeader which seems to be the actual position
+            if (window.pexaExtensions && window.pexaExtensions.stackHeader) {
+              const header = window.pexaExtensions.stackHeader;
+              if (header.rect) {
+                const rect = header.rect;
+                deX = parseFloat(rect.getAttribute('x'));
+                deY = parseFloat(rect.getAttribute('y'));
+                deWidth = parseFloat(rect.getAttribute('width'));
+                deHeight = parseFloat(rect.getAttribute('height'));
+              }
+            }
+
+            // Fallback to directEntryBox if needed
+            if (!deX && window.directEntryBox) {
+              deX = window.directEntryBox.x;
+              deY = window.directEntryBox.y;
+              deWidth = window.directEntryBox.width;
+              deHeight = window.directEntryBox.height;
+            }
+
+            if (!deX) return;
+
+            // Start from right edge of Direct Entry box, middle height
+            const startX = deX + deWidth;
+            const startY = deY + deHeight / 2;
+
+            // Get ADIs box position
+            const adiX = window.adiBoxData.x;
+            const adiY = window.adiBoxData.y;
+            const adiWidth = window.adiBoxData.width;
+
+            // Use same approach as green line - horizontal then curve DOWN
+            const referenceRightEdge = window.nonAdiBoxData ?
+              window.nonAdiBoxData.x + window.nonAdiBoxData.width :
+              startX + 300;
+
+            const extendPastReference = referenceRightEdge + 60;
+            const curveStartX = Math.max(startX + 120, referenceRightEdge - 80);
+
+            // End point - enters ADI box from top, slightly right of grey line
+            const greyEndX = extendPastReference + 25; // Where grey line enters
+            const endX = greyEndX + 10; // 30px to the right of grey line
+            const endY = adiY;
+
+            // Control points for smooth downward curve
+            const verticalDistance = endY - startY;
+            const control1X = curveStartX + 60;
+            const control1Y = startY;
+            const control2X = extendPastReference + 15;
+            const control2Y = startY + verticalDistance * 0.15;
+
+            // Create path data with horizontal segment then Bézier curve down
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
+                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+            window.directEntryToAdiLine.setAttribute('d', pathData);
+          };
+
+          window.directEntryToAdiLine = directEntryToAdiLine;
+          window.updateDirectEntryToAdiLine = updateDirectEntryToAdiLine;
+          updateDirectEntryToAdiLine(); // Initial update
 
           window.otherCardsHierarchy = {
             parent: null,
@@ -3088,6 +3209,9 @@ function initializeDiagram() {
 
             if (typeof window.updateChequesToAdiLine === 'function') {
               window.updateChequesToAdiLine();
+            }
+            if (typeof window.updateDirectEntryToAdiLine === 'function') {
+              window.updateDirectEntryToAdiLine();
             }
 
             hierarchy.childWidth = childWidthUpdated;
@@ -3535,73 +3659,35 @@ function initializeDiagram() {
                 const becgCenterX = box2X + boxWidth * 0.5;
                 const childBottomY = boxY + boxHeight;
 
-                // Create double curved lines from BECN to BECS (connects to left side, bottom third)
-                const lineOffset = 1.5; // Offset for double lines
+                // Create single curved line from BECN to BECS (matching Direct Entry style)
+                const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnToBecsData = `M ${becnCenterX} ${childBottomY}
+                                        Q ${becnCenterX} ${becsBottomThird} ${becsLeftX} ${becsBottomThird}`;
+                becnToBecsPath.setAttribute('d', becnToBecsData);
+                becnToBecsPath.setAttribute('stroke', '#8B0000'); // Dark red like Direct Entry line
+                becnToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
+                becnToBecsPath.setAttribute('fill', 'none');
+                becnToBecsPath.setAttribute('stroke-linecap', 'round');
 
-                // First line
-                const becnToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becnToBecsData1 = `M ${becnCenterX - lineOffset} ${childBottomY}
-                                         Q ${becnCenterX - lineOffset} ${becsBottomThird} ${becsLeftX} ${becsBottomThird - lineOffset}`;
-                becnToBecsPath1.setAttribute('d', becnToBecsData1);
-                becnToBecsPath1.setAttribute('stroke', '#8B0000'); // Dark red
-                becnToBecsPath1.setAttribute('stroke-width', '1.2');
-                becnToBecsPath1.setAttribute('fill', 'none');
-                becnToBecsPath1.setAttribute('stroke-linejoin', 'round');
-                becnToBecsPath1.setAttribute('stroke-linecap', 'round');
-
-                // Second line
-                const becnToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becnToBecsData2 = `M ${becnCenterX + lineOffset} ${childBottomY}
-                                         Q ${becnCenterX + lineOffset} ${becsBottomThird} ${becsLeftX} ${becsBottomThird + lineOffset}`;
-                becnToBecsPath2.setAttribute('d', becnToBecsData2);
-                becnToBecsPath2.setAttribute('stroke', '#8B0000'); // Dark red
-                becnToBecsPath2.setAttribute('stroke-width', '1.2');
-                becnToBecsPath2.setAttribute('fill', 'none');
-                becnToBecsPath2.setAttribute('stroke-linejoin', 'round');
-                becnToBecsPath2.setAttribute('stroke-linecap', 'round');
-
-                // Insert before BECN box so lines appear behind it
+                // Insert before BECN box so line appears behind it
                 if (window.directEntryChild1.rect.parentNode) {
-                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath1, window.directEntryChild1.rect);
-                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath2, window.directEntryChild1.rect);
+                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath, window.directEntryChild1.rect);
                 }
 
-                // Store both paths for reference
-                const becnToBecsPath = { path1: becnToBecsPath1, path2: becnToBecsPath2 };
+                // Create single curved line from BECG to BECS (matching Direct Entry style)
+                const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgToBecsData = `M ${becgCenterX} ${childBottomY}
+                                        Q ${becgCenterX} ${becsTopThird} ${becsLeftX} ${becsTopThird}`;
+                becgToBecsPath.setAttribute('d', becgToBecsData);
+                becgToBecsPath.setAttribute('stroke', '#8B0000'); // Dark red like Direct Entry line
+                becgToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
+                becgToBecsPath.setAttribute('fill', 'none');
+                becgToBecsPath.setAttribute('stroke-linecap', 'round');
 
-                // Create double curved lines from BECG to BECS (connects to left side, top third - higher)
-                const becgControlX = becgCenterX - (becgCenterX - becsLeftX) * 0.00000000;
-
-                // First line
-                const becgToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becgToBecsData1 = `M ${becgCenterX - lineOffset} ${childBottomY}
-                                         Q ${becgControlX - lineOffset} ${becsTopThird} ${becsLeftX} ${becsTopThird - lineOffset}`;
-                becgToBecsPath1.setAttribute('d', becgToBecsData1);
-                becgToBecsPath1.setAttribute('stroke', '#8B0000'); // Dark red
-                becgToBecsPath1.setAttribute('stroke-width', '1.2');
-                becgToBecsPath1.setAttribute('fill', 'none');
-                becgToBecsPath1.setAttribute('stroke-linejoin', 'round');
-                becgToBecsPath1.setAttribute('stroke-linecap', 'round');
-
-                // Second line
-                const becgToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becgToBecsData2 = `M ${becgCenterX + lineOffset} ${childBottomY}
-                                         Q ${becgControlX + lineOffset} ${becsTopThird} ${becsLeftX} ${becsTopThird + lineOffset}`;
-                becgToBecsPath2.setAttribute('d', becgToBecsData2);
-                becgToBecsPath2.setAttribute('stroke', '#8B0000'); // Dark red
-                becgToBecsPath2.setAttribute('stroke-width', '1.2');
-                becgToBecsPath2.setAttribute('fill', 'none');
-                becgToBecsPath2.setAttribute('stroke-linejoin', 'round');
-                becgToBecsPath2.setAttribute('stroke-linecap', 'round');
-
-                // Insert before BECG box so lines appear behind it
+                // Insert before BECG box so line appears behind it
                 if (window.directEntryChild2.rect.parentNode) {
-                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath1, window.directEntryChild2.rect);
-                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath2, window.directEntryChild2.rect);
+                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath, window.directEntryChild2.rect);
                 }
-
-                // Store both paths for reference
-                const becgToBecsPath = { path1: becgToBecsPath1, path2: becgToBecsPath2 };
 
                 // Store references for potential updates
                 window.becnToBecsLine = becnToBecsPath;
@@ -3611,6 +3697,9 @@ function initializeDiagram() {
 
             if (typeof window.updateChequesToAdiLine === 'function') {
               window.updateChequesToAdiLine();
+            }
+            if (typeof window.updateDirectEntryToAdiLine === 'function') {
+              window.updateDirectEntryToAdiLine();
             }
 
             const actualGap = pexaConveyY - (eftposY + stackedHeight);
@@ -5665,6 +5754,9 @@ function initializeDiagram() {
         if (typeof window.updateChequesToAdiLine === 'function') {
           window.updateChequesToAdiLine();
         }
+        if (typeof window.updateDirectEntryToAdiLine === 'function') {
+          window.updateDirectEntryToAdiLine();
+        }
 
         // Add "ADIs" text to top right corner of inner blue box
         const adiRectX = parseFloat(adiRect.getAttribute('x'));
@@ -6097,6 +6189,9 @@ function initializeDiagram() {
           window.adiBoxData.height = adiBoxHeight;
           if (typeof window.updateChequesToAdiLine === 'function') {
             window.updateChequesToAdiLine();
+          }
+          if (typeof window.updateDirectEntryToAdiLine === 'function') {
+            window.updateDirectEntryToAdiLine();
           }
 
           // Create orange line from Sympli to ADIs now that both box data are available
@@ -6906,8 +7001,8 @@ const oskoX = newBoundingBoxX; // Same X as NPP BI (SWIFT) bounding box
 const oskoBox = createStyledRect(oskoX, oskoY, oskoWidth, oskoHeight, {
   fill: 'rgb(100,80,180)', // Same purple as EFTPOS
   stroke: 'none',
-  rx: '6', // Same rounded corners as Direct Entry
-  ry: '6'
+  rx: '12', // Same rounded corners as PayID/PayTo boxes inside NPP
+  ry: '12'
 });
 labelsGroup.appendChild(oskoBox);
 
@@ -6981,6 +7076,9 @@ window.updateOskoLine = updateOskoLine;
 updateOskoLine();
 if (typeof window.updateChequesToAdiLine === 'function') {
   window.updateChequesToAdiLine();
+}
+if (typeof window.updateDirectEntryToAdiLine === 'function') {
+  window.updateDirectEntryToAdiLine();
 }
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
