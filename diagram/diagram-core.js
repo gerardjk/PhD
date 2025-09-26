@@ -1556,13 +1556,13 @@ function initializeDiagram() {
           cshdY + boxHeight / 2,
           'CSHD',
           {
-            fill: '#5a3414' // Deep brown text to suit new palette
+            fill: '#a5622a' // Same color as border
           }
         );
         labelsGroup.appendChild(cshdText);
         const cecsBox = createStyledRect(reducedNarrowBoxX, cecsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#e6ffd6', // Light green (less yellow)
-          stroke: '#2d5016', // Forest green border
+          fill: '#f1ffcc', // Light yellow-green
+          stroke: '#2d5016', // Dark forest green
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1575,7 +1575,7 @@ function initializeDiagram() {
           cecsY + boxHeight / 2, 
           'IAC (CECS)',
           {
-            fill: '#2d5016' // Forest green text to match border
+            fill: '#2d5016' // Dark forest green
           }
         );
         labelsGroup.appendChild(cecsText);
@@ -1636,7 +1636,7 @@ function initializeDiagram() {
           apcsY + boxHeight / 2,
           'APCS',
           {
-            fill: '#6B5D54', // Dark smoked oyster text theme
+            fill: '#4b5563', // Dark grey
             fontSize: '12'
           }
         );
@@ -1844,7 +1844,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCE',
           {
-            fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
+            fill: '#4b5563', // Dark grey
             fontSize: '8'
           }
         );
@@ -1868,7 +1868,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCR',
           {
-            fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
+            fill: '#4b5563', // Dark grey
             fontSize: '8'
           }
         );
@@ -1892,7 +1892,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCT',
           {
-            fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
+            fill: '#4b5563', // Dark grey
             fontSize: '8'
           }
         );
@@ -2006,7 +2006,7 @@ function initializeDiagram() {
                                 Q ${apceCenterX} ${apcsBottomThird} ${apcsLeftX} ${apcsBottomThird}`;
         const apcsToApcePath = createStyledPath(apcsToApceData, {
           stroke: '#6B5D54',
-          strokeWidth: '1.5',
+          strokeWidth: '1',
           fill: 'none',
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
@@ -2019,7 +2019,7 @@ function initializeDiagram() {
                                 Q ${apcrCenterX} ${apcsMiddle} ${apcsLeftX} ${apcsMiddle}`;
         const apcsToApcrPath = createStyledPath(apcsToApcrData, {
           stroke: '#6B5D54',
-          strokeWidth: '1.5',
+          strokeWidth: '1',
           fill: 'none',
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
@@ -2032,7 +2032,7 @@ function initializeDiagram() {
                                 Q ${acptCenterX} ${apcsTopThird} ${apcsLeftX} ${apcsTopThird}`;
         const apcsToAcptPath = createStyledPath(apcsToAcptData, {
           stroke: '#6B5D54',
-          strokeWidth: '1.5',
+          strokeWidth: '1',
           fill: 'none',
           strokeLinejoin: 'round',
           strokeLinecap: 'round'
@@ -2598,9 +2598,9 @@ function initializeDiagram() {
           height: sympliHeight
         };
 
-        const sympliLineGap = 3;
-        const sympliLineColor = '#DC143C';
-        const sympliLineOffsets = [-sympliLineGap / 2, sympliLineGap / 2];
+        const sympliLineGap = 2.5;
+        const sympliLineColor = '#B91199';
+        const sympliLineOffsets = [-sympliLineGap, 0, sympliLineGap]; // Triple lines
         const sympliConnectorStartX = sympliX + sympliWidth;
         let sympliConnectorEndX = sympliConnectorStartX;
         if (window.bridgePositions) {
@@ -2619,7 +2619,7 @@ function initializeDiagram() {
             sympliY + sympliHeight / 2 + offset,
             {
               stroke: sympliLineColor,
-              strokeWidth: '1.5',
+              strokeWidth: '1', // Thin lines
               strokeLinecap: 'round'
             }
           );
@@ -2759,7 +2759,7 @@ function initializeDiagram() {
             return offsets.map((offset, idx) => {
               const line = createStyledLine(startX, startY + offset, endX, startY + offset, {
                 stroke: color,
-                strokeWidth: '1.5',
+                strokeWidth: '2.25',
                 strokeLinecap: 'round'
               });
               line.classList.add('admin-double-line');
@@ -2788,16 +2788,16 @@ function initializeDiagram() {
           const visaGap = gapSympliPexa * 2;
           const gapHalf = gapSympliPexa / 2;
           const visaY = mastercardY - visaGap - reducedHeight;
-          const visa = createStackedRect(visaY, '#faaa13', 'Visa', eftposActualX, reducedHeight, reducedFont);
-          const otherCardsY = visaY - gapHalf - reducedHeight;
-          const otherCards = createStackedRect(otherCardsY, '#629F86', 'Other Cards', eftposActualX, reducedHeight, reducedFont);
-          const medicareY = otherCardsY - gapHalf - reducedHeight;
+          const visa = createStackedRect(visaY, '#27AEE3', 'Other Cards', eftposActualX, reducedHeight, reducedFont);
+          const otherCardsY = mastercardY - gapHalf - reducedHeight;
+          const otherCards = createStackedRect(otherCardsY, '#F7B600', 'Visa', eftposActualX, reducedHeight, reducedFont);
+          const medicareY = visaY - gapHalf - reducedHeight;
           const medicare = createStackedRect(medicareY, 'rgb(56,127,72)', 'Medicare', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
-          const atms = createStackedRect(atmsY, '#4e533b', 'ATMs', eftposActualX, reducedHeight, reducedFont);
+          const atms = createStackedRect(atmsY, '#412e29', 'ATMs', eftposActualX, reducedHeight, reducedFont);
 
-          const boundingPadX = 6;
-          const boundingPadY = 6;
+          const boundingPadX = 9;
+          const boundingPadY = 7;
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
 
@@ -2816,11 +2816,11 @@ function initializeDiagram() {
             containerWidth,
             (stackBottomY - stackTopY) + boundingPadY * 2,
             {
-              fill: '#e6ffd6',
+              fill: '#f1ffcc',
               stroke: '#2d5016',
-              strokeWidth: '2',
-              rx: '6',
-              ry: '6'
+              strokeWidth: '3',
+              rx: '18',
+              ry: '18'
             }
           );
 
@@ -2862,7 +2862,7 @@ function initializeDiagram() {
             { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
           );
 
-          // Add green line from bounding box to IAC (CECS) - draw BEFORE bounding box so it's behind
+          // Add double lines from bounding box to IAC (CECS) in LVSS style - draw BEFORE bounding box so it's behind
           if (window.cecsBoxData) {
             const cecsData = window.cecsBoxData;
             const cecsLeftX = cecsData.x; // Left side of CECS box
@@ -2870,19 +2870,34 @@ function initializeDiagram() {
             // Stop line 2px inside the bounding box so it doesn't poke out
             const lineEndX = containerX + containerWidth - 2;
 
-            const cecsToAtmsBoundingLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            cecsToAtmsBoundingLine.setAttribute('x1', cecsLeftX); // START at left side of CECS
-            cecsToAtmsBoundingLine.setAttribute('y1', cecsCenterY);
-            cecsToAtmsBoundingLine.setAttribute('x2', lineEndX); // END 2px inside right edge of bounding box
-            cecsToAtmsBoundingLine.setAttribute('y2', cecsCenterY);
-            cecsToAtmsBoundingLine.setAttribute('stroke', '#2d5016'); // Forest green to match border
-            cecsToAtmsBoundingLine.setAttribute('stroke-width', '3');
+            // Create double line effect like LVSS
+            const lineGap = 3; // Gap between the two lines
+            const lineColor = '#380835'; // Same dark purple as LVSS lines
+            const lineOffsets = [-lineGap/2, lineGap/2];
 
-            if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
-              labelsGroup.insertBefore(cecsToAtmsBoundingLine, visa.rect);
-            } else {
-              labelsGroup.appendChild(cecsToAtmsBoundingLine);
-            }
+            window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
+
+            lineOffsets.forEach((offset) => {
+              const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              line.setAttribute('x1', lineEndX); // START at right edge of bounding box
+              line.setAttribute('y1', (cecsCenterY + offset).toFixed(2));
+              line.setAttribute('x2', cecsLeftX); // END at left side of CECS
+              line.setAttribute('y2', (cecsCenterY + offset).toFixed(2));
+              line.setAttribute('stroke', lineColor);
+              line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
+              line.setAttribute('stroke-linecap', 'round');
+
+              if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
+                labelsGroup.insertBefore(line, visa.rect);
+              } else {
+                labelsGroup.appendChild(line);
+              }
+
+              window.cecsToAtmsBoundingLines.push(line);
+            });
+
+            // Keep reference to first line for backward compatibility
+            window.cecsToAtmsBoundingLine = window.cecsToAtmsBoundingLines[0];
           }
 
           if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
@@ -2904,10 +2919,274 @@ function initializeDiagram() {
             stackHeaderHeight: stackHeaderHeight
           };
 
+          // Create left lines for eftpos/Mastercard that mirror the e-conveyancing downturn
+          if (window.hexagonPositions) {
+            const eftposRect = eftpos.rect;
+            const mastercardRect = mastercard.rect;
+            if (!eftposRect || !mastercardRect) {
+              console.warn('eftpos or Mastercard rectangle missing for left-line creation');
+            } else {
+              const eftposStartX = parseFloat(eftposRect.getAttribute('x'));
+              const eftposStartY = parseFloat(eftposRect.getAttribute('y')) + parseFloat(eftposRect.getAttribute('height')) / 2;
+              const mastercardStartX = parseFloat(mastercardRect.getAttribute('x'));
+              const mastercardStartY = parseFloat(mastercardRect.getAttribute('y')) + parseFloat(mastercardRect.getAttribute('height')) / 2;
+
+              const filletRadius = 150; // Increase for more rounded curves, decrease for sharper corners
+              const cornerRadius = 60;
+              const turnOffset = 30;
+              const baseVerticalDistance = Math.max(
+                window.hexagonPositions.hexHeight ? window.hexagonPositions.hexHeight * 2 : 120,
+                filletRadius + cornerRadius + 40
+              );
+
+              const getReferenceSources = () => ({
+                pexa: {
+                  ref: window.pexaLineData || null,
+                  left: Number.isFinite(window.newPexaConveyX)
+                    ? window.newPexaConveyX
+                    : (window.pexaConveyBoxData && Number.isFinite(window.pexaConveyBoxData.x)
+                      ? window.pexaConveyBoxData.x
+                      : pexaConveyX)
+                },
+                sympli: {
+                  ref: window.sympliLineData || null,
+                  left: Number.isFinite(window.newSympliX)
+                    ? window.newSympliX
+                    : (window.sympliBoxData && Number.isFinite(window.sympliBoxData.x)
+                      ? window.sympliBoxData.x
+                      : sympliX)
+                }
+              });
+
+              const resolveTurnX = (primarySource, secondarySource, fallbackBase, startX) => {
+                const computeTurn = (source) => {
+                  if (!source || !source.ref || !Number.isFinite(source.ref.startX)) return null;
+                  if (Number.isFinite(source.left)) {
+                    const offset = source.left - source.ref.startX;
+                    return startX - offset;
+                  }
+                  return source.ref.startX;
+                };
+
+                let turnCandidate = computeTurn(primarySource);
+                if (!Number.isFinite(turnCandidate)) {
+                  turnCandidate = computeTurn(secondarySource);
+                }
+                if (!Number.isFinite(turnCandidate)) {
+                  turnCandidate = fallbackBase;
+                }
+                return turnCandidate;
+              };
+
+              const resolveVerticalDistance = (primarySource, secondarySource, startY, defaultDistance) => {
+                const pick = (source) => (source && source.ref && Number.isFinite(source.ref.horizontalY)) ? source.ref : null;
+                const candidate = pick(primarySource) || pick(secondarySource);
+                if (candidate) {
+                  const distance = Math.abs(candidate.horizontalY - startY);
+                  if (Number.isFinite(distance) && distance > filletRadius + cornerRadius + 5) {
+                    return distance;
+                  }
+                }
+                return defaultDistance;
+              };
+
+              const buildCardPathSegments = (startX, startY, primarySource, secondarySource, fallbackBase, providedDistance, isEftpos) => {
+                const fallbackBaseValue = Number.isFinite(fallbackBase)
+                  ? fallbackBase
+                  : (Math.min(eftposStartX, mastercardStartX) - turnOffset);
+                const defaultDistance = Number.isFinite(providedDistance) ? providedDistance : baseVerticalDistance;
+
+                // Force alignment: eftpos with PEXA, Mastercard with Sympli
+                let turnX;
+                if (isEftpos) {
+                  // Align eftpos exactly where PEXA would have its vertical line
+                  if (window.pexaConveyBoxData && window.pexaConveyBoxData.x) {
+                    turnX = window.pexaConveyBoxData.x - 29; // Same offset as Sympli uses
+                  } else if (window.newPexaConveyX !== undefined) {
+                    turnX = window.newPexaConveyX - 10;
+                  } else {
+                    // Fallback: extend left significantly
+                    turnX = startX - 523;
+                  }
+                } else {
+                  // Align Mastercard exactly where Sympli would have its vertical line
+                  if (window.newSympliX !== undefined) {
+                    turnX = window.newSympliX - 24; // Slightly more left to match visual alignment
+                  } else {
+                    // Fallback: extend left significantly
+                    turnX = startX - 513;
+                  }
+                }
+
+                const verticalDistance = resolveVerticalDistance(primarySource, secondarySource, startY, defaultDistance);
+                // Extend the lines higher by adding more distance
+                const extensionAmount = 150; // Adjust this to make lines go higher
+                let verticalEndY = startY - verticalDistance - extensionAmount;
+                if (!Number.isFinite(verticalEndY)) {
+                  verticalEndY = startY - (filletRadius + cornerRadius + 40) - extensionAmount;
+                }
+                if (verticalEndY >= startY - filletRadius) {
+                  verticalEndY = startY - (filletRadius + cornerRadius + 20) - extensionAmount;
+                }
+                const tentativeFirstLegX = turnX + filletRadius;
+                const firstLegX = tentativeFirstLegX < startX ? tentativeFirstLegX : startX - 1;
+                // Check if BPay box exists and extend path around it
+                let pathString;
+                if (window.bpayBoxData) {
+                  const bpay = window.bpayBoxData;
+                  const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
+                  const bpayRight = bpay.x + bpay.width + 5; // 5px gap from BPay right edge
+                  const topCornerRadius = 20; // Much sharper corner at the top
+
+                  // Set different horizontal Y positions for each line
+                  let horizontalY;
+                  let verticalShift;
+                  if (isEftpos) {
+                    horizontalY = bpay.y - 15 - 3; // eftpos line: 15px above BPay top, shifted up 3px
+                    verticalShift = 3; // eftpos vertical: shift 3px left
+                  } else {
+                    horizontalY = bpay.y - 10 - 4; // Mastercard line: 10px above BPay top, shifted up 4px
+                    verticalShift = 4; // Mastercard vertical: shift 4px left
+                  }
+
+                  // Shift vertical line left by specified amount
+                  const verticalX = turnX - verticalShift;
+
+                  // Extend the path to go around BPay
+                  pathString = [
+                    `M ${startX} ${startY}`,
+                    `L ${firstLegX} ${startY}`,
+                    `Q ${turnX} ${startY}, ${verticalX} ${startY - filletRadius}`,
+                    `L ${verticalX} ${horizontalY + topCornerRadius}`, // Go up to calculated Y
+                    `Q ${verticalX} ${horizontalY}, ${verticalX + topCornerRadius} ${horizontalY}`, // Curve at calculated Y
+                    `L ${bpayRight + 100} ${horizontalY}` // Go across at calculated Y
+                  ].join(' ');
+                } else {
+                  // Fallback to original path if BPay doesn't exist
+                  pathString = [
+                    `M ${startX} ${startY}`,
+                    `L ${firstLegX} ${startY}`,
+                    `Q ${turnX} ${startY}, ${turnX} ${startY - filletRadius}`,
+                    `L ${turnX} ${verticalEndY}`
+                  ].join(' ');
+                }
+                return { pathString, turnX, verticalEndY };
+              };
+
+              const { pexa: pexaSource, sympli: sympliSource } = getReferenceSources();
+              const fallbackTurnBase = Math.min(eftposStartX, mastercardStartX) - turnOffset;
+
+              const eftposSegments = buildCardPathSegments(
+                eftposStartX,
+                eftposStartY,
+                pexaSource,
+                sympliSource,
+                fallbackTurnBase,
+                baseVerticalDistance,
+                true // isEftpos
+              );
+              const mastercardSegments = buildCardPathSegments(
+                mastercardStartX,
+                mastercardStartY,
+                sympliSource,
+                pexaSource,
+                fallbackTurnBase,
+                baseVerticalDistance,
+                false // not isEftpos (is Mastercard)
+              );
+
+              const eftposUpturnPath = createStyledPath(eftposSegments.pathString, {
+                stroke: 'rgb(100,80,180)', // eftpos purple border color
+                strokeWidth: '2',
+                fill: 'none',
+                strokeLinecap: 'round',
+                id: 'eftpos-left-line'
+              });
+              labelsGroup.appendChild(eftposUpturnPath);
+
+              const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
+                stroke: 'rgb(216,46,43)', // Mastercard red border color
+                strokeWidth: '2',
+                fill: 'none',
+                strokeLinecap: 'round',
+                id: 'mastercard-left-line'
+              });
+              labelsGroup.appendChild(mastercardUpturnPath);
+
+              window.cardLeftLineData = {
+                filletRadius,
+                cornerRadius,
+                eftposPath: eftposUpturnPath,
+                mastercardPath: mastercardUpturnPath,
+                eftposRect,
+                mastercardRect,
+                baseVerticalDistance,
+                turnOffset,
+                getReferenceSources
+              };
+
+              window.updateCardLeftLines = function updateCardLeftLines() {
+                const data = window.cardLeftLineData;
+                if (!data || !data.eftposPath || !data.mastercardPath || !data.eftposRect || !data.mastercardRect) {
+                  return;
+                }
+
+                const extractRectInfo = (rect) => {
+                  if (!rect) return null;
+                  const x = parseFloat(rect.getAttribute('x'));
+                  const y = parseFloat(rect.getAttribute('y'));
+                  const height = parseFloat(rect.getAttribute('height'));
+                  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(height)) {
+                    return null;
+                  }
+                  return { x, centerY: y + height / 2 };
+                };
+
+                const eftposInfo = extractRectInfo(data.eftposRect);
+                const mastercardInfo = extractRectInfo(data.mastercardRect);
+                if (!eftposInfo || !mastercardInfo) {
+                  return;
+                }
+
+                const references = data.getReferenceSources ? data.getReferenceSources() : getReferenceSources();
+                const pexaSourceLatest = references.pexa;
+                const sympliSourceLatest = references.sympli;
+                const fallbackBase = Math.min(eftposInfo.x, mastercardInfo.x) - (data.turnOffset || turnOffset);
+                const defaultDistance = data.baseVerticalDistance || baseVerticalDistance;
+
+                const updatedEftposSegments = buildCardPathSegments(
+                  eftposInfo.x,
+                  eftposInfo.centerY,
+                  pexaSourceLatest,
+                  sympliSourceLatest,
+                  fallbackBase,
+                  defaultDistance,
+                  true // isEftpos
+                );
+                const updatedMastercardSegments = buildCardPathSegments(
+                  mastercardInfo.x,
+                  mastercardInfo.centerY,
+                  sympliSourceLatest,
+                  pexaSourceLatest,
+                  fallbackBase,
+                  defaultDistance,
+                  false // not isEftpos (is Mastercard)
+                );
+
+                data.eftposPath.setAttribute('d', updatedEftposSegments.pathString);
+                data.mastercardPath.setAttribute('d', updatedMastercardSegments.pathString);
+                data.eftposTurnX = updatedEftposSegments.turnX;
+                data.mastercardTurnX = updatedMastercardSegments.turnX;
+              };
+
+              window.updateCardLeftLines();
+            }
+          }
+
           const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           chequesToAdiLine.setAttribute('id', 'cheques-to-adi-line');
           chequesToAdiLine.setAttribute('stroke', '#4b5563');
-          chequesToAdiLine.setAttribute('stroke-width', '2');
+          chequesToAdiLine.setAttribute('stroke-width', '1');
           chequesToAdiLine.setAttribute('stroke-linecap', 'round');
           chequesToAdiLine.setAttribute('fill', 'none');
           labelsGroup.appendChild(chequesToAdiLine);
@@ -2977,7 +3256,7 @@ function initializeDiagram() {
           // Create red line from Direct Entry to ADIs (matching BECN line style)
           const directEntryToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           directEntryToAdiLine.setAttribute('id', 'directentry-to-adi-line');
-          directEntryToAdiLine.setAttribute('stroke', '#8B0000'); // Dark red like BECN line
+          directEntryToAdiLine.setAttribute('stroke', '#800000'); // Maroon
           directEntryToAdiLine.setAttribute('stroke-width', '3'); // Same thickness as BECN line
           directEntryToAdiLine.setAttribute('stroke-linecap', 'round');
           directEntryToAdiLine.setAttribute('fill', 'none');
@@ -3177,6 +3456,34 @@ function initializeDiagram() {
               if (window.pexaExtensions) {
                 window.pexaExtensions.stackBounding = boundingInfo;
               }
+
+              // Update the CECS to bounding box lines with new positions
+              if (window.cecsToAtmsBoundingLines && window.cecsToAtmsBoundingLines.length > 0 && window.cecsBoxData) {
+                const cecsData = window.cecsBoxData;
+                const cecsCenterY = cecsData.y + cecsData.height / 2;
+                const cecsLeftX = cecsData.x; // Left side of CECS box
+                const newLineEndX = (stackBaseX - bPadX) + (stackWidth + bPadX * 2) - 2; // Right edge of updated bounding box
+                const lineGap = 3;
+                const lineOffsets = [-lineGap/2, lineGap/2];
+
+                window.cecsToAtmsBoundingLines.forEach((line, idx) => {
+                  if (line) {
+                    line.setAttribute('x1', newLineEndX.toFixed(2)); // START at right edge of bounding box
+                    line.setAttribute('y1', (cecsCenterY + lineOffsets[idx]).toFixed(2));
+                    line.setAttribute('x2', cecsLeftX.toFixed(2)); // END at left side of CECS
+                    line.setAttribute('y2', (cecsCenterY + lineOffsets[idx]).toFixed(2));
+                  }
+                });
+              } else if (window.cecsToAtmsBoundingLine && window.cecsBoxData) {
+                // Fallback for single line
+                const cecsData = window.cecsBoxData;
+                const cecsCenterY = cecsData.y + cecsData.height / 2;
+                const cecsLeftX = cecsData.x;
+                const newLineEndX = (stackBaseX - bPadX) + (stackWidth + bPadX * 2) - 2;
+
+                window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
+                window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
+              }
             }
 
             if (headerInfoHierarchy && headerInfoHierarchy.rect) {
@@ -3231,14 +3538,14 @@ function initializeDiagram() {
           }
         }
 
-        const pexaLineColor = '#DC143C';
+        const pexaLineColor = '#B91199';
         const pexaConnectorStartX = pexaConveyX + pexaConveyWidth;
         let pexaConnectorEndX = pexaConnectorStartX;
         if (window.hexagonPositions) {
           pexaConnectorEndX = window.hexagonPositions.pexaX;
         }
-        const pexaLineGap = 3;
-        const pexaOffsets = [-pexaLineGap / 2, pexaLineGap / 2];
+        const pexaLineGap = 2.5;
+        const pexaOffsets = [-pexaLineGap, 0, pexaLineGap]; // Triple lines
         window.pexaHorizontalLines = pexaOffsets.map((offset, idx) => {
           const line = createStyledLine(
             pexaConnectorStartX,
@@ -3247,7 +3554,7 @@ function initializeDiagram() {
             pexaConveyY + pexaConveyHeight / 2 + offset,
             {
               stroke: pexaLineColor,
-              strokeWidth: '1.5',
+              strokeWidth: '1', // Thin lines
               strokeLinecap: 'round'
             }
           );
@@ -3423,6 +3730,11 @@ function initializeDiagram() {
           window.newSympliWidth = sympliWidth;
           window.newSympliY = sympliY;
 
+          // Update card left lines to align with new Sympli position
+          if (window.updateCardLeftLines) {
+            window.updateCardLeftLines();
+          }
+
           if (window.sympliHorizontalLines && window.sympliHorizontalLines.length) {
             const sympliStart = newSympliX + sympliWidth;
             let sympliEnd = sympliStart;
@@ -3435,7 +3747,7 @@ function initializeDiagram() {
               }
             }
             const sympliYCenter = sympliY + sympliHeight / 2;
-            const offsets = [-1.5, 1.5];
+            const offsets = [-2.5, 0, 2.5]; // Triple lines
             window.sympliHorizontalLines.forEach((line, idx) => {
               if (!line) return;
               const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
@@ -3479,6 +3791,11 @@ function initializeDiagram() {
           }
           window.newPexaConveyX = newPexaConveyX;
           window.newPexaConveyWidth = pexaConveyWidth;
+
+          // Update card left lines to align with new PEXA position
+          if (window.updateCardLeftLines) {
+            window.updateCardLeftLines();
+          }
 
           if (window.pexaExtensions) {
             const { eftpos, mastercard, visa, medicare, atms, otherCards, stackedHeight, reducedHeight: storedReducedHeight, gap, width: extWidth, stackBounding } = window.pexaExtensions;
@@ -3543,6 +3860,10 @@ function initializeDiagram() {
               updateStackItem(otherCards, otherCardsY);
             }
 
+            if (typeof window.updateCardLeftLines === 'function') {
+              window.updateCardLeftLines();
+            }
+
             const headerInfo = window.pexaExtensions.stackHeader;
             if (stackBounding && stackBounding.rect) {
               const padX = Number.isFinite(stackBounding.padX) ? stackBounding.padX : 6;
@@ -3558,6 +3879,34 @@ function initializeDiagram() {
               stackBounding.rect.setAttribute('y', (topY - padY).toFixed(2));
               stackBounding.rect.setAttribute('width', (boundingWidth + padX * 2).toFixed(2));
               stackBounding.rect.setAttribute('height', (bottomY - topY + padY * 2).toFixed(2));
+
+              // Update the CECS to bounding box lines with new positions
+              if (window.cecsToAtmsBoundingLines && window.cecsToAtmsBoundingLines.length > 0 && window.cecsBoxData) {
+                const cecsData = window.cecsBoxData;
+                const cecsCenterY = cecsData.y + cecsData.height / 2;
+                const cecsLeftX = cecsData.x; // Left side of CECS box
+                const newLineEndX = (boundingX - padX) + (boundingWidth + padX * 2) - 2; // Right edge of updated bounding box
+                const lineGap = 3;
+                const lineOffsets = [-lineGap/2, lineGap/2];
+
+                window.cecsToAtmsBoundingLines.forEach((line, idx) => {
+                  if (line) {
+                    line.setAttribute('x1', newLineEndX.toFixed(2)); // START at right edge of bounding box
+                    line.setAttribute('y1', (cecsCenterY + lineOffsets[idx]).toFixed(2));
+                    line.setAttribute('x2', cecsLeftX.toFixed(2)); // END at left side of CECS
+                    line.setAttribute('y2', (cecsCenterY + lineOffsets[idx]).toFixed(2));
+                  }
+                });
+              } else if (window.cecsToAtmsBoundingLine && window.cecsBoxData) {
+                // Fallback for single line
+                const cecsData = window.cecsBoxData;
+                const cecsCenterY = cecsData.y + cecsData.height / 2;
+                const cecsLeftX = cecsData.x;
+                const newLineEndX = (boundingX - padX) + (boundingWidth + padX * 2) - 2;
+
+                window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
+                window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
+              }
             }
             if (headerInfo && headerInfo.rect) {
               const padX = Number.isFinite(stackBounding?.padX) ? stackBounding.padX : 6;
@@ -3600,7 +3949,7 @@ function initializeDiagram() {
                   rect: createStyledRect(headerX, boxY, boxWidth, boxHeight, {
                     fill: '#ffc0cb',
                     stroke: '#8B0000',
-                    strokeWidth: '1.5',
+                    strokeWidth: '2.25',
                     rx: '4',
                     ry: '4'
                   }),
@@ -3624,7 +3973,7 @@ function initializeDiagram() {
                   rect: createStyledRect(box2X, boxY, boxWidth, boxHeight, {
                     fill: '#ffc0cb',
                     stroke: '#8B0000',
-                    strokeWidth: '1.5',
+                    strokeWidth: '2.25',
                     rx: '4',
                     ry: '4'
                   }),
@@ -3649,21 +3998,22 @@ function initializeDiagram() {
               const bpayX = headerX - bpayWidth - bpayGap;
               const bpayY = headerY; // Aligned with top of Direct Entry
 
-              // Create BPAY box with purple style like Osko
+              // Create BPAY box with style like ESSB
               const bpayBox = createStyledRect(bpayX, bpayY, bpayWidth, bpayHeight, {
-                fill: 'rgb(100,80,180)', // Same purple as Osko
-                stroke: 'none',
-                rx: '12', // Same rounded corners as Osko
+                fill: '#D8D0F0', // Same fill as ESSB
+                stroke: 'rgb(100,80,180)', // Same stroke as ESSB
+                strokeWidth: '2',
+                rx: '12', // Keep rounded corners
                 ry: '12'
               });
               labelsGroup.appendChild(bpayBox);
 
-              // Add BPAY label (white text)
+              // Add BPAY label (same text style as ESSB)
               const bpayText = createStyledText(
                 bpayX + bpayWidth / 2,
                 bpayY + bpayHeight / 2,
                 'BPAY',
-                { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
+                { fill: 'rgb(80,60,150)', fontSize: '14', fontWeight: 'bold' }
               );
               labelsGroup.appendChild(bpayText);
 
@@ -3683,8 +4033,8 @@ function initializeDiagram() {
               bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
               bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToDirectEntryLine.setAttribute('stroke', 'rgb(100,80,180)'); // Purple
-              bpayToDirectEntryLine.setAttribute('stroke-width', '2');
+              bpayToDirectEntryLine.setAttribute('stroke', '#800000'); // Maroon
+              bpayToDirectEntryLine.setAttribute('stroke-width', '4');
               bpayToDirectEntryLine.setAttribute('stroke-linecap', 'round');
               labelsGroup.insertBefore(bpayToDirectEntryLine, bpayBox); // Insert behind boxes
 
@@ -3695,8 +4045,8 @@ function initializeDiagram() {
               bpayToBecnLine.setAttribute('y1', becnMidY.toFixed(2)); // Middle height of BECN
               bpayToBecnLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToBecnLine.setAttribute('y2', becnMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToBecnLine.setAttribute('stroke', 'rgb(100,80,180)'); // Purple
-              bpayToBecnLine.setAttribute('stroke-width', '2');
+              bpayToBecnLine.setAttribute('stroke', '#800000'); // Maroon
+              bpayToBecnLine.setAttribute('stroke-width', '4');
               bpayToBecnLine.setAttribute('stroke-linecap', 'round');
               labelsGroup.insertBefore(bpayToBecnLine, bpayBox); // Insert behind boxes
 
@@ -3723,7 +4073,7 @@ function initializeDiagram() {
                 const becnToBecsData = `M ${becnCenterX} ${childBottomY}
                                         Q ${becnCenterX} ${becsBottomThird} ${becsLeftX} ${becsBottomThird}`;
                 becnToBecsPath.setAttribute('d', becnToBecsData);
-                becnToBecsPath.setAttribute('stroke', '#8B0000'); // Dark red like Direct Entry line
+                becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
                 becnToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
                 becnToBecsPath.setAttribute('fill', 'none');
                 becnToBecsPath.setAttribute('stroke-linecap', 'round');
@@ -3738,7 +4088,7 @@ function initializeDiagram() {
                 const becgToBecsData = `M ${becgCenterX} ${childBottomY}
                                         Q ${becgCenterX} ${becsTopThird} ${becsLeftX} ${becsTopThird}`;
                 becgToBecsPath.setAttribute('d', becgToBecsData);
-                becgToBecsPath.setAttribute('stroke', '#8B0000'); // Dark red like Direct Entry line
+                becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
                 becgToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
                 becgToBecsPath.setAttribute('fill', 'none');
                 becgToBecsPath.setAttribute('stroke-linecap', 'round');
@@ -3759,6 +4109,10 @@ function initializeDiagram() {
             }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
+            }
+
+            if (typeof window.updateCardLeftLines === 'function') {
+              window.updateCardLeftLines();
             }
 
             const actualGap = pexaConveyY - (eftposY + stackedHeight);
@@ -3806,7 +4160,7 @@ function initializeDiagram() {
               pexaEnd = window.hexagonPositions.pexaX;
             }
             const pexaYCenter = pexaConveyY + pexaConveyHeight / 2;
-            const offsets = [-1.5, 1.5];
+            const offsets = [-2.5, 0, 2.5]; // Triple lines
             window.pexaHorizontalLines.forEach((line, idx) => {
               if (!line) return;
               const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
@@ -3934,7 +4288,7 @@ function initializeDiagram() {
         // Create double yellow line style like other ASXB connections
         const clearingToAsxPath1 = createStyledPath(pathData, {
           stroke: '#FFA500', // Orange-yellow matching other ASXB lines
-          strokeWidth: '1.5', // Exact same width as drawCurvedDoubleLine
+          strokeWidth: '2.25', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
         labelsGroup.appendChild(clearingToAsxPath1);
@@ -3947,7 +4301,7 @@ function initializeDiagram() {
 
         const clearingToAsxPath2 = createStyledPath(pathData2, {
           stroke: '#FFA500', // Orange-yellow matching other ASXB lines
-          strokeWidth: '1.5', // Exact same width as drawCurvedDoubleLine
+          strokeWidth: '2.25', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
         labelsGroup.appendChild(clearingToAsxPath2);
@@ -4224,7 +4578,7 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            labelsGroup.appendChild(line);
+            labelsGroup.insertBefore(line, eftposBox);
           });
 
           // Yellow double lines from Mastercard to MCAU
@@ -4242,7 +4596,7 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            labelsGroup.appendChild(line);
+            labelsGroup.insertBefore(line, mastercardBox);
           });
         }
 
@@ -5020,11 +5374,14 @@ function initializeDiagram() {
     const horizontalDelta = endX - startX;
     const verticalDelta = endY - startY;
 
-    const offsetMagnitude = 1.5;
+    // Check if this is the pink color that needs triple thin lines
+    const isPinkColor = strokeColor === '#B91199';
+    const offsetMagnitude = isPinkColor ? 2.5 : 1.5;
+    const strokeWidth = isPinkColor ? '1' : '2.25';
     const nearlyHorizontal = Math.abs(verticalDelta) < 1.0;
 
     if (nearlyHorizontal) {
-      const lineOffsets = [offsetMagnitude, -offsetMagnitude];
+      const lineOffsets = isPinkColor ? [-offsetMagnitude, 0, offsetMagnitude] : [offsetMagnitude, -offsetMagnitude];
       lineOffsets.forEach(offset => {
         const yLine = startY + offset;
         const deltaY = yLine - cyBig;
@@ -5041,7 +5398,7 @@ function initializeDiagram() {
         line.setAttribute('x2', lineEndX.toFixed(2));
         line.setAttribute('y2', yLine.toFixed(2));
         line.setAttribute('stroke', strokeColor);
-        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-width', strokeWidth);
         line.setAttribute('stroke-linecap', 'round');
         line.classList.add('admin-double-line');
         targetGroup.appendChild(line);
@@ -5060,7 +5417,38 @@ function initializeDiagram() {
     const offsetX = (normX / normLength) * offsetMagnitude;
     const offsetY = (normY / normLength) * offsetMagnitude;
 
-    const points = [
+    const points = isPinkColor ? [
+      {
+        sx: startX + offsetX,
+        sy: startY + offsetY,
+        c1x: control1X + offsetX,
+        c1y: control1Y + offsetY,
+        c2x: control2X + offsetX,
+        c2y: control2Y + offsetY,
+        ex: endX + offsetX,
+        ey: endY + offsetY
+      },
+      {
+        sx: startX,
+        sy: startY,
+        c1x: control1X,
+        c1y: control1Y,
+        c2x: control2X,
+        c2y: control2Y,
+        ex: endX,
+        ey: endY
+      },
+      {
+        sx: startX - offsetX,
+        sy: startY - offsetY,
+        c1x: control1X - offsetX,
+        c1y: control1Y - offsetY,
+        c2x: control2X - offsetX,
+        c2y: control2Y - offsetY,
+        ex: endX - offsetX,
+        ey: endY - offsetY
+      }
+    ] : [
       {
         sx: startX + offsetX,
         sy: startY + offsetY,
@@ -5090,7 +5478,7 @@ function initializeDiagram() {
                  pt.ex.toFixed(2) + ' ' + pt.ey.toFixed(2);
       const path = createStyledPath(d, {
         stroke: strokeColor,
-        strokeWidth: '1.5',
+        strokeWidth: strokeWidth,
         fill: 'none',
         strokeLinecap: 'round',
         strokeLinejoin: 'round'
@@ -5103,7 +5491,7 @@ function initializeDiagram() {
       if (window.hexagonPositions && window.bridgePositions) {
         const hexHeightValue = window.hexagonPositions.hexHeight;
 
-        const redColor = '#DC143C';
+        const redColor = '#B91199';
       const yellowColor = '#FFA500';
 
       const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
@@ -5722,7 +6110,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const greyColor = '#4a4a4a'; // Darker grey color
+          const greyColor = '#380835'; // Dark purple color
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -5738,7 +6126,7 @@ function initializeDiagram() {
 
             const parallelPath = createStyledPath(offsetPathData, {
               stroke: greyColor,
-              strokeWidth: '1.5', // Thin lines for double effect
+              strokeWidth: '2.25', // Thin lines for double effect
               fill: 'none',
               strokeLinecap: 'round'
             });

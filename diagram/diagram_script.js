@@ -2500,8 +2500,15 @@
             sympliLine.setAttribute('d', updatedPath);
             // Update sympliLineStartX for later use
             sympliLineStartX = newLineStartX;
+            // Update the global data
+            if (!window.sympliLineData) window.sympliLineData = {};
+            window.sympliLineData.startX = newLineStartX;
+            // Update the card left lines to align with new positions
+            if (window.updateCardLeftLines) {
+              window.updateCardLeftLines();
+            }
           }
-          
+
           // Store line data for later curve extension
           if (!window.sympliLineData) window.sympliLineData = {};
           window.sympliLineData.horizontalY = sympliLineStartY + sympliGoDownDistance + sympliCornerRadius;
@@ -2617,8 +2624,15 @@
             pexaLine.setAttribute('d', updatedPath);
             // Update pexaLineStartX for later use
             pexaLineStartX = newLineStartX;
+            // Update the global data
+            if (!window.pexaLineData) window.pexaLineData = {};
+            window.pexaLineData.startX = newLineStartX;
+            // Update the card left lines to align with new positions
+            if (window.updateCardLeftLines) {
+              window.updateCardLeftLines();
+            }
           }
-          
+
           // Store PEXA line data for later curve extension
           if (!window.pexaLineData) window.pexaLineData = {};
           window.pexaLineData.horizontalY = pexaLineStartY + pexaGoDownDistance + pexaCornerRadius;
@@ -3241,35 +3255,224 @@
           });
           labelsGroup.appendChild(pexaToBoxPath);
           
-          // Horizontal line from eftpos
-          const eftposHorizontalPath = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          // eftpos position - use updated positions
-          const eftposLeftX = updatedBridgeX;
-          const eftposCenterY = window.hexagonPositions.eftposY + window.hexagonPositions.hexHeight / 2;
-          const horizontalExtendX = pexaConveyX - 50; // Extend 50 pixels to the left of PEXA e-conveyancing
-          
-          // Simple horizontal line from eftpos
-          eftposHorizontalPath.setAttribute('x1', eftposLeftX);
-          eftposHorizontalPath.setAttribute('y1', eftposCenterY);
-          eftposHorizontalPath.setAttribute('x2', horizontalExtendX);
-          eftposHorizontalPath.setAttribute('y2', eftposCenterY); // Keep Y same for horizontal line
-          eftposHorizontalPath.setAttribute('stroke', 'rgb(100,80,180)'); // eftpos purple border color
-          eftposHorizontalPath.setAttribute('stroke-width', '3');
-          labelsGroup.appendChild(eftposHorizontalPath);
-          
-          // Horizontal line from Mastercard parallel above eftpos line
-          const mastercardHorizontalPath = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          // Mastercard position - use updated positions
-          const mastercardLeftX = updatedBridgeX;
-          const mastercardCenterY = window.hexagonPositions.mastercardY + window.hexagonPositions.hexHeight / 2;
-          
-          mastercardHorizontalPath.setAttribute('x1', mastercardLeftX);
-          mastercardHorizontalPath.setAttribute('y1', mastercardCenterY);
-          mastercardHorizontalPath.setAttribute('x2', horizontalExtendX);
-          mastercardHorizontalPath.setAttribute('y2', mastercardCenterY); // Keep Y same for horizontal line
-          mastercardHorizontalPath.setAttribute('stroke', 'rgb(216,46,43)'); // Mastercard new red border color
-          mastercardHorizontalPath.setAttribute('stroke-width', '3');
-          labelsGroup.appendChild(mastercardHorizontalPath);
+          // Create left lines for eftpos/Mastercard that mirror the e-conveyancing downturn
+          const eftposRectElement = eftpos.rect;
+          const mastercardRectElement = mastercard.rect;
+          if (!eftposRectElement || !mastercardRectElement) {
+            console.warn('eftpos or Mastercard rectangle missing for left-line creation');
+          } else {
+            const eftposStartX = parseFloat(eftposRectElement.getAttribute('x'));
+            const eftposStartY = parseFloat(eftposRectElement.getAttribute('y')) + parseFloat(eftposRectElement.getAttribute('height')) / 2;
+            const mastercardStartX = parseFloat(mastercardRectElement.getAttribute('x'));
+            const mastercardStartY = parseFloat(mastercardRectElement.getAttribute('y')) + parseFloat(mastercardRectElement.getAttribute('height')) / 2;
+
+            const filletRadius = 20;
+            const cornerRadius = 60;
+            const turnOffset = 30;
+            const baseVerticalDistance = Math.max(
+              window.hexagonPositions.hexHeight ? window.hexagonPositions.hexHeight * 2 : 120,
+              filletRadius + cornerRadius + 40
+            );
+
+          const getReferenceSources = () => ({
+            pexa: {
+              ref: window.pexaLineData || null,
+              left: Number.isFinite(window.newPexaConveyX)
+                ? window.newPexaConveyX
+                : (window.pexaConveyBoxData && Number.isFinite(window.pexaConveyBoxData.x)
+                  ? window.pexaConveyBoxData.x
+                  : pexaConveyX)
+            },
+            sympli: {
+              ref: window.sympliLineData || null,
+              left: Number.isFinite(window.newSympliX)
+                ? window.newSympliX
+                : (window.sympliBoxData && Number.isFinite(window.sympliBoxData.x)
+                  ? window.sympliBoxData.x
+                  : sympliX)
+            }
+          });
+
+          const resolveTurnX = (primarySource, secondarySource, fallbackBase, startX) => {
+            const computeTurn = (source) => {
+              if (!source || !source.ref || !Number.isFinite(source.ref.startX)) return null;
+              if (Number.isFinite(source.left)) {
+                const offset = source.left - source.ref.startX;
+                return startX - offset;
+              }
+              return source.ref.startX;
+            };
+
+            let turnCandidate = computeTurn(primarySource);
+            if (!Number.isFinite(turnCandidate)) {
+              turnCandidate = computeTurn(secondarySource);
+            }
+            if (!Number.isFinite(turnCandidate)) {
+              turnCandidate = fallbackBase;
+            }
+            return turnCandidate;
+          };
+
+          const resolveVerticalDistance = (primarySource, secondarySource, startY, defaultDistance) => {
+            const pick = (source) => (source && source.ref && Number.isFinite(source.ref.horizontalY)) ? source.ref : null;
+            const candidate = pick(primarySource) || pick(secondarySource);
+            if (candidate) {
+              const distance = Math.abs(candidate.horizontalY - startY);
+              if (Number.isFinite(distance) && distance > filletRadius + cornerRadius + 5) {
+                return distance;
+              }
+            }
+            return defaultDistance;
+          };
+
+          const buildCardPathSegments = (startX, startY, primarySource, secondarySource, fallbackBase, providedDistance, isEftpos) => {
+            const fallbackBaseValue = Number.isFinite(fallbackBase)
+              ? fallbackBase
+              : (Math.min(eftposStartX, mastercardStartX) - turnOffset);
+            const defaultDistance = Number.isFinite(providedDistance) ? providedDistance : baseVerticalDistance;
+
+            // Force alignment: eftpos with PEXA, Mastercard with Sympli
+            // Using absolute coordinate differences calculated earlier
+            let turnX;
+            if (isEftpos) {
+              // Align eftpos with PEXA's vertical line
+              // PEXA turns at approximately startX - 493 pixels from current eftpos turn point
+              turnX = startX - 523; // Extended left by ~493 pixels from the default -30 offset
+              console.log('eftpos forced turnX:', turnX, 'startX:', startX);
+            } else {
+              // Align Mastercard with Sympli's vertical line
+              // Sympli turns at approximately startX - 483 pixels from current Mastercard turn point
+              turnX = startX - 513; // Extended left by ~483 pixels from the default -30 offset
+              console.log('Mastercard forced turnX:', turnX, 'startX:', startX);
+            }
+
+            const verticalDistance = resolveVerticalDistance(primarySource, secondarySource, startY, defaultDistance);
+            let verticalEndY = startY - verticalDistance;
+            if (!Number.isFinite(verticalEndY)) {
+              verticalEndY = startY - (filletRadius + cornerRadius + 40);
+            }
+            if (verticalEndY >= startY - filletRadius) {
+              verticalEndY = startY - (filletRadius + cornerRadius + 20);
+            }
+            const tentativeFirstLegX = turnX + filletRadius;
+            const firstLegX = tentativeFirstLegX < startX ? tentativeFirstLegX : startX - 1;
+            const pathString = [
+              `M ${startX} ${startY}`,
+              `L ${firstLegX} ${startY}`,
+              `Q ${turnX} ${startY}, ${turnX} ${startY - filletRadius}`,
+              `L ${turnX} ${verticalEndY}`
+            ].join(' ');
+            return { pathString, turnX, verticalEndY };
+          };
+
+          const { pexa: pexaSource, sympli: sympliSource } = getReferenceSources();
+          const fallbackTurnBase = Math.min(eftposStartX, mastercardStartX) - turnOffset;
+
+          const eftposSegments = buildCardPathSegments(
+            eftposStartX,
+            eftposStartY,
+            pexaSource,
+            sympliSource,
+            fallbackTurnBase,
+            baseVerticalDistance,
+            true // isEftpos
+          );
+          const mastercardSegments = buildCardPathSegments(
+            mastercardStartX,
+            mastercardStartY,
+            sympliSource,
+            pexaSource,
+            fallbackTurnBase,
+            baseVerticalDistance,
+            false // not isEftpos (is Mastercard)
+          );
+
+            const eftposUpturnPath = createStyledPath(eftposSegments.pathString, {
+              stroke: 'rgb(100,80,180)', // eftpos purple border color
+              strokeWidth: '3',
+              fill: 'none',
+              strokeLinecap: 'round',
+              id: 'eftpos-left-line'
+            });
+            labelsGroup.appendChild(eftposUpturnPath);
+
+            const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
+              stroke: 'rgb(216,46,43)', // Mastercard new red border color
+              strokeWidth: '3',
+              fill: 'none',
+              strokeLinecap: 'round',
+              id: 'mastercard-left-line'
+            });
+            labelsGroup.appendChild(mastercardUpturnPath);
+
+            window.cardLeftLineData = {
+              filletRadius,
+              cornerRadius,
+              eftposPath: eftposUpturnPath,
+              mastercardPath: mastercardUpturnPath,
+              eftposRect: eftposRectElement,
+              mastercardRect: mastercardRectElement,
+              baseVerticalDistance,
+              turnOffset,
+              getReferenceSources
+            };
+
+            window.updateCardLeftLines = function updateCardLeftLines() {
+              const data = window.cardLeftLineData;
+              if (!data || !data.eftposPath || !data.mastercardPath || !data.eftposRect || !data.mastercardRect) {
+                return;
+              }
+
+              const extractRectInfo = (rect) => {
+                if (!rect) return null;
+                const x = parseFloat(rect.getAttribute('x'));
+                const y = parseFloat(rect.getAttribute('y'));
+                const height = parseFloat(rect.getAttribute('height'));
+                if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(height)) {
+                  return null;
+                }
+                return { x, centerY: y + height / 2 };
+              };
+
+              const eftposInfo = extractRectInfo(data.eftposRect);
+              const mastercardInfo = extractRectInfo(data.mastercardRect);
+              if (!eftposInfo || !mastercardInfo) {
+                return;
+              }
+
+            const references = data.getReferenceSources ? data.getReferenceSources() : getReferenceSources();
+            const pexaSourceLatest = references.pexa;
+            const sympliSourceLatest = references.sympli;
+            const fallbackBase = Math.min(eftposInfo.x, mastercardInfo.x) - (data.turnOffset || turnOffset);
+            const defaultDistance = data.baseVerticalDistance || baseVerticalDistance;
+
+            const updatedEftposSegments = buildCardPathSegments(
+              eftposInfo.x,
+              eftposInfo.centerY,
+              pexaSourceLatest,
+              sympliSourceLatest,
+              fallbackBase,
+              defaultDistance,
+              true // isEftpos
+            );
+            const updatedMastercardSegments = buildCardPathSegments(
+              mastercardInfo.x,
+              mastercardInfo.centerY,
+              sympliSourceLatest,
+              pexaSourceLatest,
+              fallbackBase,
+              defaultDistance,
+              false // not isEftpos (is Mastercard)
+            );
+
+              data.eftposPath.setAttribute('d', updatedEftposSegments.pathString);
+              data.mastercardPath.setAttribute('d', updatedMastercardSegments.pathString);
+              data.eftposTurnX = updatedEftposSegments.turnX;
+              data.mastercardTurnX = updatedMastercardSegments.turnX;
+            };
+
+            window.updateCardLeftLines();
+          }
           
           // Removed the Visa-PEXA connection line
           // Calculate Visa position (still needed for Visa box placement)
