@@ -1219,8 +1219,8 @@ function initializeDiagram() {
         rtgsText.setAttribute('x', (dvpRtgsX + rectWidth / 4).toFixed(2));
 
         // Add connecting lines between DvP/RTGS boxes and CHESS/Austraclear
-        const austraclearLineColor = '#0a4f8f'; // Slightly darker than #071f6a border color
-        const austraclearLineWidth = '3';
+        const austraclearLineColor = '#0a4f8f'; // Match ASX bottom lines color
+        const austraclearLineWidth = '4'; // Match ASX bottom lines thickness
 
         // Add three lines with same spacing as SWIFT lines
         for (let j = 0; j < 3; j++) {
@@ -1542,8 +1542,8 @@ function initializeDiagram() {
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f2e8d6', // Lighter tan fill
-          stroke: '#a5622a', // Dark caramel border
+          fill: '#f0ebe4', // Very pale beige, lighter version
+          stroke: '#a6938c', // More tan border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1556,7 +1556,7 @@ function initializeDiagram() {
           cshdY + boxHeight / 2,
           'CSHD',
           {
-            fill: '#a5622a' // Same color as border
+            fill: '#a6938c' // Same tan color as border
           }
         );
         labelsGroup.appendChild(cshdText);
@@ -1709,7 +1709,7 @@ function initializeDiagram() {
           nppY = 150 - (nppRectHeight * 2) + (nppRectHeight * 0.3) + (nppRectHeight / 6) + nppVerticalShift;
           nppBoxCreated = true;
         console.log('NPP position:', { rectX: nppRectX, nppY, swiftRectWidth: nppSwiftRectWidth, rectHeight: nppRectHeight });
-        const nppBox = createStyledRect(nppRectX, nppY, nppSwiftRectWidth, nppRectHeight, {
+        const nppBox = createStyledRect(nppRectX, nppY, nppSwiftRectWidth, nppRectHeight + 5, {
           fill: '#bdf7e9', // Light mint green (swapped from NPP bounding box)
           stroke: '#0f766e', // Dark gray (swapped from NPP bounding box)
           strokeWidth: '2'
@@ -1799,7 +1799,7 @@ function initializeDiagram() {
         // Add APCE, APCR, and ACPT boxes where Cheques was
         const apceApcrAcptGap = 5; // Gap between the three boxes
         const singleSmallBoxWidth = narrowBoxWidth / 3; // Each box is 1/3 width (same as before)
-        const apceApcrAcptHeight = boxHeight; // Same height as other boxes
+        const apceApcrAcptHeight = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
         const nppBottomY = nppBoxCreated ? (nppY + nppRectHeight) : null; // Bottom of NPP (if created)
         const referenceGabsY = typeof gabsY === 'number'
           ? gabsY
@@ -1830,7 +1830,7 @@ function initializeDiagram() {
         const apceBox = createStyledRect(apceX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border
-          strokeWidth: '2',
+          strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
@@ -1855,7 +1855,7 @@ function initializeDiagram() {
         const apcrBox = createStyledRect(apcrX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
-          strokeWidth: '2',
+          strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
@@ -1879,7 +1879,7 @@ function initializeDiagram() {
         const acptBox = createStyledRect(acptX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
-          strokeWidth: '2',
+          strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
@@ -1903,7 +1903,7 @@ function initializeDiagram() {
         const chequesBoxExtraGap = -12; // Much smaller gap to bring boxes closer
         const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Much reduced gap
         // chequesBoxX and chequesBoxWidth already calculated above
-        const chequesBoxHeight = boxHeight; // Same height as other boxes
+        const chequesBoxHeight = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
         const chequesBaseY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Baseline position shared with BEC*/DE
         const chequesBoxOffsetY = 0; // Maintain original gap between Cheques and APCE row
         const chequesBoxY = chequesBaseY + chequesBoxOffsetY - 35; // Actual Cheques render position, shifted up by additional 10 pixels
@@ -2444,7 +2444,7 @@ function initializeDiagram() {
           const swiftPdsHeightForLines = parseFloat(swiftPdsRect.getAttribute('height'));
 
           const lineColor = '#3da88a'; // Brighter shade
-          const lineWidth = '4'; // Thick lines
+          const lineWidth = '6'; // Thick lines matching other thick lines
 
           // Store connecting lines for updates
           window.pacsToSwiftLines = [];
@@ -2797,7 +2797,7 @@ function initializeDiagram() {
           const atms = createStackedRect(atmsY, '#412e29', 'ATMs', eftposActualX, reducedHeight, reducedFont);
 
           const boundingPadX = 9;
-          const boundingPadY = 7;
+          const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
 
@@ -2858,9 +2858,10 @@ function initializeDiagram() {
           const stackHeaderText = createStyledText(
             containerX + containerWidth / 2,
             stackHeaderY + stackHeaderHeight / 2,
-            'Direct Entry',
+            'DE',
             { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
           );
+
 
           // Add double lines from bounding box to IAC (CECS) in LVSS style - draw BEFORE bounding box so it's behind
           if (window.cecsBoxData) {
@@ -2872,7 +2873,7 @@ function initializeDiagram() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#380835'; // Same dark purple as LVSS lines
+            const lineColor = '#2f3a2b'; // Dark grey color for LVSS lines
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -2909,6 +2910,7 @@ function initializeDiagram() {
             labelsGroup.insertBefore(stackHeaderRect, labelsGroup.firstChild);
             labelsGroup.insertBefore(stackHeaderText, labelsGroup.firstChild);
           }
+
 
           // Store references to create child boxes later after repositioning
           window.directEntryChildData = {
@@ -3113,6 +3115,89 @@ function initializeDiagram() {
               });
               labelsGroup.appendChild(mastercardUpturnPath);
 
+              // Add three more curved lines from bounding box at specific vertical positions
+              // The bounding box is directly above Mastercard/EFTPOS, so use same horizontal position
+              if (stackBoundingRect) {
+                const boundingX = parseFloat(stackBoundingRect.getAttribute('x'));
+                const boundingY = parseFloat(stackBoundingRect.getAttribute('y'));
+                const boundingWidth = parseFloat(stackBoundingRect.getAttribute('width'));
+                const boundingHeight = parseFloat(stackBoundingRect.getAttribute('height'));
+
+                // MANUAL ADJUSTMENTS: Tweak these values to move lines left (negative) or right (positive)
+                const blueHorizontalAdjustment = 50; // Adjust blue line (1/4 from bottom)
+                const yellowHorizontalAdjustment = 50; // Adjust yellow line (1/2 from bottom)
+                const greenHorizontalAdjustment = 50; // Adjust green line (3/4 from bottom)
+
+                // Base horizontal position (right edge of bounding box)
+                const baseLineStartX = boundingX + boundingWidth;
+
+                // Calculate vertical positions: 1/4, 1/2, 3/4 from bottom
+                const boundingBottom = boundingY + boundingHeight;
+                const blueLineY = boundingBottom - (boundingHeight * 1/4); // 1/4 from bottom
+                const yellowLineY = boundingBottom - (boundingHeight * 1/2); // 1/2 from bottom (middle)
+                const greenLineY = boundingBottom - (boundingHeight * 3/4); // 3/4 from bottom
+
+                // Create blue line (1/4 from bottom)
+                const blueSegments = buildCardPathSegments(
+                  baseLineStartX + blueHorizontalAdjustment,
+                  blueLineY,
+                  pexaSource,
+                  sympliSource,
+                  fallbackTurnBase,
+                  baseVerticalDistance,
+                  false // Similar to Mastercard
+                );
+
+                const bluePath = createStyledPath(blueSegments.pathString, {
+                  stroke: '#27AEE3', // Blue color from Other Cards
+                  strokeWidth: '2',
+                  fill: 'none',
+                  strokeLinecap: 'round',
+                  id: 'blue-left-line'
+                });
+                labelsGroup.insertBefore(bluePath, stackBoundingRect);
+
+                // Create yellow line (1/2 from bottom - middle)
+                const yellowSegments = buildCardPathSegments(
+                  baseLineStartX + yellowHorizontalAdjustment,
+                  yellowLineY,
+                  pexaSource,
+                  sympliSource,
+                  fallbackTurnBase,
+                  baseVerticalDistance,
+                  false // Similar to Mastercard
+                );
+
+                const yellowPath = createStyledPath(yellowSegments.pathString, {
+                  stroke: '#F7B600', // Yellow color from Visa
+                  strokeWidth: '2',
+                  fill: 'none',
+                  strokeLinecap: 'round',
+                  id: 'yellow-left-line'
+                });
+                labelsGroup.insertBefore(yellowPath, stackBoundingRect);
+
+                // Create green line (3/4 from bottom)
+                const greenSegments = buildCardPathSegments(
+                  baseLineStartX + greenHorizontalAdjustment,
+                  greenLineY,
+                  pexaSource,
+                  sympliSource,
+                  fallbackTurnBase,
+                  baseVerticalDistance,
+                  false // Similar to Mastercard
+                );
+
+                const greenPath = createStyledPath(greenSegments.pathString, {
+                  stroke: '#2d5016', // Green color from bounding box border
+                  strokeWidth: '2',
+                  fill: 'none',
+                  strokeLinecap: 'round',
+                  id: 'green-left-line'
+                });
+                labelsGroup.insertBefore(greenPath, stackBoundingRect);
+              }
+
               window.cardLeftLineData = {
                 filletRadius,
                 cornerRadius,
@@ -3253,17 +3338,25 @@ function initializeDiagram() {
           window.chequesToAdiLine = chequesToAdiLine;
           window.updateChequesToAdiLine = updateChequesToAdiLine;
 
-          // Create red line from Direct Entry to ADIs (matching BECN line style)
-          const directEntryToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          directEntryToAdiLine.setAttribute('id', 'directentry-to-adi-line');
-          directEntryToAdiLine.setAttribute('stroke', '#800000'); // Maroon
-          directEntryToAdiLine.setAttribute('stroke-width', '3'); // Same thickness as BECN line
-          directEntryToAdiLine.setAttribute('stroke-linecap', 'round');
-          directEntryToAdiLine.setAttribute('fill', 'none');
-          labelsGroup.appendChild(directEntryToAdiLine);
+          // Create double red lines from Direct Entry to ADIs (matching BECN/BECG line style)
+          const deToAdiLineGap = 2.5; // Gap between double lines
+          const deToAdiLineOffsets = [-deToAdiLineGap/2, deToAdiLineGap/2];
+          const directEntryToAdiLines = [];
+
+          // Create two parallel lines for double line effect
+          deToAdiLineOffsets.forEach((offset, index) => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('id', `directentry-to-adi-line-${index}`);
+            line.setAttribute('stroke', '#800000'); // Maroon
+            line.setAttribute('stroke-width', '1.5'); // Thinner for double line effect
+            line.setAttribute('stroke-linecap', 'round');
+            line.setAttribute('fill', 'none');
+            labelsGroup.appendChild(line);
+            directEntryToAdiLines.push(line);
+          });
 
           const updateDirectEntryToAdiLine = () => {
-            if (!window.directEntryToAdiLine || !window.adiBoxData) return;
+            if (directEntryToAdiLines.length === 0 || !window.adiBoxData) return;
 
             // Try to get Direct Entry box position from multiple sources
             let deX, deY, deWidth, deHeight;
@@ -3319,17 +3412,24 @@ function initializeDiagram() {
             const control2X = extendPastReference + 15;
             const control2Y = startY + verticalDistance * 0.15;
 
-            // Create path data with horizontal segment then Bézier curve down
-            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
-                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+            // Update each line in the double line pair with offset
+            deToAdiLineOffsets.forEach((offset, index) => {
+              const offsetStartY = startY + offset;
+              const offsetEndX = endX + offset;
+              const offsetControl1Y = control1Y + offset;
 
-            window.directEntryToAdiLine.setAttribute('d', pathData);
+              // Create path data with horizontal segment then Bézier curve down
+              const pathData = `M ${startX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
+                             `L ${curveStartX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
+                             `C ${control1X.toFixed(2)} ${offsetControl1Y.toFixed(2)}, ` +
+                             `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
+                             `${offsetEndX.toFixed(2)} ${endY.toFixed(2)}`;
+
+              directEntryToAdiLines[index].setAttribute('d', pathData);
+            });
           };
 
-          window.directEntryToAdiLine = directEntryToAdiLine;
+          window.directEntryToAdiLines = directEntryToAdiLines;
           window.updateDirectEntryToAdiLine = updateDirectEntryToAdiLine;
           updateDirectEntryToAdiLine(); // Initial update
 
@@ -3666,7 +3766,7 @@ function initializeDiagram() {
         labelsGroup.appendChild(sssCcpText);
 
         // Create ASX bounding box around CHESS equities, DvP cash leg, and cash transfer only
-        const symmetricPaddingForBox = 13;
+        const symmetricPaddingForBox = 13 - 2; // Reduced by 2 pixels on each side
 
         // Get positions of the three boxes we want to bound
         const actualChessX = alignedChessEquitiesX;
@@ -3954,7 +4054,7 @@ function initializeDiagram() {
                     ry: '4'
                   }),
                   text: createStyledText(headerX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
-                    { fill: '#8b0000', fontSize: '10' })
+                    { fill: '#8b0000', fontSize: '12' })
                 };
                 labelsGroup.appendChild(window.directEntryChild1.rect);
                 labelsGroup.appendChild(window.directEntryChild1.text);
@@ -3978,7 +4078,7 @@ function initializeDiagram() {
                     ry: '4'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
-                    { fill: '#8b0000', fontSize: '10' })
+                    { fill: '#8b0000', fontSize: '12' })
                 };
                 labelsGroup.appendChild(window.directEntryChild2.rect);
                 labelsGroup.appendChild(window.directEntryChild2.text);
@@ -3998,22 +4098,21 @@ function initializeDiagram() {
               const bpayX = headerX - bpayWidth - bpayGap;
               const bpayY = headerY; // Aligned with top of Direct Entry
 
-              // Create BPAY box with style like ESSB
+              // Create BPAY box with style like Osko
               const bpayBox = createStyledRect(bpayX, bpayY, bpayWidth, bpayHeight, {
-                fill: '#D8D0F0', // Same fill as ESSB
-                stroke: 'rgb(100,80,180)', // Same stroke as ESSB
-                strokeWidth: '2',
-                rx: '12', // Keep rounded corners
+                fill: 'rgb(100,80,180)', // Same purple as Osko
+                stroke: 'none',
+                rx: '12', // Same rounded corners as Osko
                 ry: '12'
               });
               labelsGroup.appendChild(bpayBox);
 
-              // Add BPAY label (same text style as ESSB)
+              // Add BPAY label (white text like Osko)
               const bpayText = createStyledText(
                 bpayX + bpayWidth / 2,
                 bpayY + bpayHeight / 2,
                 'BPAY',
-                { fill: 'rgb(80,60,150)', fontSize: '14', fontWeight: 'bold' }
+                { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
               );
               labelsGroup.appendChild(bpayText);
 
@@ -4033,10 +4132,10 @@ function initializeDiagram() {
               bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
               bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToDirectEntryLine.setAttribute('stroke', '#800000'); // Maroon
-              bpayToDirectEntryLine.setAttribute('stroke-width', '4');
+              bpayToDirectEntryLine.setAttribute('stroke', 'rgb(100,80,180)'); // Thick purple
+              bpayToDirectEntryLine.setAttribute('stroke-width', '6');
               bpayToDirectEntryLine.setAttribute('stroke-linecap', 'round');
-              labelsGroup.insertBefore(bpayToDirectEntryLine, bpayBox); // Insert behind boxes
+              labelsGroup.insertBefore(bpayToDirectEntryLine, labelsGroup.firstChild); // Insert at the back of everything
 
               // Horizontal line from BECN (left edge middle) to BPAY (right edge)
               const becnMidY = boxY + boxHeight / 2;
@@ -4045,10 +4144,10 @@ function initializeDiagram() {
               bpayToBecnLine.setAttribute('y1', becnMidY.toFixed(2)); // Middle height of BECN
               bpayToBecnLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToBecnLine.setAttribute('y2', becnMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToBecnLine.setAttribute('stroke', '#800000'); // Maroon
-              bpayToBecnLine.setAttribute('stroke-width', '4');
+              bpayToBecnLine.setAttribute('stroke', 'rgb(100,80,180)'); // Thick purple
+              bpayToBecnLine.setAttribute('stroke-width', '6');
               bpayToBecnLine.setAttribute('stroke-linecap', 'round');
-              labelsGroup.insertBefore(bpayToBecnLine, bpayBox); // Insert behind boxes
+              labelsGroup.insertBefore(bpayToBecnLine, labelsGroup.firstChild); // Insert at the back of everything
 
               // Add curved lines from BECN and BECG to BECS
               if (window.becsBoxData && window.directEntryChild1 && window.directEntryChild2) {
@@ -4068,39 +4167,58 @@ function initializeDiagram() {
                 const becgCenterX = box2X + boxWidth * 0.5;
                 const childBottomY = boxY + boxHeight;
 
-                // Create single curved line from BECN to BECS (matching Direct Entry style)
-                const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becnToBecsData = `M ${becnCenterX} ${childBottomY}
-                                        Q ${becnCenterX} ${becsBottomThird} ${becsLeftX} ${becsBottomThird}`;
-                becnToBecsPath.setAttribute('d', becnToBecsData);
-                becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                becnToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
-                becnToBecsPath.setAttribute('fill', 'none');
-                becnToBecsPath.setAttribute('stroke-linecap', 'round');
+                // Create double curved lines from BECN to BECS
+                const lineGap = 2.5; // Gap between double lines
+                const lineOffsets = [-lineGap/2, lineGap/2];
 
-                // Insert before BECN box so line appears behind it
-                if (window.directEntryChild1.rect.parentNode) {
-                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath, window.directEntryChild1.rect);
-                }
+                lineOffsets.forEach((offset, index) => {
+                  const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                  // Offset the X coordinates for double lines
+                  const offsetBecnX = becnCenterX + offset;
+                  const offsetBecsX = becsLeftX + offset;
+                  const becnToBecsData = `M ${offsetBecnX} ${childBottomY}
+                                          Q ${offsetBecnX} ${becsBottomThird} ${offsetBecsX} ${becsBottomThird}`;
+                  becnToBecsPath.setAttribute('d', becnToBecsData);
+                  becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
+                  becnToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
+                  becnToBecsPath.setAttribute('fill', 'none');
+                  becnToBecsPath.setAttribute('stroke-linecap', 'round');
 
-                // Create single curved line from BECG to BECS (matching Direct Entry style)
-                const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const becgToBecsData = `M ${becgCenterX} ${childBottomY}
-                                        Q ${becgCenterX} ${becsTopThird} ${becsLeftX} ${becsTopThird}`;
-                becgToBecsPath.setAttribute('d', becgToBecsData);
-                becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                becgToBecsPath.setAttribute('stroke-width', '3'); // Same thickness as Direct Entry line
-                becgToBecsPath.setAttribute('fill', 'none');
-                becgToBecsPath.setAttribute('stroke-linecap', 'round');
+                  // Insert before BECN box so lines appear behind it
+                  if (window.directEntryChild1.rect.parentNode) {
+                    window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath, window.directEntryChild1.rect);
+                  }
 
-                // Insert before BECG box so line appears behind it
-                if (window.directEntryChild2.rect.parentNode) {
-                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath, window.directEntryChild2.rect);
-                }
+                  // Store reference for first line
+                  if (index === 0) {
+                    window.becnToBecsLine = becnToBecsPath;
+                  }
+                });
 
-                // Store references for potential updates
-                window.becnToBecsLine = becnToBecsPath;
-                window.becgToBecsLine = becgToBecsPath;
+                // Create double curved lines from BECG to BECS
+                lineOffsets.forEach((offset, index) => {
+                  const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                  // Offset the X coordinates for double lines
+                  const offsetBecgX = becgCenterX + offset;
+                  const offsetBecsX = becsLeftX + offset;
+                  const becgToBecsData = `M ${offsetBecgX} ${childBottomY}
+                                          Q ${offsetBecgX} ${becsTopThird} ${offsetBecsX} ${becsTopThird}`;
+                  becgToBecsPath.setAttribute('d', becgToBecsData);
+                  becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
+                  becgToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
+                  becgToBecsPath.setAttribute('fill', 'none');
+                  becgToBecsPath.setAttribute('stroke-linecap', 'round');
+
+                  // Insert before BECG box so lines appear behind it
+                  if (window.directEntryChild2.rect.parentNode) {
+                    window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath, window.directEntryChild2.rect);
+                  }
+
+                  // Store reference for first line
+                  if (index === 0) {
+                    window.becgToBecsLine = becgToBecsPath;
+                  }
+                });
               }
             }
 
@@ -4677,7 +4795,7 @@ function initializeDiagram() {
 
         // Add connecting lines between the three left boxes and SWIFT PDS box
         const lineColor = '#3da88a'; // Brighter shade
-        const lineWidth = '4'; // Thick lines
+        const lineWidth = '6'; // Thick lines matching other thick lines
         // const hvcsShift = 15; // Already declared above
 
 
@@ -4783,8 +4901,15 @@ function initializeDiagram() {
           } else {
             strokeColor = lineColor;
           }
-          // Make CLS AUD line thicker
-          const strokeWidth = (i === 3) ? '6' : '3';
+          // Make CLS AUD and SWIFT PDS lines thicker (6), Austraclear/CHESS lines medium (4), others thin (3)
+          let strokeWidth;
+          if (i === 3 || i < 3) {
+            strokeWidth = '6'; // CLS AUD and SWIFT PDS lines
+          } else if (i >= 4 && i <= 6) {
+            strokeWidth = '4'; // Austraclear and CHESS lines matching ASX
+          } else {
+            strokeWidth = '3'; // Other lines
+          }
 
           // Only create path if d is not empty
           if (d) {
@@ -6110,7 +6235,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const greyColor = '#380835'; // Dark purple color
+          const greyColor = '#2f3a2b'; // Dark grey color
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -7012,8 +7137,8 @@ function initializeDiagram() {
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
         const greenBorderLeftPadding = -25; // Slight left adjustment
-        const greenBorderTopPadding = 8; // Increased headroom
-        const greenBorderBottomPadding = 10; // Increased headroom
+        const greenBorderTopPadding = 8 + 2; // Increased headroom + 2px additional padding
+        const greenBorderBottomPadding = 10 + 2; // Increased headroom + 2px additional padding
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -7213,7 +7338,7 @@ const newBoundingBox = createStyledRect(
   newBoundingBoxX,
   boundingBoxY,
   hvcsBoxWidth,
-  newBoundingBoxHeight,
+  newBoundingBoxHeight + 5,
   {
     fill: '#D8D0F0', // Darker purple interior (swapped from NPP BI)
     stroke: 'rgb(100,80,180)', // Darker purple border (swapped from NPP BI)
