@@ -441,7 +441,7 @@ function initializeDiagram() {
         blackCircle.setAttribute('cy', blackCenterY.toFixed(2));
         blackCircle.setAttribute('r', blackCircleRadius); // Large enough to enclose both
         blackCircle.setAttribute('fill', '#000000'); // solid black
-        blackCircle.setAttribute('stroke', '#991b1b'); // dark red outline
+        blackCircle.setAttribute('stroke', '#ff0000'); // bright red outline
         blackCircle.setAttribute('stroke-width', '2');
         circlesGroup.appendChild(blackCircle);
       }
@@ -1542,8 +1542,8 @@ function initializeDiagram() {
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f0ebe4', // Very pale beige, lighter version
-          stroke: '#a6938c', // More tan border
+          fill: '#f5efea', // Even lighter tan, same shade family
+          stroke: '#9b7a5f', // Brownish tan border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1556,7 +1556,7 @@ function initializeDiagram() {
           cshdY + boxHeight / 2,
           'CSHD',
           {
-            fill: '#a6938c' // Same tan color as border
+            fill: '#9b7a5f' // Same brownish tan color as border
           }
         );
         labelsGroup.appendChild(cshdText);
@@ -1636,7 +1636,7 @@ function initializeDiagram() {
           apcsY + boxHeight / 2,
           'APCS',
           {
-            fill: '#4b5563', // Dark grey
+            fill: '#0a0e27', // Very dark blue
             fontSize: '12'
           }
         );
@@ -1665,7 +1665,7 @@ function initializeDiagram() {
         const gabsY = gabsBottomY - boxHeight; // Top edge raised to accommodate full height
         const gabsBox = createStyledRect(reducedNarrowBoxX, gabsY, reducedNarrowBoxWidth, boxHeight, {
           fill: '#000000', // Black fill (like BDF)
-          stroke: '#8B0000', // Dark red border
+          stroke: '#ff0000', // Bright red border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1844,7 +1844,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCE',
           {
-            fill: '#4b5563', // Dark grey
+            fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
@@ -1868,7 +1868,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCR',
           {
-            fill: '#4b5563', // Dark grey
+            fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
@@ -1892,7 +1892,7 @@ function initializeDiagram() {
           threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCT',
           {
-            fill: '#4b5563', // Dark grey
+            fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
@@ -2790,7 +2790,7 @@ function initializeDiagram() {
           const visaY = mastercardY - visaGap - reducedHeight;
           const visa = createStackedRect(visaY, '#27AEE3', 'Other Cards', eftposActualX, reducedHeight, reducedFont);
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
-          const otherCards = createStackedRect(otherCardsY, '#F7B600', 'Visa', eftposActualX, reducedHeight, reducedFont);
+          const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
           const medicareY = visaY - gapHalf - reducedHeight;
           const medicare = createStackedRect(medicareY, 'rgb(56,127,72)', 'Medicare', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
@@ -2801,14 +2801,16 @@ function initializeDiagram() {
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
 
-          // Use the narrower width for the green bounding box to match the ATMs, Medicare, Other Cards, and Visa boxes
-          const stackBoxWidth = boxWidth * 0.8; // 80% of original width (20% reduction)
+          // Use the full width for the green bounding box to match the Mastercard box
+          const stackBoxWidth = boxWidth; // Full width to match Mastercard
 
           // Get the actual X position of the ATMs box (which is now centered)
           const atmsRect = atms.rect;
           const atmsActualX = parseFloat(atmsRect.getAttribute('x'));
 
-          const containerX = atmsActualX - boundingPadX;
+          // Center the wider bounding box around the narrower inner boxes
+          const innerBoxWidth = boxWidth * 0.8;
+          const containerX = atmsActualX - (stackBoxWidth - innerBoxWidth) / 2 - boundingPadX;
           const containerWidth = stackBoxWidth + boundingPadX * 2;
           const stackBoundingRect = createStyledRect(
             containerX,
@@ -2818,11 +2820,72 @@ function initializeDiagram() {
             {
               fill: '#f1ffcc',
               stroke: '#2d5016',
-              strokeWidth: '3',
+              strokeWidth: '2',
               rx: '18',
               ry: '18'
             }
           );
+          const stackBoundingLeftEdge = containerX;
+          const stackBoundingRightEdge = containerX + containerWidth;
+          stackBoundingRect.setAttribute('id', 'direct-entry-stack-bounding-box');
+          stackBoundingRect.setAttribute('data-left-edge', stackBoundingLeftEdge.toFixed(2));
+          stackBoundingRect.setAttribute('data-right-edge', stackBoundingRightEdge.toFixed(2));
+          if (typeof cacheRectEdges === 'function') {
+            cacheRectEdges(stackBoundingRect, 'directEntryStackBounding');
+          }
+          window.directEntryBoundingBoxLeftEdge = stackBoundingLeftEdge;
+          window.directEntryBoundingBoxEdges = {
+            left: stackBoundingLeftEdge,
+            right: stackBoundingRightEdge,
+            top: stackTopY - boundingPadY,
+            bottom: stackBottomY + boundingPadY
+          };
+
+          const boundingLineFraction = 1 / 3;
+          const boundingLineLength = 80;
+          const stackBoundingTop = stackTopY - boundingPadY;
+          const stackBoundingHeight = (stackBottomY - stackTopY) + boundingPadY * 2;
+          const boundingLineY = stackBoundingTop + stackBoundingHeight * boundingLineFraction;
+          const boundingLine = createStyledLine(
+            stackBoundingLeftEdge,
+            boundingLineY,
+            stackBoundingLeftEdge - boundingLineLength,
+            boundingLineY,
+            {
+              stroke: '#2d5016',
+              strokeWidth: '3',
+              strokeLinecap: 'round'
+            }
+          );
+
+          if (labelsGroup.firstChild) {
+            labelsGroup.insertBefore(boundingLine, labelsGroup.firstChild);
+          } else {
+            labelsGroup.appendChild(boundingLine);
+          }
+
+          window.directEntryBoundingLine = boundingLine;
+          window.directEntryBoundingLineLength = boundingLineLength;
+          window.directEntryBoundingLineFraction = boundingLineFraction;
+          window.updateDirectEntryBoundingLine = (leftEdge, top, height) => {
+            if (!window.directEntryBoundingLine) return;
+            const line = window.directEntryBoundingLine;
+            const length = Number.isFinite(window.directEntryBoundingLineLength)
+              ? window.directEntryBoundingLineLength
+              : boundingLineLength;
+            const fraction = Number.isFinite(window.directEntryBoundingLineFraction)
+              ? window.directEntryBoundingLineFraction
+              : boundingLineFraction;
+            const y = top + height * fraction;
+            line.setAttribute('x1', leftEdge.toFixed(2));
+            line.setAttribute('y1', y.toFixed(2));
+            line.setAttribute('x2', (leftEdge - length).toFixed(2));
+            line.setAttribute('y2', y.toFixed(2));
+          };
+
+          if (typeof window.updateDirectEntryBoundingLine === 'function') {
+            window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackBoundingTop, stackBoundingHeight);
+          }
 
           const stackHeaderHeight = stackedHeight;
           const stackHeaderGap = gapHalf;
@@ -2873,7 +2936,7 @@ function initializeDiagram() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#2f3a2b'; // Dark grey color for LVSS lines
+            const lineColor = '#968F7F'; // Updated color for LVSS lines
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -2888,8 +2951,9 @@ function initializeDiagram() {
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
 
-              if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
-                labelsGroup.insertBefore(line, visa.rect);
+              // Insert at the beginning of labelsGroup so lines appear behind all boxes
+              if (labelsGroup.firstChild) {
+                labelsGroup.insertBefore(line, labelsGroup.firstChild);
               } else {
                 labelsGroup.appendChild(line);
               }
@@ -2911,6 +2975,10 @@ function initializeDiagram() {
             labelsGroup.insertBefore(stackHeaderText, labelsGroup.firstChild);
           }
 
+          if (window.directEntryBoundingLine) {
+            labelsGroup.appendChild(window.directEntryBoundingLine);
+          }
+
 
           // Store references to create child boxes later after repositioning
           window.directEntryChildData = {
@@ -2920,6 +2988,7 @@ function initializeDiagram() {
             stackHeaderY: stackHeaderY,
             stackHeaderHeight: stackHeaderHeight
           };
+
 
           // Create left lines for eftpos/Mastercard that mirror the e-conveyancing downturn
           if (window.hexagonPositions) {
@@ -3044,11 +3113,11 @@ function initializeDiagram() {
                   let horizontalY;
                   let verticalShift;
                   if (isEftpos) {
-                    horizontalY = bpay.y - 15 - 3; // eftpos line: 15px above BPay top, shifted up 3px
-                    verticalShift = 3; // eftpos vertical: shift 3px left
+                    horizontalY = bpay.y - 15 - 3 - 3 - 2; // eftpos line: 15px above BPay top, shifted up 8px total
+                    verticalShift = 3 + 3 + 2; // eftpos vertical: shift 8px left
                   } else {
-                    horizontalY = bpay.y - 10 - 4; // Mastercard line: 10px above BPay top, shifted up 4px
-                    verticalShift = 4; // Mastercard vertical: shift 4px left
+                    horizontalY = bpay.y - 10 - 4 - 3 - 2; // Mastercard line: 10px above BPay top, shifted up 9px total
+                    verticalShift = 4 + 3 + 2; // Mastercard vertical: shift 9px left
                   }
 
                   // Shift vertical line left by specified amount
@@ -3114,89 +3183,6 @@ function initializeDiagram() {
                 id: 'mastercard-left-line'
               });
               labelsGroup.appendChild(mastercardUpturnPath);
-
-              // Add three more curved lines from bounding box at specific vertical positions
-              // The bounding box is directly above Mastercard/EFTPOS, so use same horizontal position
-              if (stackBoundingRect) {
-                const boundingX = parseFloat(stackBoundingRect.getAttribute('x'));
-                const boundingY = parseFloat(stackBoundingRect.getAttribute('y'));
-                const boundingWidth = parseFloat(stackBoundingRect.getAttribute('width'));
-                const boundingHeight = parseFloat(stackBoundingRect.getAttribute('height'));
-
-                // MANUAL ADJUSTMENTS: Tweak these values to move lines left (negative) or right (positive)
-                const blueHorizontalAdjustment = 50; // Adjust blue line (1/4 from bottom)
-                const yellowHorizontalAdjustment = 50; // Adjust yellow line (1/2 from bottom)
-                const greenHorizontalAdjustment = 50; // Adjust green line (3/4 from bottom)
-
-                // Base horizontal position (right edge of bounding box)
-                const baseLineStartX = boundingX + boundingWidth;
-
-                // Calculate vertical positions: 1/4, 1/2, 3/4 from bottom
-                const boundingBottom = boundingY + boundingHeight;
-                const blueLineY = boundingBottom - (boundingHeight * 1/4); // 1/4 from bottom
-                const yellowLineY = boundingBottom - (boundingHeight * 1/2); // 1/2 from bottom (middle)
-                const greenLineY = boundingBottom - (boundingHeight * 3/4); // 3/4 from bottom
-
-                // Create blue line (1/4 from bottom)
-                const blueSegments = buildCardPathSegments(
-                  baseLineStartX + blueHorizontalAdjustment,
-                  blueLineY,
-                  pexaSource,
-                  sympliSource,
-                  fallbackTurnBase,
-                  baseVerticalDistance,
-                  false // Similar to Mastercard
-                );
-
-                const bluePath = createStyledPath(blueSegments.pathString, {
-                  stroke: '#27AEE3', // Blue color from Other Cards
-                  strokeWidth: '2',
-                  fill: 'none',
-                  strokeLinecap: 'round',
-                  id: 'blue-left-line'
-                });
-                labelsGroup.insertBefore(bluePath, stackBoundingRect);
-
-                // Create yellow line (1/2 from bottom - middle)
-                const yellowSegments = buildCardPathSegments(
-                  baseLineStartX + yellowHorizontalAdjustment,
-                  yellowLineY,
-                  pexaSource,
-                  sympliSource,
-                  fallbackTurnBase,
-                  baseVerticalDistance,
-                  false // Similar to Mastercard
-                );
-
-                const yellowPath = createStyledPath(yellowSegments.pathString, {
-                  stroke: '#F7B600', // Yellow color from Visa
-                  strokeWidth: '2',
-                  fill: 'none',
-                  strokeLinecap: 'round',
-                  id: 'yellow-left-line'
-                });
-                labelsGroup.insertBefore(yellowPath, stackBoundingRect);
-
-                // Create green line (3/4 from bottom)
-                const greenSegments = buildCardPathSegments(
-                  baseLineStartX + greenHorizontalAdjustment,
-                  greenLineY,
-                  pexaSource,
-                  sympliSource,
-                  fallbackTurnBase,
-                  baseVerticalDistance,
-                  false // Similar to Mastercard
-                );
-
-                const greenPath = createStyledPath(greenSegments.pathString, {
-                  stroke: '#2d5016', // Green color from bounding box border
-                  strokeWidth: '2',
-                  fill: 'none',
-                  strokeLinecap: 'round',
-                  id: 'green-left-line'
-                });
-                labelsGroup.insertBefore(greenPath, stackBoundingRect);
-              }
 
               window.cardLeftLineData = {
                 filletRadius,
@@ -3441,7 +3427,13 @@ function initializeDiagram() {
             stackWidth: boxWidth,
             atmsHeight: reducedHeight,
             atms: atms,
-            bounding: { rect: stackBoundingRect, padX: boundingPadX, padY: boundingPadY },
+            bounding: {
+              rect: stackBoundingRect,
+              padX: boundingPadX,
+              padY: boundingPadY,
+              leftEdge: stackBoundingLeftEdge,
+              rightEdge: stackBoundingRightEdge
+            },
             header: {
               rect: stackHeaderRect,
               text: stackHeaderText,
@@ -3485,7 +3477,15 @@ function initializeDiagram() {
             eftposLines,
             mastercardLines,
             otherCardsHierarchy: window.otherCardsHierarchy,
-            stackBounding: { rect: stackBoundingRect, padX: boundingPadX, padY: boundingPadY },
+            stackBounding: {
+              rect: stackBoundingRect,
+              padX: boundingPadX,
+              padY: boundingPadY,
+              leftEdge: stackBoundingLeftEdge,
+              rightEdge: stackBoundingRightEdge
+            },
+            boundingLeftEdge: stackBoundingLeftEdge,
+            boundingRightEdge: stackBoundingRightEdge,
             stackHeader: { rect: stackHeaderRect, text: stackHeaderText, height: stackHeaderHeight, gap: stackHeaderGap }
           };
 
@@ -3548,13 +3548,45 @@ function initializeDiagram() {
                 ? parseFloat(visaRectCurrent.getAttribute('y')) + parseFloat(visaRectCurrent.getAttribute('height'))
                 : visaY + childHeight;
               const topY = atmsYCurrent;
-              boundingInfo.rect.setAttribute('x', (stackBaseX - bPadX).toFixed(2));
-              boundingInfo.rect.setAttribute('y', (topY - bPadY).toFixed(2));
-              boundingInfo.rect.setAttribute('width', (stackWidth + bPadX * 2).toFixed(2));
-              boundingInfo.rect.setAttribute('height', (visaBottom - topY + bPadY * 2).toFixed(2));
-              hierarchy.bounding = boundingInfo;
+              const boundingLeftEdge = stackBaseX - bPadX;
+              const boundingTop = topY - bPadY;
+              const boundingWidth = stackWidth + bPadX * 2;
+              const boundingHeight = visaBottom - topY + bPadY * 2;
+              const boundingRightEdge = boundingLeftEdge + boundingWidth;
+
+              boundingInfo.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
+              boundingInfo.rect.setAttribute('y', boundingTop.toFixed(2));
+              boundingInfo.rect.setAttribute('width', boundingWidth.toFixed(2));
+              boundingInfo.rect.setAttribute('height', boundingHeight.toFixed(2));
+              boundingInfo.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
+              boundingInfo.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+
+              if (typeof cacheRectEdges === 'function') {
+                cacheRectEdges(boundingInfo.rect, 'directEntryStackBounding');
+              }
+
+              const boundingBottom = visaBottom + bPadY;
+              window.directEntryBoundingBoxLeftEdge = boundingLeftEdge;
+              window.directEntryBoundingBoxEdges = {
+                left: boundingLeftEdge,
+                right: boundingRightEdge,
+                top: boundingTop,
+                bottom: boundingBottom
+              };
+              boundingInfo.leftEdge = boundingLeftEdge;
+              boundingInfo.rightEdge = boundingRightEdge;
               if (window.pexaExtensions) {
+                window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
+                window.pexaExtensions.boundingRightEdge = boundingRightEdge;
                 window.pexaExtensions.stackBounding = boundingInfo;
+              }
+              if (window.otherCardsHierarchy) {
+                window.otherCardsHierarchy.bounding = boundingInfo;
+              }
+              hierarchy.bounding = boundingInfo;
+
+              if (typeof window.updateDirectEntryBoundingLine === 'function') {
+                window.updateDirectEntryBoundingLine(boundingLeftEdge, boundingTop, boundingHeight);
               }
 
               // Update the CECS to bounding box lines with new positions
@@ -3562,7 +3594,7 @@ function initializeDiagram() {
                 const cecsData = window.cecsBoxData;
                 const cecsCenterY = cecsData.y + cecsData.height / 2;
                 const cecsLeftX = cecsData.x; // Left side of CECS box
-                const newLineEndX = (stackBaseX - bPadX) + (stackWidth + bPadX * 2) - 2; // Right edge of updated bounding box
+                const newLineEndX = boundingRightEdge - 2; // Right edge of updated bounding box
                 const lineGap = 3;
                 const lineOffsets = [-lineGap/2, lineGap/2];
 
@@ -3579,7 +3611,7 @@ function initializeDiagram() {
                 const cecsData = window.cecsBoxData;
                 const cecsCenterY = cecsData.y + cecsData.height / 2;
                 const cecsLeftX = cecsData.x;
-                const newLineEndX = (stackBaseX - bPadX) + (stackWidth + bPadX * 2) - 2;
+                const newLineEndX = boundingRightEdge - 2;
 
                 window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
                 window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
@@ -3974,18 +4006,47 @@ function initializeDiagram() {
               // Use reduced width for the green bounding box
               const boundingWidth = stackWidth * 0.8;
               const boundingX = baseX + (stackWidth - boundingWidth) / 2;
+              const boundingLeftEdge = boundingX - padX;
+              const boundingTotalWidth = boundingWidth + padX * 2;
+              const boundingRightEdge = boundingLeftEdge + boundingTotalWidth;
+              const boundingHeight = (bottomY - topY + padY * 2);
 
-              stackBounding.rect.setAttribute('x', (boundingX - padX).toFixed(2));
+              stackBounding.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
               stackBounding.rect.setAttribute('y', (topY - padY).toFixed(2));
-              stackBounding.rect.setAttribute('width', (boundingWidth + padX * 2).toFixed(2));
+              stackBounding.rect.setAttribute('width', boundingTotalWidth.toFixed(2));
               stackBounding.rect.setAttribute('height', (bottomY - topY + padY * 2).toFixed(2));
+              stackBounding.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
+              stackBounding.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+
+              if (typeof cacheRectEdges === 'function') {
+                cacheRectEdges(stackBounding.rect, 'directEntryStackBounding');
+              }
+
+              window.directEntryBoundingBoxLeftEdge = boundingLeftEdge;
+              window.directEntryBoundingBoxEdges = {
+                left: boundingLeftEdge,
+                right: boundingRightEdge,
+                top: topY - padY,
+                bottom: bottomY + padY
+              };
+              if (typeof window.updateDirectEntryBoundingLine === 'function') {
+                window.updateDirectEntryBoundingLine(boundingLeftEdge, topY - padY, boundingHeight);
+              }
+              window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
+              window.pexaExtensions.boundingRightEdge = boundingRightEdge;
+              stackBounding.leftEdge = boundingLeftEdge;
+              stackBounding.rightEdge = boundingRightEdge;
+              if (window.otherCardsHierarchy && window.otherCardsHierarchy.bounding) {
+                window.otherCardsHierarchy.bounding.leftEdge = boundingLeftEdge;
+                window.otherCardsHierarchy.bounding.rightEdge = boundingRightEdge;
+              }
 
               // Update the CECS to bounding box lines with new positions
               if (window.cecsToAtmsBoundingLines && window.cecsToAtmsBoundingLines.length > 0 && window.cecsBoxData) {
                 const cecsData = window.cecsBoxData;
                 const cecsCenterY = cecsData.y + cecsData.height / 2;
                 const cecsLeftX = cecsData.x; // Left side of CECS box
-                const newLineEndX = (boundingX - padX) + (boundingWidth + padX * 2) - 2; // Right edge of updated bounding box
+                const newLineEndX = boundingRightEdge - 2; // Right edge of updated bounding box
                 const lineGap = 3;
                 const lineOffsets = [-lineGap/2, lineGap/2];
 
@@ -4002,7 +4063,7 @@ function initializeDiagram() {
                 const cecsData = window.cecsBoxData;
                 const cecsCenterY = cecsData.y + cecsData.height / 2;
                 const cecsLeftX = cecsData.x;
-                const newLineEndX = (boundingX - padX) + (boundingWidth + padX * 2) - 2;
+                const newLineEndX = boundingRightEdge - 2;
 
                 window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
                 window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
@@ -5303,8 +5364,8 @@ function initializeDiagram() {
       // Create square with lighter red fill and dark red border
       const bdfSquare = createStyledRect(bdfX - squareSize/2, bdfY - squareSize/2, squareSize, squareSize, {
         fill: '#000000', // black fill
-        stroke: '#991b1b', // dark red border
-        strokeWidth: '3'
+        stroke: '#ff0000', // bright red border
+        strokeWidth: '2'
         // No rx/ry = square corners
       });
       labelsGroup.appendChild(bdfSquare);
@@ -5348,8 +5409,8 @@ function initializeDiagram() {
           opaBoxSize,
           {
             fill: '#000000',
-            stroke: '#991b1b',
-            strokeWidth: '3',
+            stroke: '#ff0000',
+            strokeWidth: '2',
             rx: '0',
             ry: '0'
           }
@@ -5377,7 +5438,7 @@ function initializeDiagram() {
         opaLine.setAttribute('y1', opaY);
         opaLine.setAttribute('x2', rbaX); // Extend to center since it will be behind the circle
         opaLine.setAttribute('y2', rbaY);
-        opaLine.setAttribute('stroke', '#991b1b'); // Same red as border
+        opaLine.setAttribute('stroke', '#ff0000'); // Same red as border
         opaLine.setAttribute('stroke-width', '2');
         // Insert BEFORE the circles group so it renders UNDER the black RBA circle
         const circlesGroup = document.getElementById('arc-circles');
@@ -5409,7 +5470,7 @@ function initializeDiagram() {
           const path = createStyledPath(
             `M ${startX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`,
             {
-              stroke: '#991b1b', // dark red
+              stroke: '#ff0000', // bright red
               strokeWidth: '2', // Thicker lines
               fill: 'none'
             }
@@ -5459,7 +5520,7 @@ function initializeDiagram() {
           const pathData = `M ${source.x} ${source.y} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
           const path = createStyledPath(pathData, {
             stroke: darkRedLineColor,
-            strokeWidth: '3',
+            strokeWidth: '2',
             fill: 'none',
             strokeLinecap: 'round'
           });
@@ -6054,7 +6115,7 @@ function initializeDiagram() {
       path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       const gearBorder = createStyledPath(path, {
-        fill: '#800000' // Maroon for gear
+        fill: '#000000' // Black for gear
       });
       gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
       gearBorder.setAttribute('fill-rule', 'evenodd');
@@ -6065,7 +6126,7 @@ function initializeDiagram() {
       redCircleInner.setAttribute('cx', redCircleX);
       redCircleInner.setAttribute('cy', redCircleY);
       redCircleInner.setAttribute('r', innerRadius); // Exact innerRadius to fill the cutout completely
-      redCircleInner.setAttribute('fill', '#DC3958'); // Rose red
+      redCircleInner.setAttribute('fill', '#800020'); // Burgundy
       lvssGroup.appendChild(redCircleInner);
 
       labelsGroup.appendChild(lvssGroup);
@@ -6235,7 +6296,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const greyColor = '#2f3a2b'; // Dark grey color
+          const greyColor = '#968F7F'; // Updated color for LVSS double lines
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -6815,7 +6876,7 @@ function initializeDiagram() {
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
               stroke: 'rgb(239,136,51)', // Same orange as Sympli box
-              strokeWidth: '3',
+              strokeWidth: '2',
               fill: 'none',
               id: 'sympli-to-adis-line'
             });
@@ -6868,7 +6929,7 @@ function initializeDiagram() {
 
             const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
               stroke: 'rgb(179,46,161)',
-              strokeWidth: '3',
+              strokeWidth: '2',
               fill: 'none',
               id: 'pexa-to-adis-line'
             });
@@ -7136,9 +7197,9 @@ function initializeDiagram() {
 
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
-        const greenBorderLeftPadding = -25; // Slight left adjustment
-        const greenBorderTopPadding = 8 + 2; // Increased headroom + 2px additional padding
-        const greenBorderBottomPadding = 10 + 2; // Increased headroom + 2px additional padding
+        const greenBorderLeftPadding = -25 + 2; // Slight left adjustment + 2px left padding
+        const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
+        const greenBorderBottomPadding = 10 + 2 - 2; // Increased headroom + 2px additional padding - 2px reduction
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box

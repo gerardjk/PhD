@@ -20,6 +20,11 @@
         .small-stroke { stroke: #9a3412; } /* dark orange stroke */
         .arc-stroke { stroke: #111827; }   /* very dark grey arc */
       </style>
+      <!-- Gradient for figure-8 effect -->
+      <radialGradient id="darkEdgeGradient">
+        <stop offset="85%" stop-color="transparent"/>
+        <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0.8"/>
+      </radialGradient>
     </defs>
 
     <!-- ----- PARAMS (edit these numbers) ----- -->
@@ -47,29 +52,35 @@
     <!-- Large blue circle with double border -->
     <!-- Uses: cx (shared), cy_big, r_big -->
     <g id="big-group">
-      <!-- Layer 1: Darkest blue background circle -->
+      <!-- Layer 1: Lightest blue background circle -->
       <circle id="big-outer"
-              fill="#1e3a8a"
+              fill="#60a5fa"
               cx="300" cy="450" r="113"></circle>
-      <!-- Layer 2: Next darkest blue gear shape border -->
+      <!-- Layer 2: Medium blue gear shape border -->
       <path id="big-gear-border"
-            fill="#2563eb"
+            fill="#3b82f6"
+            stroke="#1e3a8a"
+            stroke-width="1"
             d=""
             transform="translate(300, 450)"></path>
-      <!-- Layer 3: Medium blue circle fill -->
+      <!-- Layer 3: Next darkest blue circle fill -->
       <circle id="big-inner"
-              fill="#3b82f6"
+              fill="#2563eb"
+              stroke="#1e3a8a"
+              stroke-width="1"
               cx="300" cy="450" r="97"></circle>
-      <!-- Layer 4: Lightest blue interior gear pattern -->
+      <!-- Layer 4: Darkest blue interior gear pattern -->
       <path id="big-gear"
-            fill="#60a5fa"
+            fill="#1e3a8a"
+            stroke="#000000"
+            stroke-width="0.5"
             d=""
             transform="translate(300, 450)"></path>
     </g>
     
     <!-- Label for blue circle -->
-    <text id="big-label" x="300" y="436" text-anchor="middle" dominant-baseline="middle" 
-          fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="bold">
+    <text id="big-label" x="300" y="436" text-anchor="middle" dominant-baseline="middle"
+          fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="normal">
       <tspan x="300" dy="-40" font-size="20">RITS</tspan>
       <tspan x="300" dy="20">Settlement</tspan>
       <tspan x="300" dy="20">Engine</tspan>
@@ -81,29 +92,35 @@
     <!-- Smaller orange/yellow circle above the big one with double border -->
     <!-- y = cy_big - (r_big + gap) + r_small, so they don't overlap -->
     <g id="small-group">
-      <!-- Layer 1: Darkest orange background circle -->
+      <!-- Layer 1: Lightest orange background circle -->
       <circle id="small-outer"
-              fill="#9a3412"
+              fill="#fbbf24"
               cx="300" cy="222" r="48"></circle>
-      <!-- Layer 2: Next darkest orange gear shape border -->
+      <!-- Layer 2: Medium orange gear shape border -->
       <path id="small-gear-border"
-            fill="#c7690e"
+            fill="#f59e0b"
+            stroke="#9a3412"
+            stroke-width="1"
             d=""
             transform="translate(300, 222)"></path>
-      <!-- Layer 3: Medium orange circle fill -->
+      <!-- Layer 3: Next darkest orange circle fill -->
       <circle id="small-inner"
-              fill="#f59e0b"
+              fill="#c7690e"
+              stroke="#9a3412"
+              stroke-width="1"
               cx="300" cy="222" r="40"></circle>
-      <!-- Layer 4: Lightest orange interior gear pattern -->
+      <!-- Layer 4: Darkest orange interior gear pattern -->
       <path id="small-gear"
-            fill="#fbbf24"
+            fill="#9a3412"
+            stroke="#000000"
+            stroke-width="0.5"
             d=""
             transform="translate(300, 222)"></path>
     </g>
     
     <!-- Label for orange circle -->
     <text id="small-label" x="300" y="222" text-anchor="middle" dominant-baseline="middle" 
-          fill="black" font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+          fill="white" font-family="Arial, sans-serif" font-size="20" font-weight="normal">
       <tspan x="300" dy="-6">FSS</tspan>
       <tspan x="300" dy="20" font-size="14" font-weight="normal">24/7</tspan>
     </text>
