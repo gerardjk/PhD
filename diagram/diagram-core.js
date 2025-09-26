@@ -311,24 +311,18 @@ function initializeDiagram() {
       let startX = nppX + nppWidth;
       let startY = nppY + nppHeight / 2;
 
+      let purpleY;
       if (purpleBoxEl) {
         const purpleX = parseFloat(purpleBoxEl.getAttribute('x'));
-        const purpleY = parseFloat(purpleBoxEl.getAttribute('y'));
+        purpleY = parseFloat(purpleBoxEl.getAttribute('y'));
         const purpleWidth = parseFloat(purpleBoxEl.getAttribute('width'));
-        const purpleHeight = parseFloat(purpleBoxEl.getAttribute('height'));
-        if ([purpleX, purpleY, purpleWidth, purpleHeight].every(Number.isFinite)) {
-          const hvcsOffset = Number.isFinite(window.hvcsLineOffset) ? window.hvcsLineOffset : 32;
-          const clampedOffset = Math.min(hvcsOffset, Math.max(purpleHeight - 8, 8));
+        if ([purpleX, purpleY, purpleWidth].every(Number.isFinite)) {
           startX = purpleX + purpleWidth;
-          startY = purpleY + clampedOffset;
-          if (startY >= nppY) {
-            startY = Math.max(purpleY + 8, nppY - 10);
-          }
         }
       }
 
       const nonAdiRightEdge = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
-      const extendPastNonAdi = nonAdiRightEdge + 40;
+      const extendPastNonAdi = nonAdiRightEdge + 60;
 
       const curveStartMinimum = startX + 120;
       let curveStartX = Math.max(curveStartMinimum, nonAdiRightEdge - 80);
@@ -338,15 +332,27 @@ function initializeDiagram() {
 
       const strokeWidth = 6;
       const strokeHalf = strokeWidth / 2;
+
+      const sourceTopY = nppY;
+      const sourceHeight = nppHeight;
+
+      // Choose how far down the connector enters as a fraction of the NPP height.
+      // 0 = top edge, 1 = bottom edge. Reduce entryRatio to lift the line. Negative values go above the box.
+      const entryRatio = -0.4; // Negative to go above the visual top of NPP
+      const requestedY = sourceTopY + sourceHeight * entryRatio;
+      const minInside = sourceTopY + strokeHalf + 1;
+      const maxInside = sourceTopY + sourceHeight - strokeHalf - 1;
+      // Removed minInside constraint to allow line to go higher
+      startY = Math.min(maxInside, requestedY);
       const adiTop = window.adiBoxData.y;
       const endY = adiTop - strokeHalf;
+      const endX = extendPastNonAdi + 15;
 
-      const verticalDistance = startY - endY;
+      const verticalDistance = endY - startY;
       const control1X = curveStartX + 60;
       const control1Y = startY;
-      const control2X = extendPastNonAdi - 30;
-      const control2Y = startY - verticalDistance * 0.2;
-      const endX = extendPastNonAdi - 18;
+      const control2X = extendPastNonAdi;
+      const control2Y = startY + verticalDistance * 0.15;
 
       const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
                        `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
@@ -371,6 +377,22 @@ function initializeDiagram() {
         }
       } else {
         path.setAttribute('d', pathData);
+      }
+
+      window.nppToAdiGeometry = {
+        startX,
+        startY,
+        curveStartX,
+        control1X,
+        control1Y,
+        control2X,
+        control2Y,
+        endX,
+        endY
+      };
+
+      if (typeof window.updateChequesToAdiLine === 'function') {
+        window.updateChequesToAdiLine();
       }
     };
 
@@ -1517,8 +1539,8 @@ function initializeDiagram() {
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#ffe4b5', // Peach/cream fill (moved from IAC)
-          stroke: '#ff8c00', // Dark orange border (moved from IAC)
+          fill: '#f2e8d6', // Lighter tan fill
+          stroke: '#a5622a', // Dark caramel border
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1527,11 +1549,11 @@ function initializeDiagram() {
 
         // CSHD label
         const cshdText = createStyledText(
-          reducedNarrowBoxX + reducedNarrowBoxWidth / 2, 
-          cshdY + boxHeight / 2, 
+          reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
+          cshdY + boxHeight / 2,
           'CSHD',
           {
-            fill: '#CD5C5C' // Indian red text
+            fill: '#5a3414' // Deep brown text to suit new palette
           }
         );
         labelsGroup.appendChild(cshdText);
@@ -1555,6 +1577,14 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(cecsText);
 
+        // Store CECS position for later line drawing
+        window.cecsBoxData = {
+          x: reducedNarrowBoxX,
+          y: cecsY,
+          width: reducedNarrowBoxWidth,
+          height: boxHeight
+        };
+
         // BECS (third from bottom)
         const becsY = cshdY - boxHeight - squareRectGap; // Above CSHD (automatically shifted with CSHD)
         const becsBox = createStyledRect(reducedNarrowBoxX, becsY, reducedNarrowBoxWidth, boxHeight, {
@@ -1565,6 +1595,14 @@ function initializeDiagram() {
           ry: '8'
         });
         labelsGroup.appendChild(becsBox);
+
+        // Store BECS box data for connecting lines
+        window.becsBoxData = {
+          x: reducedNarrowBoxX,
+          y: becsY,
+          width: reducedNarrowBoxWidth,
+          height: boxHeight
+        };
 
         // BECS label
         const becsText = createStyledText(
@@ -1763,13 +1801,13 @@ function initializeDiagram() {
         const referenceGabsY = typeof gabsY === 'number'
           ? gabsY
           : (nppBottomY !== null ? nppBottomY - squareRectGap - boxHeight : 0);
-        const smallBoxY = referenceGabsY; // Align with GABS box (same Y position)
+        const smallBoxY = referenceGabsY - 25; // Align with GABS box, shifted up more
 
-        // Calculate Cheques box width to match Mastercard exactly
-        const chequesBoxWidth = window.hexagonPositions.mastercardWidth; // Use exact same width as Mastercard stacked boxes
+        // Calculate Cheques box width to match APCS exactly
+        const chequesBoxWidth = reducedNarrowBoxWidth; // Use exact same width as APCS box
         // Use fixed position based on original layout, not dependent on moveable boxes
         const originalGabsX = adminBatchesLeftEdge; // Original position before any moves
-        const chequesBoxX = originalGabsX - chequesBoxWidth; // Right edge aligns with original GABS position
+        const chequesBoxX = originalGabsX - chequesBoxWidth + 10; // Right edge aligns with original GABS position, shifted right
 
         // Recalculate box widths to fit within cheques box
         const totalGapWidth = apceApcrAcptGap * 2; // Two gaps between three boxes
@@ -1785,7 +1823,8 @@ function initializeDiagram() {
         window.apcrRightEdge = apcrX + newSingleSmallBoxWidth;
 
         // APCE box (leftmost)
-        const apceBox = createStyledRect(apceX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        const threeBoxesAdjustedY = smallBoxY - 25; // Move three boxes up by additional 10 pixels with small gap from Cheques
+        const apceBox = createStyledRect(apceX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border
           strokeWidth: '2',
@@ -1799,18 +1838,18 @@ function initializeDiagram() {
         // APCE text
         const apceText = createStyledText(
           apceX + newSingleSmallBoxWidth / 2, 
-          smallBoxY + apceApcrAcptHeight / 2, 
+          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCE',
           {
             fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
-            fontSize: '10'
+            fontSize: '8'
           }
         );
         labelsGroup.appendChild(apceText);
         window.apceApcrAcptData.APCE.text = apceText;
 
         // APCR box (middle)
-        const apcrBox = createStyledRect(apcrX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        const apcrBox = createStyledRect(apcrX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
           strokeWidth: '2',
@@ -1823,18 +1862,18 @@ function initializeDiagram() {
         // APCR text
         const apcrText = createStyledText(
           apcrX + newSingleSmallBoxWidth / 2, 
-          smallBoxY + apceApcrAcptHeight / 2, 
+          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCR',
           {
             fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
-            fontSize: '10'
+            fontSize: '8'
           }
         );
         labelsGroup.appendChild(apcrText);
         window.apceApcrAcptData.APCR.text = apcrText;
 
         // ACPT box (rightmost)
-        const acptBox = createStyledRect(acptX, smallBoxY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        const acptBox = createStyledRect(acptX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
           strokeWidth: '2',
@@ -1847,24 +1886,24 @@ function initializeDiagram() {
         // ACPT text
         const acptText = createStyledText(
           acptX + newSingleSmallBoxWidth / 2, 
-          smallBoxY + apceApcrAcptHeight / 2, 
+          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
           'APCT',
           {
             fill: '#6B5D54', // Dark smoked oyster text (same as APCS)
-            fontSize: '10'
+            fontSize: '8'
           }
         );
         labelsGroup.appendChild(acptText);
         window.apceApcrAcptData.ACPT.text = acptText;
 
         // Add Cheques box above the three small boxes
-        const chequesBoxExtraGap = 0; // No extra gap - match DE box spacing
-        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Same gap as DE box
+        const chequesBoxExtraGap = -12; // Much smaller gap to bring boxes closer
+        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Much reduced gap
         // chequesBoxX and chequesBoxWidth already calculated above
         const chequesBoxHeight = boxHeight; // Same height as other boxes
         const chequesBaseY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Baseline position shared with BEC*/DE
         const chequesBoxOffsetY = 0; // Maintain original gap between Cheques and APCE row
-        const chequesBoxY = chequesBaseY + chequesBoxOffsetY; // Actual Cheques render position
+        const chequesBoxY = chequesBaseY + chequesBoxOffsetY - 35; // Actual Cheques render position, shifted up by additional 10 pixels
 
         // Create filled Cheques box
         const chequesBox = createStyledRect(chequesBoxX, chequesBoxY, chequesBoxWidth, chequesBoxHeight, {
@@ -1887,88 +1926,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(chequesText);
 
-        // Add BECG and BECN boxes to the left of the small boxes
-        const becgBecnGap = 5; // Small gap between BECG and BECN
-        // Calculate width so total of BECN + gap + BECG equals Cheques width
-        const becgBecnWidth = (chequesBoxWidth - becgBecnGap) / 2; // Each box gets half of remaining width
-        const becgBecnHeight = boxHeight; // Same height as APCS
-        const becgX = apceX - becgBecnWidth - 10; // BECG to the left of APCE with small gap
-        const becnX = becgX - becgBecnWidth - becgBecnGap; // BECN to the left of BECG with gap
-
-        // Align vertically with Cheques box
-        const nppTopY = nppBoxCreated ? nppY : null;
-        const becRowOffsetAboveNpp = 5; // Keep BEC row just above the NPP top edge
-        const desiredBecRowY = (nppTopY !== null)
-          ? Math.max(nppTopY - becRowOffsetAboveNpp, 0)
-          : chequesBaseY;
-        const becRowY = Math.max(desiredBecRowY, chequesBaseY); // Allow row to follow NPP downward but not rise above the Cheques baseline
-        const becgY = becRowY;
-        const becnY = becRowY;
-
-        // BECG box
-        const becgBox = createStyledRect(becgX, becgY, becgBecnWidth, becgBecnHeight, {
-          fill: '#ffc0cb', // Same pink as BECS
-          stroke: '#8B0000', // Dark red border
-          strokeWidth: '1.5',
-          rx: '4',
-          ry: '4'
-        });
-        labelsGroup.appendChild(becgBox);
-
-        const becgText = createStyledText(
-          becgX + becgBecnWidth / 2,
-          becgY + becgBecnHeight / 2,
-          'BECG',
-          { fill: '#8b0000', fontSize: '10' }
-        );
-        labelsGroup.appendChild(becgText);
-
-        // BECN box
-        const becnBox = createStyledRect(becnX, becnY, becgBecnWidth, becgBecnHeight, {
-          fill: '#ffc0cb', // Same pink as BECS
-          stroke: '#8B0000', // Dark red border
-          strokeWidth: '1.5',
-          rx: '4',
-          ry: '4'
-        });
-        labelsGroup.appendChild(becnBox);
-
-        const becnText = createStyledText(
-          becnX + becgBecnWidth / 2,
-          becnY + becgBecnHeight / 2,
-          'BECN',
-          { fill: '#8b0000', fontSize: '10' }
-        );
-        labelsGroup.appendChild(becnText);
-
-        // DE box will be positioned later after we have the Mastercard stacked box position
-        let deBoxX = becnX; // Default position
-        let deBoxWidth = (becgX + becgBecnWidth) - becnX; // Default width
-        const deBoxHeight = boxHeight; // Same height as other boxes
-        let deBoxY = becRowY - deBoxHeight - squareRectGap; // Default position
-
-        // Create filled DE box
-        const deBox = createStyledRect(deBoxX, deBoxY, deBoxWidth, deBoxHeight, {
-          fill: '#8B0000', // Dark red (same as BECS border)
-          stroke: 'none',
-          rx: '5',
-          ry: '5'
-        });
-        labelsGroup.appendChild(deBox);
-
-        // Add DE text
-        const deText = createStyledText(
-          deBoxX + deBoxWidth / 2,
-          deBoxY + deBoxHeight / 2,
-          'DE',
-          { fill: '#ffffff', fontSize: '14' }
-        );
-        labelsGroup.appendChild(deText);
-
-        // Store DE and BEC elements for later repositioning
-        window.deElements = { box: deBox, text: deText };
-        window.becnElements = { box: becnBox, text: becnText };
-        window.becgElements = { box: becgBox, text: becgText };
+        window.chequesBoxData = {
+          x: chequesBoxX,
+          y: chequesBoxY,
+          width: chequesBoxWidth,
+          height: chequesBoxHeight
+        };
 
         // Store ASX boxes alignment for later use
         // First calculate the ASX bounding box dimensions
@@ -2025,20 +1988,19 @@ function initializeDiagram() {
         }
 
         // Add lines from APCS to all three small boxes
-        const apcsLeftX = reducedNarrowBoxX; // Left side of APCS
-        const smallBoxesBottomY = smallBoxY + apceApcrAcptHeight; // Bottom of small boxes
-        const smallBoxesCenterY = smallBoxY + apceApcrAcptHeight / 2; // Midpoint for connector landing
+        const apcsLeftX = reducedNarrowBoxX; // Left edge of APCS
+        const smallBoxesBottomY = threeBoxesAdjustedY + apceApcrAcptHeight; // Bottom of small boxes for connection
         // apcsCenterY already declared above
 
-        // Calculate positions for three lines on APCS
+        // Calculate vertical positions for three connection points on APCS left side
         const apcsTopThird = apcsY + boxHeight * 0.25;
         const apcsMiddle = apcsY + boxHeight * 0.5;
         const apcsBottomThird = apcsY + boxHeight * 0.75;
 
-        // Line to APCE (leftmost - connects to bottom)
-        const apceCenterX = apceX + singleSmallBoxWidth / 2;
-        const apcsToApceData = `M ${apcsLeftX} ${apcsBottomThird}
-                                Q ${apceCenterX} ${apcsBottomThird} ${apceCenterX} ${smallBoxesCenterY}`;
+        // Line from APCE bottom to APCS left side (bottom third - furthest box connects lowest)
+        const apceCenterX = apceX + newSingleSmallBoxWidth / 2;
+        const apcsToApceData = `M ${apceCenterX} ${smallBoxesBottomY}
+                                Q ${apceCenterX} ${apcsBottomThird} ${apcsLeftX} ${apcsBottomThird}`;
         const apcsToApcePath = createStyledPath(apcsToApceData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -2048,10 +2010,10 @@ function initializeDiagram() {
         });
         labelsGroup.insertBefore(apcsToApcePath, apceBox);
 
-        // Line to APCR (middle)
-        const apcrCenterX = apcrX + singleSmallBoxWidth / 2;
-        const apcsToApcrData = `M ${apcsLeftX} ${apcsMiddle}
-                                Q ${apcrCenterX} ${apcsMiddle} ${apcrCenterX} ${smallBoxesCenterY}`;
+        // Line from APCR bottom to APCS left side (middle)
+        const apcrCenterX = apcrX + newSingleSmallBoxWidth / 2;
+        const apcsToApcrData = `M ${apcrCenterX} ${smallBoxesBottomY}
+                                Q ${apcrCenterX} ${apcsMiddle} ${apcsLeftX} ${apcsMiddle}`;
         const apcsToApcrPath = createStyledPath(apcsToApcrData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -2061,10 +2023,10 @@ function initializeDiagram() {
         });
         labelsGroup.insertBefore(apcsToApcrPath, apcrBox);
 
-        // Line to ACPT (rightmost - connects to top)
-        const acptCenterX = acptX + singleSmallBoxWidth / 2;
-        const apcsToAcptData = `M ${apcsLeftX} ${apcsTopThird}
-                                Q ${acptCenterX} ${apcsTopThird} ${acptCenterX} ${smallBoxesCenterY}`;
+        // Line from ACPT bottom to APCS left side (top third - closest box connects highest)
+        const acptCenterX = acptX + newSingleSmallBoxWidth / 2;
+        const apcsToAcptData = `M ${acptCenterX} ${smallBoxesBottomY}
+                                Q ${acptCenterX} ${apcsTopThird} ${apcsLeftX} ${apcsTopThird}`;
         const apcsToAcptPath = createStyledPath(apcsToAcptData, {
           stroke: '#6B5D54',
           strokeWidth: '1.5',
@@ -2073,50 +2035,6 @@ function initializeDiagram() {
           strokeLinecap: 'round'
         });
         labelsGroup.insertBefore(apcsToAcptPath, acptBox);
-
-        // Add curved lines from bottom of BECG and BECN to left side of BECS
-        const becsLeftX = reducedNarrowBoxX; // Left side of BECS
-        const becsHeight = boxHeight; // Height of BECS
-        const becsY1Third = becsY + becsHeight / 3; // 1/3 down from top
-        const becsY2Third = becsY + becsHeight * 2 / 3; // 2/3 down from top
-
-        const becgBottomY = becgY + becgBecnHeight; // Bottom of BECG
-        const becgCenterX = becgX + becgBecnWidth / 2; // Center X of BECG
-        const becnBottomY = becnY + becgBecnHeight; // Bottom of BECN
-        const becnCenterX = becnX + becgBecnWidth / 2; // Center X of BECN
-
-        // Lines from BECS horizontal then straight up to BECG and BECN
-        const becsRedColor = '#8B0000'; // Dark red as BECS border
-
-        // Line from BECS to BECG - horizontal then up
-        // L shape that goes left then curves UP  
-        const becgRadius = 20;
-        const becgCurveData = `M ${becsLeftX} ${becsY1Third}
-                              Q ${becgCenterX} ${becsY1Third} ${becgCenterX} ${becgBottomY}`;
-
-        const becsToeBecgPath = createStyledPath(becgCurveData, {
-          stroke: becsRedColor,
-          strokeWidth: '2',
-          fill: 'none',
-          strokeLinejoin: 'round',
-          strokeLinecap: 'round'
-        });
-        labelsGroup.appendChild(becsToeBecgPath);
-
-        // Line from BECS to BECN - horizontal then up
-        // L shape that goes left then curves UP
-        const becnRadius = 20;
-        const becnCurveData = `M ${becsLeftX} ${becsY2Third}
-                              Q ${becnCenterX} ${becsY2Third} ${becnCenterX} ${becnBottomY}`;
-
-        const becsToeBecnPath = createStyledPath(becnCurveData, {
-          stroke: becsRedColor,
-          strokeWidth: '2',
-          fill: 'none',
-          strokeLinejoin: 'round',
-          strokeLinecap: 'round'
-        });
-        labelsGroup.appendChild(becsToeBecnPath);
 
 
 
@@ -2779,13 +2697,38 @@ function initializeDiagram() {
           const shift = essbY - baseEftposY;
           const eftposY = baseEftposY + shift;
           const mastercardY = eftposY - gapSympliPexa - stackedHeight;
-          const visaY = mastercardY - (gapSympliPexa * 2) - stackedHeight; // Double gap above Mastercard
-          const otherCardsY = visaY - (gapSympliPexa / 2) - stackedHeight; // Half the gap used elsewhere
 
-          const createStackedRect = (y, fillColor, label, xOverride) => {
-            const xPos = xOverride !== undefined ? xOverride : baseX;
-            console.log(`Creating ${label} box at X: ${xPos}, Y: ${y}`);
-            const rect = createStyledRect(xPos, y, boxWidth, stackedHeight, {
+          const createStackedRect = (y, fillColor, label, xOverride, heightOverride, fontSizeOverride) => {
+            // Reduce width by 20% for ATMs, Medicare, Other Cards, and Visa boxes
+            const isNarrowBox = ['ATMs', 'Medicare', 'Other Cards', 'Visa'].includes(label);
+
+            // For narrow boxes, reduce width by 20%
+            let stackBoxWidth;
+            if (isNarrowBox) {
+              stackBoxWidth = boxWidth * 0.8; // 80% of original width (20% reduction)
+            } else {
+              stackBoxWidth = boxWidth;
+            }
+
+            // Center the narrower boxes
+            let xPos;
+            if (isNarrowBox) {
+              // If xOverride is provided, center based on that position, otherwise use baseX
+              const originalCenterX = xOverride !== undefined ? (xOverride + boxWidth / 2) : (baseX + boxWidth / 2);
+              xPos = originalCenterX - stackBoxWidth / 2;
+            } else {
+              xPos = xOverride !== undefined ? xOverride : baseX;
+            }
+
+            const rectHeight = Number.isFinite(heightOverride) ? heightOverride : stackedHeight;
+            console.log(`Creating ${label} box at X: ${xPos}, Y: ${y}, Width: ${stackBoxWidth}`);
+            if (isNarrowBox) {
+              console.log(`  - isNarrowBox: true`);
+              console.log(`  - window.lvssBoxPositions:`, window.lvssBoxPositions);
+              console.log(`  - narrowBoxWidth:`, window.lvssBoxPositions?.narrowBoxWidth);
+              console.log(`  - boxWidth:`, boxWidth);
+            }
+            const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
               stroke: 'none',
               rx: '8',
@@ -2794,17 +2737,17 @@ function initializeDiagram() {
             labelsGroup.appendChild(rect);
 
             const text = createStyledText(
-              xPos + boxWidth / 2,
-              y + stackedHeight / 2,
+              xPos + stackBoxWidth / 2,
+              y + rectHeight / 2,
               label,
               {
                 fill: '#ffffff',
-                fontSize: '12'
+                fontSize: fontSizeOverride !== undefined ? fontSizeOverride.toString() : '12'
               }
             );
             labelsGroup.appendChild(text);
 
-            return { rect, text };
+            return { rect, text, height: rectHeight, width: stackBoxWidth };
           };
 
 
@@ -2835,9 +2778,179 @@ function initializeDiagram() {
             return createStackedRect(y, fillColor, label, eftposActualX);
           };
 
+          const reducedHeight = stackedHeight * 0.9;
+          const reducedFont = 11;
+
           const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
-          const visa = createAlignedRect(visaY, '#faaa13', 'Visa');
-          const otherCards = createAlignedRect(otherCardsY, '#629F86', 'Other Cards');
+          const visaGap = gapSympliPexa * 2;
+          const gapHalf = gapSympliPexa / 2;
+          const visaY = mastercardY - visaGap - reducedHeight;
+          const visa = createStackedRect(visaY, '#faaa13', 'Visa', eftposActualX, reducedHeight, reducedFont);
+          const otherCardsY = visaY - gapHalf - reducedHeight;
+          const otherCards = createStackedRect(otherCardsY, '#629F86', 'Other Cards', eftposActualX, reducedHeight, reducedFont);
+          const medicareY = otherCardsY - gapHalf - reducedHeight;
+          const medicare = createStackedRect(medicareY, 'rgb(56,127,72)', 'Medicare', eftposActualX, reducedHeight, reducedFont);
+          const atmsY = medicareY - gapHalf - reducedHeight;
+          const atms = createStackedRect(atmsY, '#4e533b', 'ATMs', eftposActualX, reducedHeight, reducedFont);
+
+          const boundingPadX = 6;
+          const boundingPadY = 6;
+          const stackTopY = atmsY;
+          const stackBottomY = visaY + reducedHeight;
+
+          // Use the narrower width for the green bounding box to match the ATMs, Medicare, Other Cards, and Visa boxes
+          const stackBoxWidth = boxWidth * 0.8; // 80% of original width (20% reduction)
+
+          // Get the actual X position of the ATMs box (which is now centered)
+          const atmsRect = atms.rect;
+          const atmsActualX = parseFloat(atmsRect.getAttribute('x'));
+
+          const containerX = atmsActualX - boundingPadX;
+          const containerWidth = stackBoxWidth + boundingPadX * 2;
+          const stackBoundingRect = createStyledRect(
+            containerX,
+            stackTopY - boundingPadY,
+            containerWidth,
+            (stackBottomY - stackTopY) + boundingPadY * 2,
+            {
+              fill: '#e6ffd6',
+              stroke: '#2d5016',
+              strokeWidth: '2',
+              rx: '6',
+              ry: '6'
+            }
+          );
+
+          const stackHeaderHeight = stackedHeight;
+          const stackHeaderGap = gapHalf;
+          const headerGapFromNpp = 10;
+          const headerLift = 0; // Remove lift to make Direct Entry box visible
+          const nppTopValue = window.nppBoxData && Number.isFinite(window.nppBoxData.y) ? window.nppBoxData.y : NaN;
+          const stackHeaderY = Number.isFinite(nppTopValue)
+            ? (nppTopValue - headerGapFromNpp - stackHeaderHeight - headerLift)
+            : (stackTopY - boundingPadY) - stackHeaderGap - stackHeaderHeight - headerLift;
+          const stackHeaderRect = createStyledRect(
+            containerX,
+            stackHeaderY,
+            containerWidth,
+            stackHeaderHeight,
+            {
+              fill: '#8B0000',
+              stroke: 'none',
+              strokeWidth: '2',
+              rx: '6',
+              ry: '6'
+            }
+          );
+
+          // Store Direct Entry box reference
+          window.directEntryBox = {
+            rect: stackHeaderRect,
+            x: containerX,
+            y: stackHeaderY,
+            width: containerWidth,
+            height: stackHeaderHeight
+          };
+
+          const stackHeaderText = createStyledText(
+            containerX + containerWidth / 2,
+            stackHeaderY + stackHeaderHeight / 2,
+            'Direct Entry',
+            { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
+          );
+
+          // Add green line from bounding box to IAC (CECS) - draw BEFORE bounding box so it's behind
+          if (window.cecsBoxData) {
+            const cecsData = window.cecsBoxData;
+            const cecsLeftX = cecsData.x; // Left side of CECS box
+            const cecsCenterY = cecsData.y + cecsData.height / 2;
+            // Stop line 2px inside the bounding box so it doesn't poke out
+            const lineEndX = containerX + containerWidth - 2;
+
+            const cecsToAtmsBoundingLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            cecsToAtmsBoundingLine.setAttribute('x1', cecsLeftX); // START at left side of CECS
+            cecsToAtmsBoundingLine.setAttribute('y1', cecsCenterY);
+            cecsToAtmsBoundingLine.setAttribute('x2', lineEndX); // END 2px inside right edge of bounding box
+            cecsToAtmsBoundingLine.setAttribute('y2', cecsCenterY);
+            cecsToAtmsBoundingLine.setAttribute('stroke', '#2d5016'); // Forest green to match border
+            cecsToAtmsBoundingLine.setAttribute('stroke-width', '2');
+
+            if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
+              labelsGroup.insertBefore(cecsToAtmsBoundingLine, visa.rect);
+            } else {
+              labelsGroup.appendChild(cecsToAtmsBoundingLine);
+            }
+          }
+
+          if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
+            labelsGroup.insertBefore(stackBoundingRect, visa.rect);
+            labelsGroup.insertBefore(stackHeaderRect, visa.rect);
+            labelsGroup.insertBefore(stackHeaderText, visa.rect);
+          } else {
+            labelsGroup.insertBefore(stackBoundingRect, labelsGroup.firstChild);
+            labelsGroup.insertBefore(stackHeaderRect, labelsGroup.firstChild);
+            labelsGroup.insertBefore(stackHeaderText, labelsGroup.firstChild);
+          }
+
+          // Store references to create child boxes later after repositioning
+          window.directEntryChildData = {
+            stackedHeight: stackedHeight,
+            containerX: containerX,
+            containerWidth: containerWidth,
+            stackHeaderY: stackHeaderY,
+            stackHeaderHeight: stackHeaderHeight
+          };
+
+          const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          chequesToAdiLine.setAttribute('id', 'cheques-to-adi-line');
+          chequesToAdiLine.setAttribute('stroke', '#4b5563');
+          chequesToAdiLine.setAttribute('stroke-width', '2');
+          chequesToAdiLine.setAttribute('stroke-linecap', 'round');
+          labelsGroup.appendChild(chequesToAdiLine);
+
+          const updateChequesToAdiLine = () => {
+            if (!window.chequesToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.chequesBoxData) return;
+
+            const oskoBox = window.oskoElements.box;
+            const oskoX = parseFloat(oskoBox.getAttribute('x'));
+            const oskoY = parseFloat(oskoBox.getAttribute('y'));
+            const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
+            if (!Number.isFinite(oskoX) || !Number.isFinite(oskoY) || !Number.isFinite(oskoWidth)) return;
+
+            const chequesData = window.chequesBoxData;
+            const targetX = chequesData.x + chequesData.width / 2;
+
+            const y = oskoY - 5;
+            const startX = oskoX;
+            const endX = Math.max(targetX, oskoX + oskoWidth);
+
+            window.chequesToAdiLine.setAttribute('x1', startX.toFixed(2));
+            window.chequesToAdiLine.setAttribute('y1', y.toFixed(2));
+            window.chequesToAdiLine.setAttribute('x2', endX.toFixed(2));
+            window.chequesToAdiLine.setAttribute('y2', y.toFixed(2));
+          };
+
+          window.chequesToAdiLine = chequesToAdiLine;
+          window.updateChequesToAdiLine = updateChequesToAdiLine;
+
+          window.otherCardsHierarchy = {
+            parent: null,
+            becn: null,
+            becg: null,
+            baseX: eftposActualX,
+            stackWidth: boxWidth,
+            atmsHeight: reducedHeight,
+            atms: atms,
+            bounding: { rect: stackBoundingRect, padX: boundingPadX, padY: boundingPadY },
+            header: {
+              rect: stackHeaderRect,
+              text: stackHeaderText,
+              height: stackHeaderHeight,
+              gap: stackHeaderGap,
+              gapFromNpp: headerGapFromNpp,
+              lift: headerLift
+            }
+          };
 
           const eftposLines = createDoubleLine(
             baseX + boxWidth,
@@ -2861,72 +2974,136 @@ function initializeDiagram() {
             eftpos,
             mastercard,
             visa,
+            medicare,
+            atms,
             otherCards,
             gap: actualGap,
             stackedHeight,
+            reducedHeight,
             baseX,
             width: boxWidth,
             eftposLines,
-            mastercardLines
+            mastercardLines,
+            otherCardsHierarchy: window.otherCardsHierarchy,
+            stackBounding: { rect: stackBoundingRect, padX: boundingPadX, padY: boundingPadY },
+            stackHeader: { rect: stackHeaderRect, text: stackHeaderText, height: stackHeaderHeight, gap: stackHeaderGap }
           };
 
-          // Now update DE box to align above Mastercard box
-          console.log('Updating DE/BECN/BECG positions - Mastercard Y:', mastercardY, 'X:', eftposActualX, 'Width:', boxWidth);
+          console.log('Updating Other Cards hierarchy placement - Mastercard Y:', mastercardY, 'X:', eftposActualX, 'Width:', boxWidth);
 
-          if (window.deElements && window.deElements.box && mastercard) {
-            const nppBoxEl = document.getElementById('npp-box');
-            const targetBecTop = nppBoxEl ? parseFloat(nppBoxEl.getAttribute('y'))
-                                          : (Number.isFinite(window.nppBoxData?.y) ? window.nppBoxData.y : null);
-
-            // Horizontal alignment stays centered over the stacked rectangles
-            const deGap = 8; // Gap between DE and the BEC row
-            const becGap = 5; // Gap between DE and BECN/BECG
-            const becnBecgGap = 5; // Gap between BECN and BECG
-            const stackBaseX = Number.isFinite(window.pexaExtensions?.baseX) ? window.pexaExtensions.baseX : eftposActualX;
+          if (window.otherCardsHierarchy && window.otherCardsHierarchy.parent && window.otherCardsHierarchy.becn && window.otherCardsHierarchy.becg) {
+            const hierarchy = window.otherCardsHierarchy;
+            const parentData = hierarchy.parent;
+            const becnData = hierarchy.becn;
+            const becgData = hierarchy.becg;
+            const parentHeight = Number.isFinite(hierarchy.parent.height) ? hierarchy.parent.height : stackedHeight;
+            const childHeight = Number.isFinite(becnData.height) ? becnData.height : stackedHeight;
+            const childGapVertical = Number.isFinite(hierarchy.childGap) ? hierarchy.childGap : 5;
+            const parentGap = Number.isFinite(hierarchy.parentGap) ? hierarchy.parentGap : 8;
+            const childGapHorizontal = Number.isFinite(hierarchy.childGapHorizontal) ? hierarchy.childGapHorizontal : 5;
+            const stackBaseX = Number.isFinite(window.pexaExtensions?.baseX) ? window.pexaExtensions.baseX : baseX;
             const stackWidth = Number.isFinite(window.pexaExtensions?.width) ? window.pexaExtensions.width : boxWidth;
-            const newDeX = stackBaseX;
-            const newDeWidth = stackWidth;
-            const currentDeHeight = parseFloat(window.deElements.box.getAttribute('height'));
 
-            // If we can't determine the NPP top, fall back to the previous placement
-            const fallbackDeY = mastercardY - currentDeHeight - deGap;
-            const fallbackBecTop = fallbackDeY + currentDeHeight + becGap;
-            const becY = Number.isFinite(targetBecTop) ? targetBecTop : fallbackBecTop;
-            const newDeY = becY - becGap - currentDeHeight;
+            let atmsRectCurrent = window.pexaExtensions?.atms?.rect;
+            if (!atmsRectCurrent && hierarchy.atms && hierarchy.atms.rect) {
+              atmsRectCurrent = hierarchy.atms.rect;
+            }
+            const atmsYCurrent = atmsRectCurrent ? parseFloat(atmsRectCurrent.getAttribute('y')) : (otherCards?.rect ? parseFloat(otherCards.rect.getAttribute('y')) : otherCardsY);
+            const atmsHeightCurrent = atmsRectCurrent ? parseFloat(atmsRectCurrent.getAttribute('height')) : (Number.isFinite(hierarchy.atmsHeight) ? hierarchy.atmsHeight : stackedHeight * 0.9);
 
-            window.deElements.box.setAttribute('x', newDeX.toFixed(2));
-            window.deElements.box.setAttribute('y', newDeY.toFixed(2));
-            window.deElements.box.setAttribute('width', newDeWidth.toFixed(2));
+            let childYUpdated = atmsYCurrent - childHeight - childGapVertical;
+            if (!Number.isFinite(childYUpdated)) {
+              const fallbackY = otherCards?.rect ? parseFloat(otherCards.rect.getAttribute('y')) : otherCardsY;
+              childYUpdated = fallbackY - childHeight - childGapVertical;
+            }
+            const parentYUpdated = childYUpdated - parentGap - parentHeight;
 
-            if (window.deElements.text) {
-              window.deElements.text.setAttribute('x', (newDeX + newDeWidth / 2).toFixed(2));
-              window.deElements.text.setAttribute('y', (newDeY + currentDeHeight / 2).toFixed(2));
+            const childWidthUpdated = (stackWidth - childGapHorizontal) / 2;
+            const becnX = stackBaseX;
+            const becgX = becnX + childWidthUpdated + childGapHorizontal;
+
+            const updateBoxAndText = (entry, x, y, width, height) => {
+              if (!entry || !entry.box) return;
+              entry.box.setAttribute('x', x.toFixed(2));
+              entry.box.setAttribute('y', y.toFixed(2));
+              entry.box.setAttribute('width', width.toFixed(2));
+              entry.box.setAttribute('height', height.toFixed(2));
+              if (entry.text) {
+                entry.text.setAttribute('x', (x + width / 2).toFixed(2));
+                entry.text.setAttribute('y', (y + height / 2).toFixed(2));
+              }
+            };
+
+            updateBoxAndText(becnData, becnX, childYUpdated, childWidthUpdated, childHeight);
+            updateBoxAndText(becgData, becgX, childYUpdated, childWidthUpdated, childHeight);
+            updateBoxAndText(parentData, stackBaseX, parentYUpdated, stackWidth, parentHeight);
+
+            const boundingInfo = hierarchy.bounding || window.pexaExtensions.stackBounding;
+            const headerInfoHierarchy = hierarchy.header || hierarchy.stackHeader || window.pexaExtensions.stackHeader;
+            if (boundingInfo && boundingInfo.rect) {
+              const bPadX = Number.isFinite(boundingInfo.padX) ? boundingInfo.padX : 6;
+              const bPadY = Number.isFinite(boundingInfo.padY) ? boundingInfo.padY : 6;
+              const visaRectCurrent = visa?.rect;
+              const visaBottom = visaRectCurrent
+                ? parseFloat(visaRectCurrent.getAttribute('y')) + parseFloat(visaRectCurrent.getAttribute('height'))
+                : visaY + childHeight;
+              const topY = atmsYCurrent;
+              boundingInfo.rect.setAttribute('x', (stackBaseX - bPadX).toFixed(2));
+              boundingInfo.rect.setAttribute('y', (topY - bPadY).toFixed(2));
+              boundingInfo.rect.setAttribute('width', (stackWidth + bPadX * 2).toFixed(2));
+              boundingInfo.rect.setAttribute('height', (visaBottom - topY + bPadY * 2).toFixed(2));
+              hierarchy.bounding = boundingInfo;
+              if (window.pexaExtensions) {
+                window.pexaExtensions.stackBounding = boundingInfo;
+              }
             }
 
-            if (window.becnElements && window.becgElements) {
-              const currentBecWidth = parseFloat(window.becnElements.box.getAttribute('width'));
-              const currentBecHeight = parseFloat(window.becnElements.box.getAttribute('height'));
-
-              const totalBecWidth = currentBecWidth * 2 + becnBecgGap;
-              const becStartX = newDeX + (newDeWidth - totalBecWidth) / 2;
-
-              window.becnElements.box.setAttribute('x', becStartX.toFixed(2));
-              window.becnElements.box.setAttribute('y', becY.toFixed(2));
-              if (window.becnElements.text) {
-                window.becnElements.text.setAttribute('x', (becStartX + currentBecWidth / 2).toFixed(2));
-                window.becnElements.text.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
+            if (headerInfoHierarchy && headerInfoHierarchy.rect) {
+              const padX = Number.isFinite(boundingInfo?.padX) ? boundingInfo.padX : 6;
+              const padY = Number.isFinite(boundingInfo?.padY) ? boundingInfo.padY : 6;
+              const headerGap = Number.isFinite(headerInfoHierarchy.gap) ? headerInfoHierarchy.gap : gapHalf;
+              const headerGapNpp = Number.isFinite(headerInfoHierarchy.gapFromNpp) ? headerInfoHierarchy.gapFromNpp : 10;
+              const headerHeight = Number.isFinite(headerInfoHierarchy.height) ? headerInfoHierarchy.height : stackedHeight;
+              const headerLift = Number.isFinite(headerInfoHierarchy.lift) ? headerInfoHierarchy.lift : headerHeight * 4;
+              const headerX = stackBaseX - padX;
+              const nppTopValue = window.nppBoxData && Number.isFinite(window.nppBoxData.y) ? window.nppBoxData.y : NaN;
+              const headerY = Number.isFinite(nppTopValue)
+                ? (nppTopValue - headerGapNpp - headerHeight - headerLift)
+                : (atmsYCurrent - padY) - headerGap - headerHeight - headerLift;
+              headerInfoHierarchy.rect.setAttribute('x', headerX.toFixed(2));
+              headerInfoHierarchy.rect.setAttribute('y', headerY.toFixed(2));
+              headerInfoHierarchy.rect.setAttribute('width', (stackWidth + padX * 2).toFixed(2));
+              headerInfoHierarchy.rect.setAttribute('height', headerHeight.toFixed(2));
+              if (headerInfoHierarchy.text) {
+                headerInfoHierarchy.text.setAttribute('x', (headerX + (stackWidth + padX * 2) / 2).toFixed(2));
+                headerInfoHierarchy.text.setAttribute('y', (headerY + headerHeight / 2).toFixed(2));
               }
-
-              const becgX = becStartX + currentBecWidth + becnBecgGap;
-              window.becgElements.box.setAttribute('x', becgX.toFixed(2));
-              window.becgElements.box.setAttribute('y', becY.toFixed(2));
-              if (window.becgElements.text) {
-                window.becgElements.text.setAttribute('x', (becgX + currentBecWidth / 2).toFixed(2));
-                window.becgElements.text.setAttribute('y', (becY + currentBecHeight / 2).toFixed(2));
+              headerInfoHierarchy.lift = headerLift;
+              hierarchy.header = headerInfoHierarchy;
+              hierarchy.stackHeader = headerInfoHierarchy;
+              if (window.pexaExtensions) {
+                window.pexaExtensions.stackHeader = headerInfoHierarchy;
               }
-
-              console.log('Repositioned DE to:', newDeX, newDeY, 'BECN/BECG to:', becStartX, becY, 'targetBecTop:', targetBecTop);
             }
+
+            if (typeof window.updateChequesToAdiLine === 'function') {
+              window.updateChequesToAdiLine();
+            }
+
+            hierarchy.childWidth = childWidthUpdated;
+            hierarchy.baseX = stackBaseX;
+            hierarchy.stackWidth = stackWidth;
+            hierarchy.atmsHeight = atmsHeightCurrent;
+            parentData.height = parentHeight;
+            becnData.height = childHeight;
+            becgData.height = childHeight;
+
+            console.log('Updated Other Cards hierarchy:', {
+              parentX: stackBaseX,
+              parentY: parentYUpdated,
+              childY: childYUpdated,
+              childWidth: childWidthUpdated
+            });
           }
         }
 
@@ -3180,7 +3357,7 @@ function initializeDiagram() {
           window.newPexaConveyWidth = pexaConveyWidth;
 
           if (window.pexaExtensions) {
-            const { eftpos, mastercard, visa, otherCards, stackedHeight, gap, width: extWidth } = window.pexaExtensions;
+            const { eftpos, mastercard, visa, medicare, atms, otherCards, stackedHeight, reducedHeight: storedReducedHeight, gap, width: extWidth, stackBounding } = window.pexaExtensions;
             const stackWidth = Number.isFinite(extWidth) ? extWidth : window.hexagonPositions?.mastercardWidth || pexaConveyWidth;
             const baseX = (newPexaConveyX + pexaConveyWidth / 2) - stackWidth / 2;
             const currentSympliY = window.newSympliY !== undefined ? window.newSympliY : sympliY;
@@ -3197,17 +3374,34 @@ function initializeDiagram() {
             const shift = essbY - baseEftposY;
             const eftposY = baseEftposY + shift;
             const mastercardY = eftposY - gapSympli - stackedHeight;
-            const visaY = mastercardY - (gapSympli * 2) - stackedHeight;
-            const otherCardsY = visaY - (gapSympli / 2) - stackedHeight;
+            const reducedHeight = Number.isFinite(storedReducedHeight)
+              ? storedReducedHeight
+              : stackedHeight * 0.9;
+            const visaGap = gapSympli * 2;
+            const visaY = mastercardY - visaGap - reducedHeight;
+            const gapHalf = gapSympli / 2;
+            const otherCardsY = visaY - gapHalf - reducedHeight;
+            const medicareY = otherCardsY - gapHalf - reducedHeight;
+            const atmsY = medicareY - gapHalf - reducedHeight;
 
             const updateStackItem = (item, y) => {
               if (!item || !item.rect || !item.text) return;
-              item.rect.setAttribute('x', baseX.toFixed(2));
-              item.rect.setAttribute('width', stackWidth.toFixed(2));
+              const itemHeight = Number.isFinite(item.height) ? item.height : stackedHeight;
+
+              // Check if this is one of the narrow boxes (ATMs, Medicare, Other Cards, Visa)
+              const label = item.text.textContent;
+              const isNarrowBox = ['ATMs', 'Medicare', 'Other Cards', 'Visa'].includes(label);
+
+              // Use reduced width for narrow boxes
+              const itemWidth = isNarrowBox ? stackWidth * 0.8 : stackWidth;
+              const itemX = isNarrowBox ? baseX + (stackWidth - itemWidth) / 2 : baseX;
+
+              item.rect.setAttribute('x', itemX.toFixed(2));
+              item.rect.setAttribute('width', itemWidth.toFixed(2));
               item.rect.setAttribute('y', y.toFixed(2));
-              item.rect.setAttribute('height', stackedHeight.toFixed(2));
-              item.text.setAttribute('x', (baseX + stackWidth / 2).toFixed(2));
-              item.text.setAttribute('y', (y + stackedHeight / 2).toFixed(2));
+              item.rect.setAttribute('height', itemHeight.toFixed(2));
+              item.text.setAttribute('x', (itemX + itemWidth / 2).toFixed(2));
+              item.text.setAttribute('y', (y + itemHeight / 2).toFixed(2));
             };
 
             updateStackItem(window.pexaExtensions.eftpos, eftposY);
@@ -3215,13 +3409,214 @@ function initializeDiagram() {
             if (visa) {
               updateStackItem(visa, visaY);
             }
+            if (medicare) {
+              updateStackItem(medicare, medicareY);
+            }
+            if (atms) {
+              updateStackItem(atms, atmsY);
+            }
             if (otherCards) {
               updateStackItem(otherCards, otherCardsY);
+            }
+
+            const headerInfo = window.pexaExtensions.stackHeader;
+            if (stackBounding && stackBounding.rect) {
+              const padX = Number.isFinite(stackBounding.padX) ? stackBounding.padX : 6;
+              const padY = Number.isFinite(stackBounding.padY) ? stackBounding.padY : 6;
+              const topY = atmsY;
+              const bottomY = visaY + reducedHeight;
+
+              // Use reduced width for the green bounding box
+              const boundingWidth = stackWidth * 0.8;
+              const boundingX = baseX + (stackWidth - boundingWidth) / 2;
+
+              stackBounding.rect.setAttribute('x', (boundingX - padX).toFixed(2));
+              stackBounding.rect.setAttribute('y', (topY - padY).toFixed(2));
+              stackBounding.rect.setAttribute('width', (boundingWidth + padX * 2).toFixed(2));
+              stackBounding.rect.setAttribute('height', (bottomY - topY + padY * 2).toFixed(2));
+            }
+            if (headerInfo && headerInfo.rect) {
+              const padX = Number.isFinite(stackBounding?.padX) ? stackBounding.padX : 6;
+              const padY = Number.isFinite(stackBounding?.padY) ? stackBounding.padY : 6;
+              const headerGap = Number.isFinite(headerInfo.gap) ? headerInfo.gap : gapHalf;
+              const headerGapNpp = Number.isFinite(headerInfo.gapFromNpp) ? headerInfo.gapFromNpp : 10;
+              const headerHeight = Number.isFinite(headerInfo.height) ? headerInfo.height : stackedHeight;
+              const headerLift = Number.isFinite(headerInfo.lift) ? headerInfo.lift : headerHeight * 4;
+
+              // Use reduced width for the Direct Entry header box
+              const headerWidth = stackWidth * 0.8;
+              const headerX = baseX + (stackWidth - headerWidth) / 2 - padX;
+
+              const nppTopValue = window.nppBoxData && Number.isFinite(window.nppBoxData.y) ? window.nppBoxData.y : NaN;
+              const headerY = Number.isFinite(nppTopValue)
+                ? (nppTopValue - headerGapNpp - headerHeight - headerLift)
+                : (atmsY - padY) - headerGap - headerHeight - headerLift;
+              headerInfo.rect.setAttribute('x', headerX.toFixed(2));
+              headerInfo.rect.setAttribute('y', headerY.toFixed(2));
+              headerInfo.rect.setAttribute('width', (headerWidth + padX * 2).toFixed(2));
+              headerInfo.rect.setAttribute('height', headerHeight.toFixed(2));
+              if (headerInfo.text) {
+                headerInfo.text.setAttribute('x', (headerX + (headerWidth + padX * 2) / 2).toFixed(2));
+                headerInfo.text.setAttribute('y', (headerY + headerHeight / 2).toFixed(2));
+              }
+              headerInfo.lift = headerLift;
+              window.pexaExtensions.stackHeader = headerInfo;
+
+              // Now create the child boxes under Direct Entry with the updated position
+              const gap = 4; // Small gap between Direct Entry and its child boxes
+              const spacing = 5;
+              const boxHeight = headerHeight * 0.9;
+              const boxY = headerY + headerHeight + gap;
+              // Use reduced width for BECN and BECG boxes to match Direct Entry width
+              const boxWidth = ((headerWidth + padX * 2) - spacing) / 2;
+
+              // Create or update first child box
+              if (!window.directEntryChild1) {
+                window.directEntryChild1 = {
+                  rect: createStyledRect(headerX, boxY, boxWidth, boxHeight, {
+                    fill: '#ffc0cb',
+                    stroke: '#8B0000',
+                    strokeWidth: '1.5',
+                    rx: '4',
+                    ry: '4'
+                  }),
+                  text: createStyledText(headerX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
+                    { fill: '#8b0000', fontSize: '10' })
+                };
+                labelsGroup.appendChild(window.directEntryChild1.rect);
+                labelsGroup.appendChild(window.directEntryChild1.text);
+              } else {
+                window.directEntryChild1.rect.setAttribute('x', headerX.toFixed(2));
+                window.directEntryChild1.rect.setAttribute('y', boxY.toFixed(2));
+                window.directEntryChild1.rect.setAttribute('width', boxWidth.toFixed(2));
+                window.directEntryChild1.text.setAttribute('x', (headerX + boxWidth / 2).toFixed(2));
+                window.directEntryChild1.text.setAttribute('y', (boxY + boxHeight / 2).toFixed(2));
+              }
+
+              // Create or update second child box
+              const box2X = headerX + boxWidth + spacing;
+              if (!window.directEntryChild2) {
+                window.directEntryChild2 = {
+                  rect: createStyledRect(box2X, boxY, boxWidth, boxHeight, {
+                    fill: '#ffc0cb',
+                    stroke: '#8B0000',
+                    strokeWidth: '1.5',
+                    rx: '4',
+                    ry: '4'
+                  }),
+                  text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
+                    { fill: '#8b0000', fontSize: '10' })
+                };
+                labelsGroup.appendChild(window.directEntryChild2.rect);
+                labelsGroup.appendChild(window.directEntryChild2.text);
+              } else {
+                window.directEntryChild2.rect.setAttribute('x', box2X.toFixed(2));
+                window.directEntryChild2.rect.setAttribute('y', boxY.toFixed(2));
+                window.directEntryChild2.rect.setAttribute('width', boxWidth.toFixed(2));
+                window.directEntryChild2.text.setAttribute('x', (box2X + boxWidth / 2).toFixed(2));
+                window.directEntryChild2.text.setAttribute('y', (boxY + boxHeight / 2).toFixed(2));
+              }
+
+              // Add curved lines from BECN and BECG to BECS
+              if (window.becsBoxData && window.directEntryChild1 && window.directEntryChild2) {
+                const becsData = window.becsBoxData;
+                const becsLeftX = becsData.x;
+                const becsRightX = becsData.x + becsData.width;
+                const becsY = becsData.y;
+                const becsHeight = becsData.height;
+
+                // BECS connection points (like APCS)
+                const becsTopThird = becsY + becsHeight / 2;
+                const becsMiddle = becsY + becsHeight / 2;
+                const becsBottomThird = becsY + (2 * becsHeight) / 3;
+
+                // BECN and BECG bottom centers
+                const becnCenterX = headerX + boxWidth / 2;
+                const becgCenterX = box2X + boxWidth * 0.5;
+                const childBottomY = boxY + boxHeight;
+
+                // Create double curved lines from BECN to BECS (connects to left side, bottom third)
+                const lineOffset = 1.5; // Offset for double lines
+
+                // First line
+                const becnToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnToBecsData1 = `M ${becnCenterX - lineOffset} ${childBottomY}
+                                         Q ${becnCenterX - lineOffset} ${becsBottomThird} ${becsLeftX} ${becsBottomThird - lineOffset}`;
+                becnToBecsPath1.setAttribute('d', becnToBecsData1);
+                becnToBecsPath1.setAttribute('stroke', '#8B0000'); // Dark red
+                becnToBecsPath1.setAttribute('stroke-width', '1.2');
+                becnToBecsPath1.setAttribute('fill', 'none');
+                becnToBecsPath1.setAttribute('stroke-linejoin', 'round');
+                becnToBecsPath1.setAttribute('stroke-linecap', 'round');
+
+                // Second line
+                const becnToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnToBecsData2 = `M ${becnCenterX + lineOffset} ${childBottomY}
+                                         Q ${becnCenterX + lineOffset} ${becsBottomThird} ${becsLeftX} ${becsBottomThird + lineOffset}`;
+                becnToBecsPath2.setAttribute('d', becnToBecsData2);
+                becnToBecsPath2.setAttribute('stroke', '#8B0000'); // Dark red
+                becnToBecsPath2.setAttribute('stroke-width', '1.2');
+                becnToBecsPath2.setAttribute('fill', 'none');
+                becnToBecsPath2.setAttribute('stroke-linejoin', 'round');
+                becnToBecsPath2.setAttribute('stroke-linecap', 'round');
+
+                // Insert before BECN box so lines appear behind it
+                if (window.directEntryChild1.rect.parentNode) {
+                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath1, window.directEntryChild1.rect);
+                  window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath2, window.directEntryChild1.rect);
+                }
+
+                // Store both paths for reference
+                const becnToBecsPath = { path1: becnToBecsPath1, path2: becnToBecsPath2 };
+
+                // Create double curved lines from BECG to BECS (connects to left side, top third - higher)
+                const becgControlX = becgCenterX - (becgCenterX - becsLeftX) * 0.00000000;
+
+                // First line
+                const becgToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgToBecsData1 = `M ${becgCenterX - lineOffset} ${childBottomY}
+                                         Q ${becgControlX - lineOffset} ${becsTopThird} ${becsLeftX} ${becsTopThird - lineOffset}`;
+                becgToBecsPath1.setAttribute('d', becgToBecsData1);
+                becgToBecsPath1.setAttribute('stroke', '#8B0000'); // Dark red
+                becgToBecsPath1.setAttribute('stroke-width', '1.2');
+                becgToBecsPath1.setAttribute('fill', 'none');
+                becgToBecsPath1.setAttribute('stroke-linejoin', 'round');
+                becgToBecsPath1.setAttribute('stroke-linecap', 'round');
+
+                // Second line
+                const becgToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgToBecsData2 = `M ${becgCenterX + lineOffset} ${childBottomY}
+                                         Q ${becgControlX + lineOffset} ${becsTopThird} ${becsLeftX} ${becsTopThird + lineOffset}`;
+                becgToBecsPath2.setAttribute('d', becgToBecsData2);
+                becgToBecsPath2.setAttribute('stroke', '#8B0000'); // Dark red
+                becgToBecsPath2.setAttribute('stroke-width', '1.2');
+                becgToBecsPath2.setAttribute('fill', 'none');
+                becgToBecsPath2.setAttribute('stroke-linejoin', 'round');
+                becgToBecsPath2.setAttribute('stroke-linecap', 'round');
+
+                // Insert before BECG box so lines appear behind it
+                if (window.directEntryChild2.rect.parentNode) {
+                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath1, window.directEntryChild2.rect);
+                  window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath2, window.directEntryChild2.rect);
+                }
+
+                // Store both paths for reference
+                const becgToBecsPath = { path1: becgToBecsPath1, path2: becgToBecsPath2 };
+
+                // Store references for potential updates
+                window.becnToBecsLine = becnToBecsPath;
+                window.becgToBecsLine = becgToBecsPath;
+              }
+            }
+
+            if (typeof window.updateChequesToAdiLine === 'function') {
+              window.updateChequesToAdiLine();
             }
 
             const actualGap = pexaConveyY - (eftposY + stackedHeight);
             window.pexaExtensions.gap = actualGap;
             window.pexaExtensions.baseX = baseX;
+            window.pexaExtensions.reducedHeight = reducedHeight;
 
             const eftposStartX = baseX + stackWidth;
             const eftposEndX = window.hexagonPositions.mastercardX;
@@ -5179,7 +5574,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const maroonColor = '#660033'; // Burgundy color
+          const greyColor = '#4a4a4a'; // Darker grey color
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -5194,7 +5589,7 @@ function initializeDiagram() {
                                    Q ${control2X + offsetX} ${control2Y + offsetY}, ${endX + offsetX} ${endY + offsetY}`;
 
             const parallelPath = createStyledPath(offsetPathData, {
-              stroke: maroonColor,
+              stroke: greyColor,
               strokeWidth: '1.5', // Thin lines for double effect
               fill: 'none',
               strokeLinecap: 'round'
@@ -5267,6 +5662,9 @@ function initializeDiagram() {
         window.adiBoxData.y = minY2 - innerTopPadding - dotRadius;
         window.adiBoxData.width = (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2;
         window.adiBoxData.height = (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2;
+        if (typeof window.updateChequesToAdiLine === 'function') {
+          window.updateChequesToAdiLine();
+        }
 
         // Add "ADIs" text to top right corner of inner blue box
         const adiRectX = parseFloat(adiRect.getAttribute('x'));
@@ -5697,6 +6095,9 @@ function initializeDiagram() {
           window.adiBoxData.y = adiBoxY;
           window.adiBoxData.width = adiBoxWidth;
           window.adiBoxData.height = adiBoxHeight;
+          if (typeof window.updateChequesToAdiLine === 'function') {
+            window.updateChequesToAdiLine();
+          }
 
           // Create orange line from Sympli to ADIs now that both box data are available
           if (window.sympliBoxData && window.adiBoxData && window.asxLineData) {
@@ -6252,7 +6653,7 @@ const smallRectHeight = parseFloat(existingPacsRect.getAttribute('height'));
 const verticalGapRef = 5; // Use the standard vertical gap (declare first)
 const labelSpaceUpdated = 45; // Match the increased SWIFT HVCS label space
 const boundingBoxPaddingVRef = 5; // Same as SWIFT HVCS
-const newBoundingBoxHeight = (smallRectHeight + verticalGapRef) * 3 - verticalGapRef + boundingBoxPaddingVRef * 2 + labelSpaceUpdated;
+const newBoundingBoxHeight = (smallRectHeight + verticalGapRef) * 3 - verticalGapRef + boundingBoxPaddingVRef * 2 + labelSpaceUpdated - 20; // Reduced by 20 pixels
 
 // Calculate position for new bounding box
 // Position bottom 5 pixels below NPP BI bottom, then shift upward by BSCT height
@@ -6337,14 +6738,14 @@ console.log('BSCT Debug: boundingBoxY=', boundingBoxY, 'height=', newBoundingBox
 // Position NPP label centered in the space above PayID box
 // Calculate the center between the top of the purple box and the top of PayID box
 const payIdTopY = adjustedPayIdBoxY; // Now adjustedPayIdBoxY is defined
-const nppLabelY = boundingBoxY + (payIdTopY - boundingBoxY) / 2; // Center between top and PayID
+const nppLabelY = boundingBoxY + (payIdTopY - boundingBoxY) / 2 + 3; // Center between top and PayID, nudged down slightly
 const nppBoundingLabel = createStyledText(
   newBoundingBoxX + hvcsBoxWidth / 2,
   nppLabelY,
   'NPP',
   {
     fill: 'rgb(100,80,180)', // Purple color matching the border
-    fontSize: '24',
+    fontSize: '20', // Reduced from 24
     fontWeight: 'bold'
   }
 );
@@ -6489,20 +6890,24 @@ console.log('Moved NPP box to align bottom with NPP BI bounding box:', {
   newNppY: desiredNppY
 });
 
-// Add Osko box directly below NPP box with no gap (like NPP to NPP BI alignment)
+// Add Osko box directly above NPP box
 const oskoGap = 5; // Small gap like between pacs boxes
-const oskoY = desiredNppY + nppHeight + oskoGap; // Position directly under NPP box
-// Get EFTPOS stacked box height for reference
-const eftposStackedHeight = typeof pexaConveyHeight !== 'undefined' ? pexaConveyHeight : (window.smallRectHeight ? window.smallRectHeight * 0.9 * 1.2 * 0.95 : 25);
-const oskoHeight = eftposStackedHeight; // Same height as EFTPOS stacked box
+// Use same height as Direct Entry box
+const directEntryHeight = typeof window.pexaExtensions !== 'undefined' && window.pexaExtensions.stackHeader ?
+  window.pexaExtensions.stackHeader.height :
+  (typeof pexaConveyHeight !== 'undefined' ? pexaConveyHeight : 25);
+const oskoHeight = directEntryHeight; // Same height as Direct Entry box
+// Position above NPP bounding box, not just NPP rect
+const nppTopY = window.nppBoundingData ? window.nppBoundingData.y : desiredNppY;
+const oskoY = nppTopY - oskoGap - oskoHeight; // Position above NPP bounding box
 const oskoWidth = hvcsBoxWidth; // Same width as NPP BI (SWIFT) bounding box
 const oskoX = newBoundingBoxX; // Same X as NPP BI (SWIFT) bounding box
 
 const oskoBox = createStyledRect(oskoX, oskoY, oskoWidth, oskoHeight, {
   fill: 'rgb(100,80,180)', // Same purple as EFTPOS
   stroke: 'none',
-  rx: '8', // Same rounded corners as EFTPOS
-  ry: '8'
+  rx: '6', // Same rounded corners as Direct Entry
+  ry: '6'
 });
 labelsGroup.appendChild(oskoBox);
 
@@ -6513,16 +6918,17 @@ const oskoText = createStyledText(
   'Osko',
   {
     fill: '#ffffff', // White text
-    fontSize: '12'
+    fontSize: '14', // Same font size as Direct Entry
+    fontWeight: 'bold' // Same weight as Direct Entry
   }
 );
 labelsGroup.appendChild(oskoText);
 
 const oskoLine = createStyledLine(
   oskoX + oskoWidth / 2,
-  oskoY,
+  oskoY + oskoHeight, // Start from bottom of Osko
   (window.nppBoundingData ? window.nppBoundingData.x + window.nppBoundingData.width / 2 : window.nppBoxData.x + window.nppBoxData.width / 2),
-  (window.nppBoundingData ? window.nppBoundingData.y + window.nppBoundingData.height : desiredNppY + nppHeight),
+  (window.nppBoundingData ? window.nppBoundingData.y : desiredNppY), // End at top of NPP
   {
     stroke: 'rgb(100,80,180)',
     strokeWidth: '4',
@@ -6546,7 +6952,8 @@ const updateOskoLine = () => {
   const oskoXPos = parseFloat(oskoRect.getAttribute('x'));
   const oskoWidthPos = parseFloat(oskoRect.getAttribute('width'));
   const oskoYPos = parseFloat(oskoRect.getAttribute('y'));
-  if (!Number.isFinite(oskoXPos) || !Number.isFinite(oskoWidthPos) || !Number.isFinite(oskoYPos)) {
+  const oskoHeightPos = parseFloat(oskoRect.getAttribute('height'));
+  if (!Number.isFinite(oskoXPos) || !Number.isFinite(oskoWidthPos) || !Number.isFinite(oskoYPos) || !Number.isFinite(oskoHeightPos)) {
     return;
   }
   const bounding = window.nppBoundingData;
@@ -6560,9 +6967,9 @@ const updateOskoLine = () => {
   }
   const lineEl = window.oskoElements.line;
   lineEl.setAttribute('x1', (oskoXPos + oskoWidthPos / 2).toFixed(2));
-  lineEl.setAttribute('y1', oskoYPos.toFixed(2));
+  lineEl.setAttribute('y1', (oskoYPos + oskoHeightPos).toFixed(2)); // Start from bottom of Osko
   lineEl.setAttribute('x2', (nppXPos + nppWidthPos / 2).toFixed(2));
-  lineEl.setAttribute('y2', (nppYPos + nppHeightPos).toFixed(2));
+  lineEl.setAttribute('y2', nppYPos.toFixed(2)); // End at top of NPP
 };
 
 window.oskoElements = {
@@ -6572,6 +6979,9 @@ window.oskoElements = {
 };
 window.updateOskoLine = updateOskoLine;
 updateOskoLine();
+if (typeof window.updateChequesToAdiLine === 'function') {
+  window.updateChequesToAdiLine();
+}
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
 
