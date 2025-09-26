@@ -2876,7 +2876,7 @@ function initializeDiagram() {
             cecsToAtmsBoundingLine.setAttribute('x2', lineEndX); // END 2px inside right edge of bounding box
             cecsToAtmsBoundingLine.setAttribute('y2', cecsCenterY);
             cecsToAtmsBoundingLine.setAttribute('stroke', '#2d5016'); // Forest green to match border
-            cecsToAtmsBoundingLine.setAttribute('stroke-width', '2');
+            cecsToAtmsBoundingLine.setAttribute('stroke-width', '3');
 
             if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
               labelsGroup.insertBefore(cecsToAtmsBoundingLine, visa.rect);
@@ -3640,6 +3640,65 @@ function initializeDiagram() {
                 window.directEntryChild2.text.setAttribute('x', (box2X + boxWidth / 2).toFixed(2));
                 window.directEntryChild2.text.setAttribute('y', (boxY + boxHeight / 2).toFixed(2));
               }
+
+              // Add BPAY box to the left of Direct Entry and BECN/BECG
+              // Calculate BPAY box dimensions - square, as tall as Direct Entry + BECN combined
+              const bpayHeight = headerHeight + gap + boxHeight; // Total height of Direct Entry + gap + BECN
+              const bpayWidth = bpayHeight; // Square box
+              const bpayGap = 4; // Reduced gap between BPAY and Direct Entry
+              const bpayX = headerX - bpayWidth - bpayGap;
+              const bpayY = headerY; // Aligned with top of Direct Entry
+
+              // Create BPAY box with purple style like Osko
+              const bpayBox = createStyledRect(bpayX, bpayY, bpayWidth, bpayHeight, {
+                fill: 'rgb(100,80,180)', // Same purple as Osko
+                stroke: 'none',
+                rx: '12', // Same rounded corners as Osko
+                ry: '12'
+              });
+              labelsGroup.appendChild(bpayBox);
+
+              // Add BPAY label (white text)
+              const bpayText = createStyledText(
+                bpayX + bpayWidth / 2,
+                bpayY + bpayHeight / 2,
+                'BPAY',
+                { fill: '#ffffff', fontSize: '14', fontWeight: 'bold' }
+              );
+              labelsGroup.appendChild(bpayText);
+
+              // Store BPAY box data for connections
+              window.bpayBoxData = {
+                x: bpayX,
+                y: bpayY,
+                width: bpayWidth,
+                height: bpayHeight
+              };
+
+              // Add horizontal purple lines from Direct Entry and BECN to BPAY
+              // Horizontal line from Direct Entry (left edge middle) to BPAY (right edge)
+              const directEntryMidY = headerY + headerHeight / 2;
+              const bpayToDirectEntryLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              bpayToDirectEntryLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of Direct Entry
+              bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
+              bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
+              bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
+              bpayToDirectEntryLine.setAttribute('stroke', 'rgb(100,80,180)'); // Purple
+              bpayToDirectEntryLine.setAttribute('stroke-width', '2');
+              bpayToDirectEntryLine.setAttribute('stroke-linecap', 'round');
+              labelsGroup.insertBefore(bpayToDirectEntryLine, bpayBox); // Insert behind boxes
+
+              // Horizontal line from BECN (left edge middle) to BPAY (right edge)
+              const becnMidY = boxY + boxHeight / 2;
+              const bpayToBecnLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              bpayToBecnLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of BECN
+              bpayToBecnLine.setAttribute('y1', becnMidY.toFixed(2)); // Middle height of BECN
+              bpayToBecnLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
+              bpayToBecnLine.setAttribute('y2', becnMidY.toFixed(2)); // Same Y (horizontal)
+              bpayToBecnLine.setAttribute('stroke', 'rgb(100,80,180)'); // Purple
+              bpayToBecnLine.setAttribute('stroke-width', '2');
+              bpayToBecnLine.setAttribute('stroke-linecap', 'round');
+              labelsGroup.insertBefore(bpayToBecnLine, bpayBox); // Insert behind boxes
 
               // Add curved lines from BECN and BECG to BECS
               if (window.becsBoxData && window.directEntryChild1 && window.directEntryChild2) {
