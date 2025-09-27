@@ -2179,9 +2179,9 @@ function initializeDiagram() {
         }
 
         moneyMarketRect = createStyledRect(alignedMoneyMarketX, moneyMarketY, alignedMoneyMarketWidth, smallRectHeight * 0.9, {
-          fill: '#071f6a', // Filled with border color
-          stroke: 'none', // No border
-          strokeWidth: '0',
+          fill: '#fffaf0', // Light cream background
+          stroke: '#071f6a', // Blue border
+          strokeWidth: '2',
           rx: '8', // Rounded corners
           ry: '8' // Rounded corners
         });
@@ -2193,7 +2193,7 @@ function initializeDiagram() {
           moneyMarketY + smallRectHeight * 0.9 / 2,
           'cash transfer',
           {
-            fill: '#ffffff', // White text
+            fill: '#071f6a', // Blue text
             fontSize: '11' // Reduced font size
           }
         );
@@ -2523,20 +2523,20 @@ function initializeDiagram() {
         const chessEquitiesAdjustedHeight = chessEquitiesHeight + chessTopPadding;
 
         const chessEquitiesRect = createStyledRect(alignedChessEquitiesX, chessEquitiesY, alignedChessEquitiesWidth, chessEquitiesAdjustedHeight, {
-          fill: '#4a5a8a', // Darker shade
-          stroke: 'none', // No border
-          strokeWidth: '0',
+          fill: '#071f6a', // Solid blue fill
+          stroke: '#071f6a', // Blue border
+          strokeWidth: '2',
           rx: '8',
           ry: '8'
         });
-        chessEquitiesRect.setAttribute('opacity', '0.7'); // Less opaque
+        // Remove opacity for white background
         svg.insertBefore(chessEquitiesRect, labelsGroup); // Insert behind other elements
 
         // Add CHESS equities label
         const chessEquitiesText = createStyledText(
           alignedChessEquitiesX + alignedChessEquitiesWidth / 2,
           chessEquitiesY + 18, // Nudged slightly downward inside the panel
-          'CHESS equities',
+          'CHESS',
           {
             fill: '#ffffff', // White text
             fontSize: '14'
@@ -2702,8 +2702,8 @@ function initializeDiagram() {
           const mastercardY = eftposY - gapSympliPexa - stackedHeight;
 
           const createStackedRect = (y, fillColor, label, xOverride, heightOverride, fontSizeOverride) => {
-            // Reduce width by 20% for ATMs, Medicare, Other Cards, and Visa boxes
-            const isNarrowBox = ['ATMs', 'Medicare', 'Other Cards', 'Visa'].includes(label);
+            // Reduce width by 20% for ATMs, Claims, Other Cards, and Visa boxes
+            const isNarrowBox = ['ATMs', 'Claims', 'Other Cards', 'Visa'].includes(label);
 
             // For narrow boxes, reduce width by 20%
             let stackBoxWidth;
@@ -2734,8 +2734,8 @@ function initializeDiagram() {
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
               stroke: 'none',
-              rx: '8',
-              ry: '8'
+              rx: '14',
+              ry: '14'
             });
             labelsGroup.appendChild(rect);
 
@@ -2792,7 +2792,7 @@ function initializeDiagram() {
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
           const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
           const medicareY = visaY - gapHalf - reducedHeight;
-          const medicare = createStackedRect(medicareY, 'rgb(56,127,72)', 'Medicare', eftposActualX, reducedHeight, reducedFont);
+          const medicare = createStackedRect(medicareY, '#008000', 'Claims', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
           const atms = createStackedRect(atmsY, '#412e29', 'ATMs', eftposActualX, reducedHeight, reducedFont);
 
@@ -2841,51 +2841,149 @@ function initializeDiagram() {
             bottom: stackBottomY + boundingPadY
           };
 
-          const boundingLineFraction = 1 / 3;
-          const boundingLineLength = 80;
-          const stackBoundingTop = stackTopY - boundingPadY;
-          const stackBoundingHeight = (stackBottomY - stackTopY) + boundingPadY * 2;
-          const boundingLineY = stackBoundingTop + stackBoundingHeight * boundingLineFraction;
-          const boundingLine = createStyledLine(
-            stackBoundingLeftEdge,
-            boundingLineY,
-            stackBoundingLeftEdge - boundingLineLength,
-            boundingLineY,
+          const stackLineConfigs = [
             {
-              stroke: '#2d5016',
-              strokeWidth: '3',
-              strokeLinecap: 'round'
+              id: 'direct-entry-stack-line-blue',
+              color: '#27AEE3',
+              fraction: 0.2,
+              offset: 9
+            },
+            {
+              id: 'direct-entry-stack-line-yellow',
+              color: '#FFA500',
+              fraction: 0.4,
+              offset: 16
+            },
+            {
+              id: 'direct-entry-stack-line-green',
+              color: '#008000',
+              fraction: 0.6,
+              offset: 17
+            },
+            {
+              id: 'direct-entry-stack-line-brown',
+              color: '#412e29',
+              fraction: 0.8,
+              offset: 21
             }
-          );
+          ];
 
-          if (labelsGroup.firstChild) {
-            labelsGroup.insertBefore(boundingLine, labelsGroup.firstChild);
-          } else {
-            labelsGroup.appendChild(boundingLine);
-          }
+          const backgroundGroup = document.getElementById('background-elements');
+          const stackLines = stackLineConfigs.map((config) => {
+            const path = createStyledPath('', {
+              stroke: config.color,
+              strokeWidth: '2',
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+              fill: 'none',
+              id: config.id
+            });
 
-          window.directEntryBoundingLine = boundingLine;
-          window.directEntryBoundingLineLength = boundingLineLength;
-          window.directEntryBoundingLineFraction = boundingLineFraction;
+            if (backgroundGroup) {
+              backgroundGroup.appendChild(path);
+            } else {
+              labelsGroup.appendChild(path);
+            }
+
+            return { ...config, path };
+          });
+
+          window.directEntryLines = stackLines;
+
           window.updateDirectEntryBoundingLine = (leftEdge, top, height) => {
-            if (!window.directEntryBoundingLine) return;
-            const line = window.directEntryBoundingLine;
-            const length = Number.isFinite(window.directEntryBoundingLineLength)
-              ? window.directEntryBoundingLineLength
-              : boundingLineLength;
-            const fraction = Number.isFinite(window.directEntryBoundingLineFraction)
-              ? window.directEntryBoundingLineFraction
-              : boundingLineFraction;
-            const y = top + height * fraction;
-            line.setAttribute('x1', leftEdge.toFixed(2));
-            line.setAttribute('y1', y.toFixed(2));
-            line.setAttribute('x2', (leftEdge - length).toFixed(2));
-            line.setAttribute('y2', y.toFixed(2));
+            const data = window.cardLeftLineData;
+            const lines = window.directEntryLines;
+            if (!data || !data.mastercardMetrics || !Array.isArray(lines) || lines.length === 0) return;
+
+            const fallbackEdges = window.directEntryBoundingBoxEdges || {};
+            const baseLeft = Number.isFinite(leftEdge) ? leftEdge : fallbackEdges.left;
+            const baseTop = Number.isFinite(top) ? top : fallbackEdges.top;
+            const baseHeight = Number.isFinite(height)
+              ? height
+              : (Number.isFinite(fallbackEdges.bottom) && Number.isFinite(fallbackEdges.top)
+                  ? (fallbackEdges.bottom - fallbackEdges.top)
+                  : undefined);
+
+            if (!Number.isFinite(baseLeft) || !Number.isFinite(baseTop) || !Number.isFinite(baseHeight)) {
+              return;
+            }
+
+            const buildPath = (metrics, fraction, insideOffset) => {
+              if (!metrics || !Number.isFinite(fraction) || !Number.isFinite(insideOffset)) return null;
+
+              const clampedFraction = Math.min(Math.max(fraction, 0), 1);
+              const startX = baseLeft + insideOffset;
+              const startY = baseTop + baseHeight * (1 - clampedFraction);
+
+              const filletRadius = Math.max(20, (metrics.filletRadiusUsed ?? 150) - insideOffset);
+              const firstLegX = startX - Math.max(15, insideOffset + 5);
+              const baseTurnX = metrics.turnX ?? (firstLegX - filletRadius - 20);
+              const turnX = baseTurnX + insideOffset;
+              const verticalShift = Math.max(2, (metrics.verticalShift ?? 9) - 4);
+              const baseVerticalX = metrics.verticalX ?? baseTurnX;
+              const verticalX = baseVerticalX + insideOffset - verticalShift;
+              const verticalY = startY - filletRadius;
+
+              const topCornerRadius = Math.max(6, (metrics.topCornerRadius ?? 20) - 8);
+              const horizontalY = Number.isFinite(metrics.horizontalY)
+                ? metrics.horizontalY
+                : (verticalY - 40);
+              const horizontalEndX = Number.isFinite(metrics.horizontalEndX)
+                ? metrics.horizontalEndX + insideOffset
+                : (verticalX + 140);
+
+              const segments = [
+                `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
+                `L ${firstLegX.toFixed(2)} ${startY.toFixed(2)}`,
+                `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
+                `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
+                `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
+                `L ${horizontalEndX.toFixed(2)} ${horizontalY.toFixed(2)}`
+              ];
+
+              if (window.adiBoxData && Number.isFinite(window.adiBoxData.y)) {
+                const referenceRightEdge = window.nonAdiBoxData
+                  ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
+                  : horizontalEndX + 300;
+                const extendPastReference = Number.isFinite(metrics.extendPastReference)
+                  ? metrics.extendPastReference + insideOffset
+                  : referenceRightEdge + 60;
+                const curveStartX = Number.isFinite(metrics.curveStartX)
+                  ? metrics.curveStartX + insideOffset
+                  : Math.max(horizontalEndX + 80, referenceRightEdge - 80);
+                const control1X = Number.isFinite(metrics.control1X)
+                  ? metrics.control1X + insideOffset
+                  : curveStartX + 60;
+                const control2X = Number.isFinite(metrics.control2X)
+                  ? metrics.control2X + insideOffset
+                  : extendPastReference + 15;
+                const control2Y = Number.isFinite(metrics.control2Y)
+                  ? metrics.control2Y
+                  : (horizontalY + (window.adiBoxData.y - horizontalY) * 0.15);
+                const endX = Number.isFinite(metrics.endX)
+                  ? metrics.endX + insideOffset
+                  : extendPastReference + 35;
+                const endY = window.adiBoxData.y;
+
+                segments.push(`L ${curveStartX.toFixed(2)} ${horizontalY.toFixed(2)}`);
+                segments.push(`C ${control1X.toFixed(2)} ${horizontalY.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`);
+              }
+
+              return segments.join(' ');
+            };
+
+            const metricsForYellow = data.eftposMetrics || data.mastercardMetrics;
+
+            lines.forEach((entry) => {
+              const metrics = entry.color === '#FFA500' ? metricsForYellow : data.mastercardMetrics;
+              const pathData = buildPath(metrics, entry.fraction, entry.offset);
+              if (pathData && entry.path) {
+                entry.path.setAttribute('d', pathData);
+              }
+            });
           };
 
-          if (typeof window.updateDirectEntryBoundingLine === 'function') {
-            window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackBoundingTop, stackBoundingHeight);
-          }
+          window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackTopY - boundingPadY, (stackBottomY - stackTopY) + boundingPadY * 2);
 
           const stackHeaderHeight = stackedHeight;
           const stackHeaderGap = gapHalf;
@@ -2970,13 +3068,12 @@ function initializeDiagram() {
             labelsGroup.insertBefore(stackHeaderRect, visa.rect);
             labelsGroup.insertBefore(stackHeaderText, visa.rect);
           } else {
-            labelsGroup.insertBefore(stackBoundingRect, labelsGroup.firstChild);
-            labelsGroup.insertBefore(stackHeaderRect, labelsGroup.firstChild);
-            labelsGroup.insertBefore(stackHeaderText, labelsGroup.firstChild);
-          }
-
-          if (window.directEntryBoundingLine) {
-            labelsGroup.appendChild(window.directEntryBoundingLine);
+            const firstChild = labelsGroup.firstChild;
+            labelsGroup.insertBefore(stackBoundingRect, firstChild);
+            const rectNextSibling = stackBoundingRect.nextSibling;
+            labelsGroup.insertBefore(stackHeaderRect, rectNextSibling);
+            const headerRectNextSibling = stackHeaderRect.nextSibling;
+            labelsGroup.insertBefore(stackHeaderText, headerRectNextSibling);
           }
 
 
@@ -3101,8 +3198,21 @@ function initializeDiagram() {
                 }
                 const tentativeFirstLegX = turnX + filletRadius;
                 const firstLegX = tentativeFirstLegX < startX ? tentativeFirstLegX : startX - 1;
-                // Check if BPay box exists and extend path around it
+
+                // Track geometric metrics so other components can align with this path
                 let pathString;
+                let horizontalYValue = null;
+                let horizontalEndX = null;
+                let verticalXValue = turnX;
+                let verticalShiftValue = 0;
+                let topCornerRadiusValue = 0;
+                let curveStartXValue = null;
+                let extendPastReferenceValue = null;
+                let control1XValue = null;
+                let control2XValue = null;
+                let control2YValue = null;
+                let endXValue = null;
+
                 if (window.bpayBoxData) {
                   const bpay = window.bpayBoxData;
                   const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
@@ -3121,7 +3231,7 @@ function initializeDiagram() {
                   }
 
                   // Shift vertical line left by specified amount
-                  const verticalX = turnX - verticalShift;
+                const verticalX = turnX - verticalShift;
 
                   // Extend the path to go around BPay
                   pathString = [
@@ -3132,6 +3242,11 @@ function initializeDiagram() {
                     `Q ${verticalX} ${horizontalY}, ${verticalX + topCornerRadius} ${horizontalY}`, // Curve at calculated Y
                     `L ${bpayRight + 100} ${horizontalY}` // Go across at calculated Y
                   ].join(' ');
+                  horizontalYValue = horizontalY;
+                  horizontalEndX = bpayRight + 100;
+                  verticalXValue = verticalX;
+                  verticalShiftValue = verticalShift;
+                  topCornerRadiusValue = topCornerRadius;
                 } else {
                   // Fallback to original path if BPay doesn't exist
                   pathString = [
@@ -3140,8 +3255,55 @@ function initializeDiagram() {
                     `Q ${turnX} ${startY}, ${turnX} ${startY - filletRadius}`,
                     `L ${turnX} ${verticalEndY}`
                   ].join(' ');
+                  horizontalYValue = verticalEndY;
+                  horizontalEndX = turnX;
+                  verticalXValue = turnX;
                 }
-                return { pathString, turnX, verticalEndY };
+
+                // If ADI geometry exists, extend the path to follow the same down-curve
+                if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
+                  const adiTopY = window.adiBoxData.y;
+                  const referenceRightEdge = window.nonAdiBoxData
+                    ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
+                    : horizontalEndX + 300;
+                  const extendPastReference = referenceRightEdge + 60;
+                  const curveStartX = Math.max(horizontalEndX + 120, referenceRightEdge - 80);
+                  const greyEndX = extendPastReference + 25;
+                  const endX = greyEndX + 10;
+                  const endY = adiTopY;
+                  const verticalDistance = endY - horizontalYValue;
+                  const control1X = curveStartX + 60;
+                  const control1Y = horizontalYValue;
+                  const control2X = extendPastReference + 15;
+                  const control2Y = horizontalYValue + verticalDistance * 0.15;
+
+                  pathString += ` L ${curveStartX} ${horizontalYValue}`;
+                  pathString += ` C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${endX} ${endY}`;
+
+                  curveStartXValue = curveStartX;
+                  extendPastReferenceValue = extendPastReference;
+                  control1XValue = control1X;
+                  control2XValue = control2X;
+                  control2YValue = control2Y;
+                  endXValue = endX;
+                }
+                return {
+                  pathString,
+                  turnX,
+                  verticalEndY,
+                  verticalX: verticalXValue,
+                  verticalShift: verticalShiftValue,
+                  horizontalY: horizontalYValue,
+                  horizontalEndX,
+                  topCornerRadius: topCornerRadiusValue,
+                  filletRadiusUsed: filletRadius,
+                  curveStartX: curveStartXValue,
+                  extendPastReference: extendPastReferenceValue,
+                  control1X: control1XValue,
+                  control2X: control2XValue,
+                  control2Y: control2YValue,
+                  endX: endXValue
+                };
               };
 
               const { pexa: pexaSource, sympli: sympliSource } = getReferenceSources();
@@ -3184,17 +3346,19 @@ function initializeDiagram() {
               });
               labelsGroup.appendChild(mastercardUpturnPath);
 
-              window.cardLeftLineData = {
-                filletRadius,
-                cornerRadius,
-                eftposPath: eftposUpturnPath,
-                mastercardPath: mastercardUpturnPath,
-                eftposRect,
-                mastercardRect,
-                baseVerticalDistance,
-                turnOffset,
-                getReferenceSources
-              };
+          window.cardLeftLineData = {
+            filletRadius,
+            cornerRadius,
+            eftposPath: eftposUpturnPath,
+            mastercardPath: mastercardUpturnPath,
+            eftposRect,
+            mastercardRect,
+            baseVerticalDistance,
+            turnOffset,
+            getReferenceSources,
+            eftposMetrics: eftposSegments,
+            mastercardMetrics: mastercardSegments
+          };
 
               window.updateCardLeftLines = function updateCardLeftLines() {
                 const data = window.cardLeftLineData;
@@ -3248,6 +3412,17 @@ function initializeDiagram() {
                 data.mastercardPath.setAttribute('d', updatedMastercardSegments.pathString);
                 data.eftposTurnX = updatedEftposSegments.turnX;
                 data.mastercardTurnX = updatedMastercardSegments.turnX;
+                data.eftposMetrics = updatedEftposSegments;
+                data.mastercardMetrics = updatedMastercardSegments;
+
+                if (typeof window.updateDirectEntryBoundingLine === 'function') {
+                  const edges = window.directEntryBoundingBoxEdges;
+                  if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
+                    window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
+                  } else {
+                    window.updateDirectEntryBoundingLine();
+                  }
+                }
               };
 
               window.updateCardLeftLines();
@@ -3413,6 +3588,7 @@ function initializeDiagram() {
 
               directEntryToAdiLines[index].setAttribute('d', pathData);
             });
+
           };
 
           window.directEntryToAdiLines = directEntryToAdiLines;
@@ -3712,9 +3888,9 @@ function initializeDiagram() {
         const tradeByTradeY = moneyMarketY - 2 * smallRectHeight - 3 * verticalGap + 10 - 4 - 1; // Moved up by 1 pixel
 
         const tradeByTradeRect = createStyledRect(alignedTradeByTradeX, tradeByTradeY, tradeByTradeWidth, smallRectHeight * 0.9, {
-          fill: '#071f6a',
-          stroke: 'none',
-          strokeWidth: '0',
+          fill: '#fffaf0', // Light cream background
+          stroke: '#071f6a', // Blue border
+          strokeWidth: '2',
           rx: '8',
           ry: '8'
         });
@@ -3726,7 +3902,7 @@ function initializeDiagram() {
           tradeByTradeY + smallRectHeight * 0.9 / 2,
           'trade-by-trade',
           {
-            fill: '#ffffff',
+            fill: '#071f6a', // Blue text
             fontSize: '11'
           }
         );
@@ -3746,9 +3922,9 @@ function initializeDiagram() {
         const clearingY = tradeByTradeY - smallRectHeight * 0.9 - verticalGap; // Match gap with DvP cash leg → cash transfer spacing
 
         const clearingRect = createStyledRect(alignedClearingX, clearingY, clearingWidth, smallRectHeight * 0.9, {
-          fill: '#071f6a',
-          stroke: 'none',
-          strokeWidth: '0',
+          fill: '#fffaf0', // Light cream background
+          stroke: '#071f6a', // Blue border
+          strokeWidth: '2',
           rx: '8',
           ry: '8'
         });
@@ -3760,7 +3936,7 @@ function initializeDiagram() {
           clearingY + smallRectHeight * 0.9 / 2,
           'clearing / netting',
           {
-            fill: '#ffffff',
+            fill: '#071f6a', // Blue text
             fontSize: '11'
           }
         );
@@ -3777,9 +3953,9 @@ function initializeDiagram() {
         }
 
         const sssCcpRect = createStyledRect(alignedSssCcpX, sssCcpY, alignedSssCcpWidth, smallRectHeight * 0.9, {
-          fill: '#071f6a', // Same as Money Market
-          stroke: 'none',
-          strokeWidth: '0',
+          fill: '#fffaf0', // Light cream background
+          stroke: '#071f6a', // Blue border
+          strokeWidth: '2',
           rx: '8',
           ry: '8'
         });
@@ -3791,7 +3967,7 @@ function initializeDiagram() {
           sssCcpY + smallRectHeight * 0.9 / 2,
           'DvP cash leg',
           {
-            fill: '#ffffff', // White text
+            fill: '#071f6a', // Blue text
             fontSize: '11'
           }
         );
@@ -3831,7 +4007,7 @@ function initializeDiagram() {
         const asxBoundingBox = createStyledRect(asxBoxX, asxBoxY, asxBoxWidth, asxBoxHeight, {
           fill: '#e8ecf7', // Light blue-grey like CHESS equities box
           stroke: '#071f6a', // Dark blue matching internal boxes
-          strokeWidth: '1', // Same thickness as DvP RTGS
+          strokeWidth: '2', // Thicker border
           rx: '8',
           ry: '8'
         });
@@ -3961,9 +4137,9 @@ function initializeDiagram() {
               if (!item || !item.rect || !item.text) return;
               const itemHeight = Number.isFinite(item.height) ? item.height : stackedHeight;
 
-              // Check if this is one of the narrow boxes (ATMs, Medicare, Other Cards, Visa)
+              // Check if this is one of the narrow boxes (ATMs, Claims, Other Cards, Visa)
               const label = item.text.textContent;
-              const isNarrowBox = ['ATMs', 'Medicare', 'Other Cards', 'Visa'].includes(label);
+              const isNarrowBox = ['ATMs', 'Claims', 'Other Cards', 'Visa'].includes(label);
 
               // Use reduced width for narrow boxes
               const itemWidth = isNarrowBox ? stackWidth * 0.8 : stackWidth;
@@ -4363,7 +4539,7 @@ function initializeDiagram() {
           {
             fill: '#071f6a', // Dark blue text
             fontSize: '22', // Slightly larger label
-            fontWeight: 'bold' // Bold font
+            fontWeight: 'normal' // Explicitly set to normal weight
           }
         );
         labelsGroup.appendChild(asxLabel);
