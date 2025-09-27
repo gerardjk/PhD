@@ -3353,55 +3353,52 @@ function initializeDiagram() {
 
                 // If ADI geometry exists, extend the path to follow the same down-curve
                 if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
-                  const adiData = window.adiBoxData;
-                  const referenceRightEdge = window.nonAdiBoxData
-                    ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
-                    : horizontalEndX + 300;
-                  const geometry = window.directEntryToAdiGeometry || null;
+                  const geometry = window.directEntryToAdiGeometry;
 
-                  let extendPastReference = referenceRightEdge + 60;
-                  let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
-                  let endX = extendPastReference + 10;
-                  let endY = adiData.y;
-                  let control1X = curveStartX + 60;
-                  const control1Y = horizontalYValue;
-                  let control2X = extendPastReference + 15;
-                  const verticalDistance = endY - horizontalYValue;
-                  let control2Y = horizontalYValue + verticalDistance * 0.15;
+                  if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
+                    const curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
+                    const endX = geometry.endX;
+                    const endY = geometry.endY ?? window.adiBoxData.y;
+                    const control1X = geometry.control1X ?? (curveStartX + 60);
+                    const control1Y = horizontalYValue;
+                    const control2X = geometry.control2X ?? (geometry.extendPastReference ?? (curveStartX + 80));
+                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
 
-                  if (geometry) {
-                    if (Number.isFinite(geometry.extendPastReference)) {
-                      extendPastReference = geometry.extendPastReference;
+                    if (curveStartX > horizontalEndX) {
+                      pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
                     }
-                    if (Number.isFinite(geometry.curveStartX)) {
-                      curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
-                    }
-                    if (Number.isFinite(geometry.control1X) && Number.isFinite(geometry.curveStartX)) {
-                      control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
-                    }
-                    if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
-                      control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference);
-                    }
-                    if (Number.isFinite(geometry.endX)) {
-                      endX = geometry.endX;
-                    }
-                    if (Number.isFinite(geometry.endY)) {
-                      endY = geometry.endY;
-                      const geomDistance = endY - horizontalYValue;
-                      control2Y = horizontalYValue + geomDistance * 0.15;
-                    }
+                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
                     horizontalEndX = Math.max(horizontalEndX, curveStartX);
+                    curveStartXValue = curveStartX;
+                    extendPastReferenceValue = geometry.extendPastReference ?? (curveStartX + 120);
+                    control1XValue = control1X;
+                    control2XValue = control2X;
+                    control2YValue = control2Y;
+                    endXValue = endX;
+                  } else {
+                    const referenceRightEdge = window.nonAdiBoxData
+                      ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
+                      : horizontalEndX + 300;
+                    const extendPastReference = referenceRightEdge + 60;
+                    const curveStartX = Math.max(horizontalEndX + 120, referenceRightEdge - 80);
+                    const endX = extendPastReference + 10;
+                    const endY = window.adiBoxData.y;
+                    const control1X = curveStartX + 60;
+                    const control1Y = horizontalYValue;
+                    const control2X = extendPastReference + 15;
+                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
+
+                    pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
+                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+                    curveStartXValue = curveStartX;
+                    extendPastReferenceValue = extendPastReference;
+                    control1XValue = control1X;
+                    control2XValue = control2X;
+                    control2YValue = control2Y;
+                    endXValue = endX;
                   }
-
-                  pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
-                  pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-                  curveStartXValue = curveStartX;
-                  extendPastReferenceValue = extendPastReference;
-                  control1XValue = control1X;
-                  control2XValue = control2X;
-                  control2YValue = control2Y;
-                  endXValue = endX;
                 }
                 return {
                   pathString,
