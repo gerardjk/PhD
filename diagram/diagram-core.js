@@ -2846,25 +2846,43 @@ function initializeDiagram() {
               id: 'direct-entry-stack-line-blue',
               color: '#27AEE3',
               fraction: 0.2,
-              offset: 9
+              offset: 9,
+              strokeWidth: 1,
+              doubleLine: true,
+              doubleOffset: 3,
+              horizontalAdjust: -2.5,
+              filletMultiplier: 1.2,
+              cornerAdjustment: 8
             },
             {
               id: 'direct-entry-stack-line-yellow',
               color: '#FFA500',
               fraction: 0.4,
-              offset: 16
+              offset: 16,
+              strokeWidth: 2,
+              horizontalAdjust: -9,
+              filletMultiplier: 1.1,
+              cornerAdjustment: 5
             },
             {
               id: 'direct-entry-stack-line-green',
               color: '#008000',
               fraction: 0.6,
-              offset: 17
+              offset: 16,
+              strokeWidth: 1.2,
+              horizontalAdjust: -8,
+              filletMultiplier: 1.1,
+              cornerAdjustment: 2
             },
             {
               id: 'direct-entry-stack-line-brown',
               color: '#412e29',
               fraction: 0.8,
-              offset: 21
+              offset: 18,
+              strokeWidth: 1.2,
+              horizontalAdjust: -10,
+              filletMultiplier: 1.1,
+              cornerAdjustment: 2
             }
           ];
 
@@ -2872,7 +2890,7 @@ function initializeDiagram() {
           const stackLines = stackLineConfigs.map((config) => {
             const path = createStyledPath('', {
               stroke: config.color,
-              strokeWidth: '2',
+              strokeWidth: config.strokeWidth,
               strokeLinecap: 'round',
               strokeLinejoin: 'round',
               fill: 'none',
@@ -2885,7 +2903,30 @@ function initializeDiagram() {
               labelsGroup.appendChild(path);
             }
 
-            return { ...config, path };
+            const lineEntry = { ...config, path };
+
+            if (config.doubleLine) {
+              const offsets = [-config.doubleOffset / 2, config.doubleOffset / 2];
+              lineEntry.secondaryPath = offsets.map((offsetValue) => {
+                const secondary = createStyledPath('', {
+                  stroke: config.color,
+                  strokeWidth: config.strokeWidth,
+                  strokeLinecap: 'round',
+                  strokeLinejoin: 'round',
+                  fill: 'none'
+                });
+
+                secondary.classList.add('direct-entry-stack-line-secondary');
+
+                const parentGroup = backgroundGroup || labelsGroup;
+                parentGroup.appendChild(secondary);
+
+                secondary.dataset.parallelOffset = offsetValue.toString();
+                return secondary;
+              });
+            }
+
+            return lineEntry;
           });
 
           window.directEntryLines = stackLines;
@@ -2908,7 +2949,7 @@ function initializeDiagram() {
               return;
             }
 
-            const buildPath = (metrics, fraction, insideOffset) => {
+            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0) => {
               if (!metrics || !Number.isFinite(fraction) || !Number.isFinite(insideOffset)) return null;
 
               const clampedFraction = Math.min(Math.max(fraction, 0), 1);
@@ -2928,6 +2969,7 @@ function initializeDiagram() {
               const horizontalY = Number.isFinite(metrics.horizontalY)
                 ? metrics.horizontalY
                 : (verticalY - 40);
+              const adjustedHorizontalY = horizontalY - horizontalAdjust;
               const horizontalEndX = Number.isFinite(metrics.horizontalEndX)
                 ? metrics.horizontalEndX + insideOffset
                 : (verticalX + 140);
@@ -2936,9 +2978,9 @@ function initializeDiagram() {
                 `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
                 `L ${firstLegX.toFixed(2)} ${startY.toFixed(2)}`,
                 `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
-                `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
-                `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
-                `L ${horizontalEndX.toFixed(2)} ${horizontalY.toFixed(2)}`
+                `L ${verticalX.toFixed(2)} ${(adjustedHorizontalY + topCornerRadius).toFixed(2)}`,
+                `Q ${verticalX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`,
+                `L ${horizontalEndX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`
               ];
 
               if (window.adiBoxData && Number.isFinite(window.adiBoxData.y)) {
@@ -2958,15 +3000,15 @@ function initializeDiagram() {
                   ? metrics.control2X + insideOffset
                   : extendPastReference + 15;
                 const control2Y = Number.isFinite(metrics.control2Y)
-                  ? metrics.control2Y
-                  : (horizontalY + (window.adiBoxData.y - horizontalY) * 0.15);
+                  ? metrics.control2Y - horizontalAdjust
+                  : (adjustedHorizontalY + (window.adiBoxData.y - adjustedHorizontalY) * 0.15);
                 const endX = Number.isFinite(metrics.endX)
                   ? metrics.endX + insideOffset
                   : extendPastReference + 35;
                 const endY = window.adiBoxData.y;
 
-                segments.push(`L ${curveStartX.toFixed(2)} ${horizontalY.toFixed(2)}`);
-                segments.push(`C ${control1X.toFixed(2)} ${horizontalY.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`);
+                segments.push(`L ${curveStartX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`);
+                segments.push(`C ${control1X.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`);
               }
 
               return segments.join(' ');
@@ -2975,10 +3017,32 @@ function initializeDiagram() {
             const metricsForYellow = data.eftposMetrics || data.mastercardMetrics;
 
             lines.forEach((entry) => {
-              const metrics = entry.color === '#FFA500' ? metricsForYellow : data.mastercardMetrics;
-              const pathData = buildPath(metrics, entry.fraction, entry.offset);
+              const baseMetrics = entry.color === '#FFA500' ? metricsForYellow : data.mastercardMetrics;
+              const filletMultiplier = Number.isFinite(entry.filletMultiplier) ? entry.filletMultiplier : 1;
+              const cornerAdjustment = Number.isFinite(entry.cornerAdjustment) ? entry.cornerAdjustment : 0;
+              const metrics = {
+                ...baseMetrics,
+                filletRadiusUsed: Number.isFinite(baseMetrics.filletRadiusUsed)
+                  ? baseMetrics.filletRadiusUsed * filletMultiplier
+                  : undefined,
+                topCornerRadius: Number.isFinite(baseMetrics.topCornerRadius)
+                  ? baseMetrics.topCornerRadius + cornerAdjustment
+                  : undefined
+              };
+
+              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0);
               if (pathData && entry.path) {
                 entry.path.setAttribute('d', pathData);
+              }
+              if (entry.secondaryPath && entry.secondaryPath.length) {
+                entry.secondaryPath.forEach((secondary) => {
+                  if (!secondary) return;
+                  const offsetDelta = Number.parseFloat(secondary.dataset.parallelOffset || '0');
+                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0);
+                  if (secondaryData) {
+                    secondary.setAttribute('d', secondaryData);
+                  }
+                });
               }
             });
           };
@@ -3099,12 +3163,16 @@ function initializeDiagram() {
               const mastercardStartX = parseFloat(mastercardRect.getAttribute('x'));
               const mastercardStartY = parseFloat(mastercardRect.getAttribute('y')) + parseFloat(mastercardRect.getAttribute('height')) / 2;
 
-              const filletRadius = 150; // Increase for more rounded curves, decrease for sharper corners
-              const cornerRadius = 60;
+              const mastercardFilletRadius = 150; // Increase for more rounded curves, decrease for sharper corners
+              const mastercardCornerRadius = 60;
+              const eftposFilletRadius = 170;
+              const eftposCornerRadius = 70;
+              const maxFilletRadius = Math.max(eftposFilletRadius, mastercardFilletRadius);
+              const maxCornerRadius = Math.max(eftposCornerRadius, mastercardCornerRadius);
               const turnOffset = 30;
               const baseVerticalDistance = Math.max(
                 window.hexagonPositions.hexHeight ? window.hexagonPositions.hexHeight * 2 : 120,
-                filletRadius + cornerRadius + 40
+                maxFilletRadius + maxCornerRadius + 40
               );
 
               const getReferenceSources = () => ({
@@ -3151,7 +3219,7 @@ function initializeDiagram() {
                 const candidate = pick(primarySource) || pick(secondarySource);
                 if (candidate) {
                   const distance = Math.abs(candidate.horizontalY - startY);
-                  if (Number.isFinite(distance) && distance > filletRadius + cornerRadius + 5) {
+                  if (Number.isFinite(distance) && distance > maxFilletRadius + maxCornerRadius + 5) {
                     return distance;
                   }
                 }
@@ -3159,6 +3227,8 @@ function initializeDiagram() {
               };
 
               const buildCardPathSegments = (startX, startY, primarySource, secondarySource, fallbackBase, providedDistance, isEftpos) => {
+                const filletRadius = isEftpos ? eftposFilletRadius : mastercardFilletRadius;
+                const cornerRadius = isEftpos ? eftposCornerRadius : mastercardCornerRadius;
                 const fallbackBaseValue = Number.isFinite(fallbackBase)
                   ? fallbackBase
                   : (Math.min(eftposStartX, mastercardStartX) - turnOffset);
@@ -3347,8 +3417,6 @@ function initializeDiagram() {
               labelsGroup.appendChild(mastercardUpturnPath);
 
           window.cardLeftLineData = {
-            filletRadius,
-            cornerRadius,
             eftposPath: eftposUpturnPath,
             mastercardPath: mastercardUpturnPath,
             eftposRect,
