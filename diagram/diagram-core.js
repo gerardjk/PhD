@@ -2956,7 +2956,8 @@ function initializeDiagram() {
               const startX = baseLeft + insideOffset;
               const startY = baseTop + baseHeight * (1 - clampedFraction);
 
-              const filletRadius = Math.max(20, (metrics.filletRadiusUsed ?? 150) - insideOffset);
+              const baseFillet = metrics.filletRadiusUsed ?? 150;
+              const filletRadius = Math.max(20, baseFillet - insideOffset);
               const firstLegX = startX - Math.max(15, insideOffset + 5);
               const baseTurnX = metrics.turnX ?? (firstLegX - filletRadius - 20);
               const turnX = baseTurnX + insideOffset;
@@ -2965,50 +2966,70 @@ function initializeDiagram() {
               const verticalX = baseVerticalX + insideOffset - verticalShift;
               const verticalY = startY - filletRadius;
 
-              const topCornerRadius = Math.max(6, (metrics.topCornerRadius ?? 20) - 8);
-              const horizontalY = Number.isFinite(metrics.horizontalY)
+              const baseCorner = metrics.topCornerRadius ?? 20;
+              const topCornerRadius = Math.max(6, baseCorner - 8);
+              const baseHorizontalY = Number.isFinite(metrics.horizontalY)
                 ? metrics.horizontalY
                 : (verticalY - 40);
-              const adjustedHorizontalY = horizontalY - horizontalAdjust;
-              const horizontalEndX = Number.isFinite(metrics.horizontalEndX)
+              const horizontalY = baseHorizontalY - horizontalAdjust;
+              const geometry = window.directEntryToAdiGeometry;
+              let horizontalEndX = Number.isFinite(metrics.horizontalEndX)
                 ? metrics.horizontalEndX + insideOffset
                 : (verticalX + 140);
+              if (geometry && Number.isFinite(geometry.curveStartX)) {
+                horizontalEndX = Math.max(horizontalEndX, geometry.curveStartX);
+              }
 
               const segments = [
                 `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
                 `L ${firstLegX.toFixed(2)} ${startY.toFixed(2)}`,
                 `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
-                `L ${verticalX.toFixed(2)} ${(adjustedHorizontalY + topCornerRadius).toFixed(2)}`,
-                `Q ${verticalX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`,
-                `L ${horizontalEndX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`
+                `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
+                `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
+                `L ${horizontalEndX.toFixed(2)} ${horizontalY.toFixed(2)}`
               ];
 
               if (window.adiBoxData && Number.isFinite(window.adiBoxData.y)) {
+                const adiData = window.adiBoxData;
                 const referenceRightEdge = window.nonAdiBoxData
                   ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
                   : horizontalEndX + 300;
-                const extendPastReference = Number.isFinite(metrics.extendPastReference)
-                  ? metrics.extendPastReference + insideOffset
-                  : referenceRightEdge + 60;
-                const curveStartX = Number.isFinite(metrics.curveStartX)
-                  ? metrics.curveStartX + insideOffset
-                  : Math.max(horizontalEndX + 80, referenceRightEdge - 80);
-                const control1X = Number.isFinite(metrics.control1X)
-                  ? metrics.control1X + insideOffset
-                  : curveStartX + 60;
-                const control2X = Number.isFinite(metrics.control2X)
-                  ? metrics.control2X + insideOffset
-                  : extendPastReference + 15;
-                const control2Y = Number.isFinite(metrics.control2Y)
-                  ? metrics.control2Y - horizontalAdjust
-                  : (adjustedHorizontalY + (window.adiBoxData.y - adjustedHorizontalY) * 0.15);
-                const endX = Number.isFinite(metrics.endX)
-                  ? metrics.endX + insideOffset
-                  : extendPastReference + 35;
-                const endY = window.adiBoxData.y;
+                let extendPastReference = referenceRightEdge + 60;
+                let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
+                let endX = extendPastReference + 10;
+                let endY = adiData.y;
+                let control1X = curveStartX + 60;
+                const control1Y = horizontalY;
+                let control2X = extendPastReference + 15;
+                const verticalDistance = endY - horizontalY;
+                let control2Y = horizontalY + verticalDistance * 0.15;
 
-                segments.push(`L ${curveStartX.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}`);
-                segments.push(`C ${control1X.toFixed(2)} ${adjustedHorizontalY.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`);
+                if (geometry) {
+                  if (Number.isFinite(geometry.extendPastReference)) {
+                    extendPastReference = geometry.extendPastReference;
+                  }
+                  if (Number.isFinite(geometry.curveStartX)) {
+                    curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
+                  }
+                  if (Number.isFinite(geometry.control1X) && Number.isFinite(geometry.curveStartX)) {
+                    control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
+                  }
+                  if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
+                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference);
+                  }
+                  if (Number.isFinite(geometry.endX)) {
+                    endX = geometry.endX;
+                  }
+                  if (Number.isFinite(geometry.endY)) {
+                    endY = geometry.endY;
+                    const geomVertical = endY - horizontalY;
+                    control2Y = horizontalY + geomVertical * 0.15;
+                  }
+                  horizontalEndX = Math.max(horizontalEndX, curveStartX);
+                }
+
+                segments.push(`L ${curveStartX.toFixed(2)} ${horizontalY.toFixed(2)}`);
+                segments.push(`C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`);
               }
 
               return segments.join(' ');
@@ -3332,23 +3353,48 @@ function initializeDiagram() {
 
                 // If ADI geometry exists, extend the path to follow the same down-curve
                 if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
-                  const adiTopY = window.adiBoxData.y;
+                  const adiData = window.adiBoxData;
                   const referenceRightEdge = window.nonAdiBoxData
                     ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
                     : horizontalEndX + 300;
-                  const extendPastReference = referenceRightEdge + 60;
-                  const curveStartX = Math.max(horizontalEndX + 120, referenceRightEdge - 80);
-                  const greyEndX = extendPastReference + 25;
-                  const endX = greyEndX + 10;
-                  const endY = adiTopY;
-                  const verticalDistance = endY - horizontalYValue;
-                  const control1X = curveStartX + 60;
-                  const control1Y = horizontalYValue;
-                  const control2X = extendPastReference + 15;
-                  const control2Y = horizontalYValue + verticalDistance * 0.15;
+                  const geometry = window.directEntryToAdiGeometry || null;
 
-                  pathString += ` L ${curveStartX} ${horizontalYValue}`;
-                  pathString += ` C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${endX} ${endY}`;
+                  let extendPastReference = referenceRightEdge + 60;
+                  let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
+                  let endX = extendPastReference + 10;
+                  let endY = adiData.y;
+                  let control1X = curveStartX + 60;
+                  const control1Y = horizontalYValue;
+                  let control2X = extendPastReference + 15;
+                  const verticalDistance = endY - horizontalYValue;
+                  let control2Y = horizontalYValue + verticalDistance * 0.15;
+
+                  if (geometry) {
+                    if (Number.isFinite(geometry.extendPastReference)) {
+                      extendPastReference = geometry.extendPastReference;
+                    }
+                    if (Number.isFinite(geometry.curveStartX)) {
+                      curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
+                    }
+                    if (Number.isFinite(geometry.control1X) && Number.isFinite(geometry.curveStartX)) {
+                      control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
+                    }
+                    if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
+                      control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference);
+                    }
+                    if (Number.isFinite(geometry.endX)) {
+                      endX = geometry.endX;
+                    }
+                    if (Number.isFinite(geometry.endY)) {
+                      endY = geometry.endY;
+                      const geomDistance = endY - horizontalYValue;
+                      control2Y = horizontalYValue + geomDistance * 0.15;
+                    }
+                    horizontalEndX = Math.max(horizontalEndX, curveStartX);
+                  }
+
+                  pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
+                  pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
                   curveStartXValue = curveStartX;
                   extendPastReferenceValue = extendPastReference;
@@ -3632,7 +3678,7 @@ function initializeDiagram() {
             // End point - enters ADI box from top, slightly right of grey line
             const greyEndX = extendPastReference + 25; // Where grey line enters
             const endX = greyEndX + 10; // 30px to the right of grey line
-            const endY = adiY;
+           const endY = adiY;
 
             // Control points for smooth downward curve
             const verticalDistance = endY - startY;
@@ -3656,6 +3702,26 @@ function initializeDiagram() {
 
               directEntryToAdiLines[index].setAttribute('d', pathData);
             });
+
+            window.directEntryToAdiGeometry = {
+              curveStartX,
+              extendPastReference,
+              control1X,
+              control1Y,
+              control2X,
+              control2Y,
+              endX,
+              endY
+            };
+
+            if (typeof window.updateDirectEntryBoundingLine === 'function') {
+              const edges = window.directEntryBoundingBoxEdges;
+              if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
+                window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
+              } else {
+                window.updateDirectEntryBoundingLine();
+              }
+            }
 
           };
 
