@@ -3230,10 +3230,10 @@ function initializeDiagram() {
                     control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
                   }
                   if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
-                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference);
+                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + 5; // Adjust control point for shifted endpoint
                   }
                   if (Number.isFinite(geometry.endX)) {
-                    endX = geometry.endX;
+                    endX = geometry.endX + 10; // Shift colored stack lines 10px right of maroon line
                   }
                   if (Number.isFinite(geometry.endY)) {
                     endY = geometry.endY;
@@ -3526,7 +3526,7 @@ function initializeDiagram() {
                   const bpay = window.bpayBoxData;
                   const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
                   const bpayRight = bpay.x + bpay.width + 5; // 5px gap from BPay right edge
-                  const topCornerRadius = 20; // Much sharper corner at the top
+                  const topCornerRadius = 180; // Much sharper corner at the top
 
                   // Set different horizontal Y positions for each line
                   let horizontalY;
