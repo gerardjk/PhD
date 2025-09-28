@@ -58,7 +58,7 @@ function createLineSample(lineConfig) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', '10');
     line.setAttribute('y1', '15');
-    line.setAttribute('x2', '90');
+    line.setAttribute('x2', '190');
     line.setAttribute('y2', '15');
     line.setAttribute('stroke', lineConfig.color);
     line.setAttribute('stroke-width', lineConfig.strokeWidth);
