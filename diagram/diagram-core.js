@@ -3167,7 +3167,7 @@ function initializeDiagram() {
               return;
             }
 
-            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0) => {
+            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0, color) => {
               if (!metrics || !Number.isFinite(fraction) || !Number.isFinite(insideOffset)) return null;
 
               const clampedFraction = Math.min(Math.max(fraction, 0), 1);
@@ -3233,10 +3233,22 @@ function initializeDiagram() {
                     control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
                   }
                   if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
-                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + 5; // Adjust control point for shifted endpoint
+                    // Adjust control point based on color to match endpoint offset (shifted left by 1.5px)
+                    let controlOffset = 3.5; // Default
+                    if (color === '#412e29') controlOffset = 3.5; // Brown
+                    else if (color === '#008000') controlOffset = 4.5; // Green
+                    else if (color === '#FFA500') controlOffset = 5.5; // Yellow
+                    else if (color === '#27AEE3') controlOffset = 6.5; // Blue
+                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
                   }
                   if (Number.isFinite(geometry.endX)) {
-                    endX = geometry.endX + 10; // Shift colored stack lines 10px right of maroon line
+                    // Spread out endpoints based on color (shifted left by 3px)
+                    let endpointOffset = 7; // Default (was 10, now 10-3=7)
+                    if (color === '#412e29') endpointOffset = 7; // Brown - leftmost (was 10, now 7)
+                    else if (color === '#008000') endpointOffset = 9; // Green - 2px right of brown (was 12, now 9)
+                    else if (color === '#FFA500') endpointOffset = 11; // Yellow - 2px right of green (was 14, now 11)
+                    else if (color === '#27AEE3') endpointOffset = 13; // Blue - 2px right of yellow (was 16, now 13)
+                    endX = geometry.endX + endpointOffset;
                   }
                   if (Number.isFinite(geometry.endY)) {
                     endY = geometry.endY;
@@ -3269,7 +3281,7 @@ function initializeDiagram() {
                   : undefined
               };
 
-              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0);
+              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0, entry.color);
               if (pathData && entry.path) {
                 entry.path.setAttribute('d', pathData);
               }
@@ -3277,7 +3289,7 @@ function initializeDiagram() {
                 entry.secondaryPath.forEach((secondary) => {
                   if (!secondary) return;
                   const offsetDelta = Number.parseFloat(secondary.dataset.parallelOffset || '0');
-                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0);
+                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0, entry.color);
                   if (secondaryData) {
                     secondary.setAttribute('d', secondaryData);
                   }
@@ -3346,7 +3358,7 @@ function initializeDiagram() {
                   else if (entry.color === '#27AEE3') xOffset = 28; // Blue
 
                   const horizontalExtendX = adiRightEdge + xOffset;
-                  const curveRadius = 30; // Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
+                  const curveRadius = 100; // THIS CONTROLS THE ROUNDEDNESS - try values from 10 (sharp) to 50 (smooth)
                   const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
 
                   const horizontalPath = [
@@ -3615,7 +3627,7 @@ function initializeDiagram() {
                   const bpay = window.bpayBoxData;
                   const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
                   const bpayRight = bpay.x + bpay.width + 5; // 5px gap from BPay right edge
-                  const topCornerRadius = 175; // Much sharper corner at the top
+                  const topCornerRadius = 180; // Much sharper corner at the top
 
                   // Set different horizontal Y positions for each line
                   let horizontalY;
@@ -3828,7 +3840,7 @@ function initializeDiagram() {
                   // Offset Eftpos and Mastercard differently
                   const xOffset = id.includes('eftpos') ? 34 : 31; // Purple (Eftpos) at 34px, Red (Mastercard) at 31px
                   const horizontalExtendX = adiRightEdge + xOffset;
-                  const curveRadius = 90; // Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
+                  const curveRadius = 50; // SEEMS TO DO NOTHING Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
                   const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
 
                   // Find the last 'L' command before the curve 'C' command
@@ -3932,7 +3944,7 @@ function initializeDiagram() {
                   const adiRightEdge = adiData.x + adiData.width;
                   const eftposXOffset = 34; // Purple (Eftpos) offset
                   const mastercardXOffset = 31; // Red (Mastercard) offset
-                  const curveRadius = 30;
+                  const curveRadius = 100;
                   const verticalDropY = adiData.y + adiData.height + 100;
 
                   if (data.eftposHorizontalPath && updatedEftposSegments.horizontalY && updatedEftposSegments.curveStartX) {
@@ -4063,7 +4075,8 @@ function initializeDiagram() {
             line.setAttribute('stroke-width', '1.5');
             line.setAttribute('stroke-linecap', 'round');
             line.setAttribute('fill', 'none');
-            labelsGroup.appendChild(line);
+            // Insert at beginning so maroon lines go under ADI box
+            labelsGroup.insertBefore(line, labelsGroup.firstChild);
             directEntryToAdiLines.push(line);
 
             // Create visible duplicate that will mirror the invisible original
@@ -4079,6 +4092,21 @@ function initializeDiagram() {
           });
 
           window.maroonLineDuplicates = maroonLineDuplicates;
+
+          // Create horizontal branches for maroon lines
+          const maroonHorizontalBranches = [];
+          [0, 1].forEach(index => {
+            const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            horizontalBranch.setAttribute('id', `maroon-horizontal-branch-${index}`);
+            horizontalBranch.setAttribute('stroke', '#800000'); // Maroon color
+            horizontalBranch.setAttribute('stroke-width', '1.5');
+            horizontalBranch.setAttribute('stroke-linecap', 'round');
+            horizontalBranch.setAttribute('fill', 'none');
+            // Insert at beginning to ensure it goes under boxes
+            labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
+            maroonHorizontalBranches.push(horizontalBranch);
+          });
+          window.maroonHorizontalBranches = maroonHorizontalBranches;
 
           const updateDirectEntryToAdiLine = () => {
             if (directEntryToAdiLines.length === 0 || !window.adiBoxData) return;
