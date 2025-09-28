@@ -45,6 +45,40 @@ function initializeDiagramAbsolute() {
       dots: {
         count: 100,
         radius: 2.4
+      },
+      swiftCluster: {
+        swift: { x: 53.92491425406945, y: 714, width: 81, height: 81 },
+        clsAud: { x: 53.92491425406945, y: 685.3333333333333, width: 81, height: 23.666666666666668 },
+        austraclear: { x: 5.324914254069455, y: 607.3333333333333, width: 129.6, height: 54 },
+        pacs: [
+          { x: -244.57508574593055, y: 715.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.009' },
+          { x: -158.57508574593055, y: 742.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.008' },
+          { x: -72.57508574593055, y: 769.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.004' }
+        ],
+        bounding: {
+          x: -254.57508574593055,
+          y: 709,
+          width: 313.5,
+          height: 136
+        },
+        hvcsLabel: {
+          x: -97.82508574593056,
+          y: 822.5
+        },
+        metadata: {
+          hvcsX: -168.07508574593055,
+          smallRectHeight: 23.666666666666668,
+          verticalGap: 5,
+          horizontalGap: 30
+        }
+      },
+      asxCluster: {
+        chessRtgs: { x: 9.324914254069455, y: 578.6666666666666, width: 121.6, height: 23.666666666666668 },
+        dvpRtgs: { x: -104.79508574593055, y: 578.6666666666666, width: 64.8, height: 54 },
+        rtgs: { x: -104.79508574593055, y: 637.6666666666666, width: 64.8, height: 23.666666666666668 },
+        moneyMarket: { x: -332.6750857459306, y: 637.6666666666666, width: 142.56, height: 21.3 },
+        asxSettlement: { x: -72.39508574593054, y: 509.10666666666657, width: 142.52, height: 25.56 },
+        asxf: { x: -72.39508574593054, y: 452.98666666666657, width: 142.52, height: 25.56 }
       }
     };
 
@@ -732,56 +766,48 @@ function initializeDiagramAbsolute() {
 
         // Add SWIFT PDS rectangle
 
-        // Calculate SW point (225 degrees) on the black circle
-        const angle225 = 225 * Math.PI / 180; // Convert to radians
-        const swPointX = actualCircleX + blackCircleRadius * Math.cos(angle225);
-        const swPointY = actualCircleY + blackCircleRadius * Math.sin(angle225);
+        const swiftLayout = absoluteLayout.swiftCluster;
+        if (!swiftLayout || !swiftLayout.swift || !swiftLayout.austraclear) {
+          console.error('Missing SWIFT layout data; aborting absolute placement.');
+          return;
+        }
 
-        // Rectangle dimensions
-        const rectWidth = 144 * 0.9; // Reduced by 10% (for non-SWIFT boxes)
-        window.dvpRectWidth = rectWidth; // Store for later use in alignment
-        const rectHeight = 100 * 0.9 * 0.9; // Reduced by 10% twice
-        const swiftRectWidth = rectHeight; // Make SWIFT boxes square (same as height)
+        const { swift: swiftBox, clsAud, austraclear, pacs: pacsData = [], bounding: boundingLayout, hvcsLabel: hvcsLabelPos, metadata = {} } = swiftLayout;
+        const {
+          hvcsX = 0,
+          smallRectHeight = (swiftBox.height - 2 * 5) / 3,
+          verticalGap = 5,
+          horizontalGap = 30
+        } = metadata;
 
-        // Store dimensions globally for NPP box creation
+        const rectWidth = austraclear.width;
+        const rectHeight = swiftBox.height;
+        const swiftRectWidth = swiftBox.width;
+        const baseX = austraclear.x;
+        const austraclearY = austraclear.y;
+        const austraclearHeight = austraclear.height;
+        const rectX = swiftBox.x;
+        const rectY = swiftBox.y;
+        const clsAudY = clsAud.y;
+
+        // Store dimensions globally for later adjustments
+        window.dvpRectWidth = rectWidth;
         window.rectDimensions = {
-          rectHeight: rectHeight,
-          swiftRectWidth: swiftRectWidth
+          rectHeight,
+          swiftRectWidth,
+          rectX
         };
-
-        // Define ALL measurements FIRST before using them
-        const verticalGap = 5; // Gap between rectangles vertically
-        const horizontalGap = 30; // Gap between SWIFT box and side rectangles
-        const smallRectHeight = (rectHeight - 2 * verticalGap) / 3; // Each is 1/3 height minus gaps
-        window.smallRectHeight = smallRectHeight;
-        const austraclearHeight = rectHeight * (2/3); // Reduced by one third
-
-        // Calculate base positions - Austraclear at top, SWIFT at bottom
-        const baseX = swPointX - rectWidth - 130 - 40; // Extended left by additional 40px for 50% width increase
-
-        // Austraclear will be at the top
-        // Adjust for height reduction to maintain gaps
-        const heightReduction = 100 * 0.1; // 10% of original height
-        const verticalShift = 50; // Lower all boxes by 30 pixels
-        const austraclearYBase = 450 - smallRectHeight + heightReduction + rectHeight + verticalShift; // Move down by SWIFT PDS height plus shift
-        const austraclearSpecificShift = 20; // Additional shift just for Austraclear-related boxes
-        const austraclearY = austraclearYBase + 20 + austraclearSpecificShift; // Move Austraclear boxes down more
-
-        // SWIFT will be at the bottom (use original position)
-        // Calculate SWIFT box X position to align right edge with Austraclear
-        const austraclearRightEdge = baseX + rectWidth;
-        const swiftRightShift = austraclearRightEdge - swiftRectWidth - baseX;
-        const rectX = baseX + swiftRightShift; // Adjusted X to keep right edge aligned
-        const swiftSectionDownShift = 25; // Move SWIFT section down by 25 pixels
-        const rectY = austraclearYBase + austraclearHeight + verticalGap + smallRectHeight + austraclearHeight - 15 + swiftSectionDownShift; // Moved down
-
-        // Store rectX globally for NPP box
         window.rectDimensions.rectX = rectX;
-
-        // Store original rectY and height for later adjustment
+        window.smallRectHeight = smallRectHeight;
         window.swiftGroupOriginalY = rectY;
         window.swiftPdsHeight = rectHeight;
-        window.swiftPdsWidth = swiftRectWidth; // Store width for later use
+        window.swiftPdsWidth = swiftRectWidth;
+        if (absoluteLayout.swiftCluster) {
+          absoluteLayout.swiftCluster.swift = { x: rectX, y: rectY, width: swiftRectWidth, height: rectHeight };
+          absoluteLayout.swiftCluster.clsAud = { x: rectX, y: clsAudY, width: swiftRectWidth, height: smallRectHeight };
+          absoluteLayout.swiftCluster.austraclear = { x: baseX, y: austraclearY, width: rectWidth, height: austraclearHeight };
+          absoluteLayout.swiftCluster.metadata = { hvcsX, smallRectHeight, verticalGap, horizontalGap };
+        }
 
         // Create and configure rectangle using helper function
         const swiftRect = createStyledRect(rectX, rectY, swiftRectWidth, rectHeight, {
@@ -828,49 +854,10 @@ function initializeDiagramAbsolute() {
           centerY: swiftCenterY
         };
 
-        // Calculate hvcsX position (needed for left rectangles)
-        const hvcsX = rectX - swiftRectWidth - horizontalGap - swiftRectWidth - horizontalGap;
-
-        // Calculate CLS AUD Y position early (needed for pacs.009 extension)
-        // Place CLS AUD above SWIFT PDS instead of below
-        const clsAudY = rectY - smallRectHeight - verticalGap;
-
-        absoluteLayout.swiftCluster = {
-          swift: {
-            x: rectX,
-            y: rectY,
-            width: swiftRectWidth,
-            height: rectHeight
-          },
-          clsAud: {
-            x: rectX,
-            y: clsAudY,
-            width: swiftRectWidth,
-            height: smallRectHeight
-          },
-          austraclear: {
-            x: baseX,
-            y: austraclearY,
-            width: rectWidth,
-            height: austraclearHeight
-          },
-          pacs: [],
-          metadata: {
-            hvcsX,
-            smallRectHeight,
-            verticalGap,
-            horizontalGap
-          }
-        };
-
         // Create smaller rectangles around SWIFT PDS box
-        
+
         // Three rectangles to the left
-        const pacsBoxWidth = swiftRectWidth * 1.5; // 50% wider than SWIFT PDS box
-        // Calculate shift to make horizontal gap equal to verticalGap
-        // Current position: rectX - horizontalGap - pacsBoxWidth
-        // Desired position: rectX - verticalGap - pacsBoxWidth
-        const hvcsShift = horizontalGap - verticalGap; // Shift right by difference (30 - 5 = 25)
+        const pacsBoxWidth = pacsData[0]?.width ?? (swiftRectWidth * 1.5);
         const boundingBoxPaddingH = 10; // Horizontal padding - restored to 10
 
         // Store elements to update position later when dvpRtgsX is available
@@ -881,27 +868,26 @@ function initializeDiagramAbsolute() {
           window.swiftHvcsElements = {};
         }
 
-        for (let j = 0; j < 3; j++) {
-          // Position pacs boxes with gap equal to verticalGap
-          // Rightmost box should be at: rectX - verticalGap - pacsBoxWidth
-          // This box is at index 0, so it's the leftmost, need to account for 2 more boxes
-          // Keep right edge at original position (with original width)
-          const originalPacsWidth = swiftRectWidth; // Original width before 50% increase
-          const rightmostPacsRightEdge = rectX - verticalGap; // Original right edge position
-          const rightmostPacsX = rightmostPacsRightEdge - pacsBoxWidth; // New left edge for wider box
-
-          // Calculate position for this box keeping right edges aligned
-          const originalBoxRightEdge = rectX - verticalGap - (2 - j) * (originalPacsWidth + verticalGap);
+        const defaultPacsLabels = ['pacs.009', 'pacs.008', 'pacs.004'];
+        const pacsList = pacsData.length === defaultPacsLabels.length ? pacsData : defaultPacsLabels.map((label, idx) => {
+          const originalPacsWidth = swiftRectWidth;
+          const rightmostPacsRightEdge = rectX - verticalGap;
+          const originalBoxRightEdge = rectX - verticalGap - (2 - idx) * (originalPacsWidth + verticalGap);
           const tempSmallRectX = originalBoxRightEdge - pacsBoxWidth;
-          // Position pacs boxes to align with lines going into SWIFT PDS
-          // Lines enter SWIFT PDS at 1/6, 1/2, and 5/6 of its height
-          const swiftBoxTop = rectY;
-          const swiftBoxHeight = rectHeight;
           const positions = [1/6, 0.5, 5/6];
-          const lineCenterY = swiftBoxTop + swiftBoxHeight * positions[j];
+          const lineCenterY = rectY + rectHeight * positions[idx];
           const smallRectY = lineCenterY - smallRectHeight / 2;
+          return {
+            x: tempSmallRectX,
+            y: smallRectY,
+            width: pacsBoxWidth,
+            height: smallRectHeight,
+            label
+          };
+        });
 
-          const smallRect = createStyledRect(tempSmallRectX, smallRectY, pacsBoxWidth, smallRectHeight, {
+        pacsList.forEach((pacsBox, j) => {
+          const smallRect = createStyledRect(pacsBox.x, pacsBox.y, pacsBox.width, pacsBox.height, {
             fill: '#0f766e', // Dark gray fill (same as SWIFT HVCS)
             stroke: 'none', // No border (same as SWIFT HVCS)
             strokeWidth: '1',
@@ -911,14 +897,11 @@ function initializeDiagramAbsolute() {
 
           labelsGroup.appendChild(smallRect);
 
-          // Add label to each left rectangle
-          const pacsLabels = ['pacs.009', 'pacs.008', 'pacs.004'];
-          const textPadding = 10;
-          const textY = smallRectY + smallRectHeight / 2;
+          const textY = pacsBox.y + pacsBox.height / 2;
           const pacsText = createStyledText(
-            tempSmallRectX + pacsBoxWidth / 2,
+            pacsBox.x + pacsBox.width / 2,
             textY,
-            pacsLabels[j],
+            pacsBox.label ?? defaultPacsLabels[j],
             {
               fill: '#ffffff', // White text (to contrast with dark background)
               fontSize: '11' // Match trade-by-trade font size
@@ -928,44 +911,45 @@ function initializeDiagramAbsolute() {
 
           // Store elements to update later
           pacsElements.push({rect: smallRect, text: pacsText});
+        });
 
-          if (absoluteLayout.swiftCluster && Array.isArray(absoluteLayout.swiftCluster.pacs)) {
-            absoluteLayout.swiftCluster.pacs.push({
-              label: pacsLabels[j],
-              x: tempSmallRectX,
-              y: smallRectY,
-              width: pacsBoxWidth,
-              height: smallRectHeight
-            });
-          }
+        if (absoluteLayout.swiftCluster) {
+          absoluteLayout.swiftCluster.pacs = pacsList.map((p, idx) => ({
+            label: p.label ?? defaultPacsLabels[idx] ?? '',
+            x: p.x,
+            y: p.y,
+            width: p.width,
+            height: p.height
+          }));
         }
 
-        // Create bounding box around PACS boxes
-        // Calculate leftmost pacs box position keeping right edges fixed
-        const originalPacsWidth = swiftRectWidth; // Original width before 50% increase
-        const rightmostPacsRightEdge = rectX - verticalGap; // Original right edge position
-        const rightmostPacsX = rightmostPacsRightEdge - pacsBoxWidth; // New left edge for wider box
+        const pacsLeftEdges = pacsList.map(p => p.x);
+        const pacsRightEdges = pacsList.map(p => p.x + p.width);
+        const smallRectX = pacsLeftEdges.length ? Math.min(...pacsLeftEdges) : rectX - horizontalGap - pacsBoxWidth * 3;
+        const rightmostPacsRightEdge = pacsRightEdges.length ? Math.max(...pacsRightEdges) : rectX - verticalGap;
+        const pacs004 = pacsList[2] || pacsList[pacsList.length - 1] || { x: rectX, y: rectY, height: smallRectHeight };
 
-        // Calculate leftmost box position based on original right edge positions
-        const leftmostOriginalRightEdge = rectX - verticalGap - 2 * (originalPacsWidth + verticalGap);
-        const smallRectX = leftmostOriginalRightEdge - pacsBoxWidth; // Leftmost box position
         const boundingBoxPaddingV = 5; // Vertical padding - reduced from 10
         const labelSpace = 45; // Increased for more bottom padding
 
+        const boundingBoxX = boundingLayout?.x ?? (smallRectX - boundingBoxPaddingH);
+        const boundingBoxY = boundingLayout?.y ?? (rectY - boundingBoxPaddingV);
+        const boundingBoxWidth = boundingLayout?.width ?? ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2);
+        const boundingBoxHeight = boundingLayout?.height ?? ((smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace);
+
         console.log('SWIFT HVCS box calculation:', {
           leftmost_pacs_x: smallRectX,
-          rightmost_pacs_x: rightmostPacsX,
-          bounding_box_left: smallRectX - boundingBoxPaddingH,
-          bounding_box_right: (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2),
-          gap_to_swift: rectX - ((smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2))
+          rightmost_pacs_x: rightmostPacsRightEdge,
+          bounding_box_left: boundingBoxX,
+          bounding_box_right: boundingBoxX + boundingBoxWidth,
+          gap_to_swift: rectX - (boundingBoxX + boundingBoxWidth)
         });
 
         const boundingBox = createStyledRect(
-          smallRectX - boundingBoxPaddingH,
-          rectY - boundingBoxPaddingV,
-          // Width from leftmost left edge to rightmost right edge plus padding
-          (rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2, // Total span + padding
-          (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace,
+          boundingBoxX,
+          boundingBoxY,
+          boundingBoxWidth,
+          boundingBoxHeight,
           {
             fill: '#bdf7e9', // Same as SWIFT PDS - Light mint green
             stroke: '#0f766e', // Dark gray (same as SWIFT PDS)
@@ -983,26 +967,22 @@ function initializeDiagramAbsolute() {
 
         if (absoluteLayout.swiftCluster) {
           absoluteLayout.swiftCluster.bounding = {
-            x: smallRectX - boundingBoxPaddingH,
-            y: rectY - boundingBoxPaddingV,
-            width: (rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2,
-            height: (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace
+            x: boundingBoxX,
+            y: boundingBoxY,
+            width: boundingBoxWidth,
+            height: boundingBoxHeight
           };
         }
 
         // Add SWIFT HVCS label halfway between bottom of box and bottom of pacs.004
-        const boundingBoxWidth = rightmostPacsRightEdge - smallRectX;
-        // Get pacs.004 (index 2) bottom position
-        const pacs004Index = 2;
-        const pacs004Y = rectY + (smallRectHeight + verticalGap) * pacs004Index;
-        const pacs004Bottom = pacs004Y + smallRectHeight;
-        // Calculate bottom of bounding box
-        const boundingBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
+        const boundingBoxCenterX = boundingBoxX + boundingBoxWidth / 2;
+        const pacs004Bottom = (pacs004?.y ?? (rectY + (smallRectHeight + verticalGap) * 2)) + (pacs004?.height ?? smallRectHeight);
+        const boundingBoxBottom = boundingBoxY + boundingBoxHeight;
         // Position label halfway between pacs.004 bottom and box bottom
         const labelY = pacs004Bottom + (boundingBoxBottom - pacs004Bottom) / 2;
 
         const hvcsLabel = createStyledText(
-          smallRectX + boundingBoxWidth / 2, // Center in bounding box
+          boundingBoxCenterX, // Center in bounding box
           labelY,
           'SWIFT HVCS', // Single line text
           {
@@ -1020,7 +1000,7 @@ function initializeDiagramAbsolute() {
 
         if (absoluteLayout.swiftCluster) {
           absoluteLayout.swiftCluster.hvcsLabel = {
-            x: smallRectX + (rightmostPacsRightEdge - smallRectX) / 2,
+            x: boundingBoxCenterX,
             y: labelY
           };
         }
@@ -1028,16 +1008,16 @@ function initializeDiagramAbsolute() {
         // Debug logging to calculate actual coordinates
         console.log('=== INITIAL COORDINATE DEBUGGING ===');
         console.log('SWIFT HVCS initial position:', {
-          x: smallRectX - boundingBoxPaddingH,
-          width: (rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2,
-          rightEdge: (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2)
+          x: boundingBoxX,
+          width: boundingBoxWidth,
+          rightEdge: boundingBoxX + boundingBoxWidth
         });
 
         // Add path from SWIFT HVCS box going below ESAs to non-ADIs edge and up to ADIs
         // Start from right edge of SWIFT HVCS bounding box, low enough to go under ESAs
-        const hvcsBoxRight = (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2);
+        const hvcsBoxRight = boundingBoxX + boundingBoxWidth;
         // Position line between ESAs bottom and SWIFT HVCS bottom
-        const hvcsBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
+        const hvcsBoxBottom = boundingBoxBottom;
         const hvcsLineY = hvcsBoxBottom - 25 - 15 + 8; // Was raised by 15, now lowered by 8 (net raise of 7)
 
         // Create initial path (will be updated when we know box positions)
@@ -1245,6 +1225,33 @@ function initializeDiagramAbsolute() {
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
+
+        absoluteLayout.asxCluster = {
+          chessRtgs: {
+            x: chessBoxX,
+            y: chessY,
+            width: chessBoxWidth,
+            height: smallRectHeight
+          },
+          austraclear: {
+            x: baseX,
+            y: austraclearY,
+            width: rectWidth,
+            height: austraclearHeight
+          },
+          dvpRtgs: {
+            x: dvpRtgsX,
+            y: dvpRtgsY,
+            width: rectWidth / 2,
+            height: austraclearHeight
+          },
+          rtgs: {
+            x: dvpRtgsX,
+            y: rtgsY,
+            width: rectWidth / 2,
+            height: smallRectHeight
+          }
+        };
 
         // Money Market / Repo box - to the left of RTGS/DvP RTGS, above SWIFT HVCS
         let moneyMarketRect; // Will be created later after position calculations
@@ -2349,6 +2356,14 @@ function initializeDiagramAbsolute() {
         );
         labelsGroup.appendChild(moneyMarketText);
 
+        if (!absoluteLayout.asxCluster) absoluteLayout.asxCluster = {};
+        absoluteLayout.asxCluster.moneyMarket = {
+          x: alignedMoneyMarketX,
+          y: moneyMarketY,
+          width: alignedMoneyMarketWidth,
+          height: smallRectHeight * 0.9
+        };
+
         // Sympli line extension moved to after ADI box creation
 
         // Add horizontal line connecting RTGS / DvP RTGS to Money Market / Repo
@@ -2363,6 +2378,13 @@ function initializeDiagramAbsolute() {
         rtgsToMoneyMarketLine.setAttribute('stroke-width', austraclearLineWidth);
         rtgsToMoneyMarketLine.setAttribute('stroke-linecap', 'round');
         svg.insertBefore(rtgsToMoneyMarketLine, labelsGroup);
+
+        absoluteLayout.asxCluster.rtgsToMoneyMarket = {
+          x1: moneyMarketRightEdge,
+          y1: moneyMarketLineY,
+          x2: dvpRtgsX,
+          y2: moneyMarketLineY
+        };
 
         // Calculate CHESS equities position first
         const sssCcpY = moneyMarketY - smallRectHeight * 0.9 - verticalGap;
@@ -3893,23 +3915,27 @@ function initializeDiagramAbsolute() {
             const adiY = window.adiBoxData.y;
             const adiWidth = window.adiBoxData.width;
 
-            const startX = adiX + adiWidth / 2 - 40;
+            const startX = adiX + adiWidth / 2 + 185;
             const startY = adiY;
 
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
             const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
-            const oskoRightEdge = oskoX + oskoWidth;
+            const targetX = oskoX + oskoWidth;
 
-            const riseHeight = 30;
-            const horizontalY = startY - riseHeight;
+            const riseHeight = 135;
+            const curveEndY = startY - riseHeight;
+            const horizontalStartX = startX - 35;
 
-            const curveRadius = 10;
+            const control1X = startX;
+            const control1Y = startY - riseHeight * 0.85;
+            const control2X = horizontalStartX + 24;
+            const control2Y = curveEndY + riseHeight * 0.05;
+            const adjustedTargetX = targetX - 25;
 
-            let pathData = `M ${startX} ${startY} `;
-            pathData += `L ${startX} ${horizontalY + curveRadius} `;
-            pathData += `Q ${startX} ${horizontalY} ${startX + curveRadius} ${horizontalY} `;
-            pathData += `L ${oskoRightEdge} ${horizontalY}`;
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+              `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${horizontalStartX.toFixed(2)} ${curveEndY.toFixed(2)} ` +
+              `L ${adjustedTargetX.toFixed(2)} ${curveEndY.toFixed(2)}`;
 
             adiToOskoLine.setAttribute('d', pathData);
           };
@@ -5399,7 +5425,6 @@ function initializeDiagramAbsolute() {
         // Add connecting lines between the three left boxes and SWIFT PDS box
         const lineColor = '#3da88a'; // Brighter shade
         const lineWidth = '6'; // Thick lines matching other thick lines
-        // const hvcsShift = 15; // Already declared above
 
 
         // Connecting lines will be added after SWIFT HVCS final positioning
@@ -7117,7 +7142,7 @@ function initializeDiagramAbsolute() {
           {
             fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border (same as group 3)
-            strokeWidth: '0.5',
+            strokeWidth: '1.2',
             rx: '4' // Small rounded corners
           }
         );
@@ -7175,7 +7200,7 @@ function initializeDiagramAbsolute() {
           {
             fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border
-            strokeWidth: '0.5',
+            strokeWidth: '1.2',
             rx: '4' // Small rounded corners
           }
         );
@@ -7454,8 +7479,7 @@ function initializeDiagramAbsolute() {
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkHorizontalOffset = offsetBetweenLines + 5;
-            const pinkEndX = orangeEndX + pinkHorizontalOffset;
+            const pinkEndX = orangeEndX;
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;

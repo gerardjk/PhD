@@ -398,8 +398,8 @@ function initializeDiagram() {
       if (typeof window.updateDirectEntryToAdiLine === 'function') {
         window.updateDirectEntryToAdiLine();
       }
-      if (typeof window.updateGreyAdiLine === 'function') {
-        window.updateGreyAdiLine();
+      if (typeof window.updateOskoToAdiLine === 'function') {
+        window.updateOskoToAdiLine();
       }
     };
 
@@ -1039,10 +1039,9 @@ function initializeDiagram() {
         const largerGap = pacs002Top - austraclearBottom;
 
 
-        // Add narrow rectangle above Austraclear (CHESS-RTGS)
-        const chessBoxPaddingReduction = 8; // Reduce padding by 8 pixels total (4 on each side)
-        const chessBoxWidth = rectWidth - chessBoxPaddingReduction;
-        const chessBoxX = baseX + (chessBoxPaddingReduction / 2); // Shift right to center the narrower box
+        // Add rectangle above Austraclear (CHESS-RTGS)
+        const chessBoxWidth = rectWidth; // Same width as Austraclear
+        const chessBoxX = baseX; // Same X position as Austraclear
         const narrowRect = createStyledRect(chessBoxX, chessY, chessBoxWidth, smallRectHeight, {
           fill: '#e8ecf7', // Same as Austraclear
           stroke: '#071f6a', // Same as Austraclear
@@ -1059,7 +1058,7 @@ function initializeDiagram() {
           {
             fill: '#071f6a', // Dark blue text
             fontSize: '11', // Slightly smaller to fit better
-            dominantBaseline: 'central', // Use 'central' for better vertical centering
+            dominantBaseline: 'middle', // Use 'middle' for better vertical centering
             textAnchor: 'middle'
           }
         );
@@ -1095,9 +1094,9 @@ function initializeDiagram() {
         const dvpRtgsRect = createStyledRect(dvpRtgsX, dvpRtgsY, rectWidth / 2, austraclearHeight, {
           fill: '#4a5a8a', // Match CHESS equities shade
           stroke: 'none',
-          opacity: '0.7',
-          rx: '4',
-          ry: '4'
+          opacity: '0.5',
+          rx: '20',
+          ry: '20'
         });
         labelsGroup.appendChild(dvpRtgsRect);
 
@@ -1115,7 +1114,7 @@ function initializeDiagram() {
         dvpRtgsText.setAttribute('fill', '#ffffff'); // White text for contrast
         dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
         dvpRtgsText.setAttribute('font-size', '11'); // Slightly bigger font
-        dvpRtgsText.setAttribute('font-weight', 'bold');
+        dvpRtgsText.setAttribute('font-weight', 'normal');
         // Split into two lines: "DvP" over "RTGS"
         const dvpTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
         dvpTspan.setAttribute('x', (dvpRtgsX + rectWidth / 4).toFixed(2));
@@ -1133,7 +1132,7 @@ function initializeDiagram() {
 
         // Add ASX Settlement as elongated hexagon
         let dvpRtgsCenterX = dvpRtgsX + rectWidth / 4; // Center of reduced-width DvP RTGS (will be updated)
-        const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS (adjusted for padding reduction)
+        const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS
         const bridgeX = dvpRtgsCenterX; // Left edge at DvP RTGS center
         const bridgeWidth = chessRtgsCenterX - dvpRtgsCenterX; // Width to reach CHESS-RTGS center
         const hexHeight = smallRectHeight * 1.5 * 0.8 * 0.9; // 50% taller, reduced by 20%, then by 10%
@@ -1184,9 +1183,9 @@ function initializeDiagram() {
         const rtgsRect = createStyledRect(dvpRtgsX, rtgsY, rectWidth / 2, smallRectHeight, {
           fill: '#4a5a8a', // Match CHESS equities shade
           stroke: 'none',
-          opacity: '0.7',
-          rx: '4',
-          ry: '4'
+          opacity: '0.5',
+          rx: '20',
+          ry: '20'
         });
         labelsGroup.appendChild(rtgsRect);
 
@@ -1199,7 +1198,7 @@ function initializeDiagram() {
           dvpRtgsX + rectWidth / 4,
           rtgsY + smallRectHeight / 2,
           'RTGS',
-          { fontSize: '10', fill: '#ffffff' }  // Smaller font, white text
+          { fontSize: '10', fill: '#ffffff', fontWeight: 'normal' }  // Smaller font, white text, normal weight
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
@@ -1235,7 +1234,7 @@ function initializeDiagram() {
           const lineY = chessY + (smallRectHeight + verticalGap) * j + smallRectHeight / 2;
           const x1 = dvpRtgsX + rectWidth / 2; // Right edge of DvP RTGS (half width)
           const y1 = lineY;
-          const x2 = chessBoxX; // Left edge of CHESS-RTGS (adjusted for padding reduction)
+          const x2 = chessBoxX; // Left edge of CHESS-RTGS
           const y2 = lineY;
 
           const austLine = createStyledLine(x1, y1, x2, y2, {
@@ -3945,6 +3944,8 @@ function initializeDiagram() {
             });
 
           window.directEntryToAdiGeometry = {
+            startX,
+            startY,
             curveStartX,
             extendPastReference,
             control1X,
@@ -3975,58 +3976,95 @@ function initializeDiagram() {
           window.updateDirectEntryToAdiLine = updateDirectEntryToAdiLine;
           updateDirectEntryToAdiLine(); // Initial update
 
-          // Create grey line from ADI top - same pattern as green/maroon lines
-          const greyAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          greyAdiLine.setAttribute('id', 'grey-adi-line');
-          greyAdiLine.setAttribute('stroke', '#6b7280'); // Grey
-          greyAdiLine.setAttribute('stroke-width', '2');
-          greyAdiLine.setAttribute('stroke-linecap', 'round');
-          greyAdiLine.setAttribute('fill', 'none');
-          labelsGroup.appendChild(greyAdiLine);
+          // Create grey curve from OSKO to ADI with same shape as green/maroon curves
+          const oskoToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          oskoToAdiLine.setAttribute('id', 'osko-to-adi-line');
+          oskoToAdiLine.setAttribute('stroke', '#6b7280'); // Grey
+          oskoToAdiLine.setAttribute('stroke-width', '2');
+          oskoToAdiLine.setAttribute('stroke-linecap', 'round');
+          oskoToAdiLine.setAttribute('fill', 'none');
+          labelsGroup.appendChild(oskoToAdiLine);
 
-          const updateGreyAdiLine = () => {
-            if (!window.adiBoxData || !window.oskoElements || !window.oskoElements.box) return;
+          const updateOskoToAdiLine = () => {
+            if (!window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
 
-            // Get ADI box position
-            const adiX = window.adiBoxData.x;
-            const adiY = window.adiBoxData.y;
-            const adiWidth = window.adiBoxData.width;
-
-            // Start from ADI top (like where the lines enter)
-            const startX = adiX + adiWidth / 2 + 190; // Left of center
-            const startY = adiY;
-
-            // Get OSKO box edge as target
+            // Get OSKO box position
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
+            const oskoY = parseFloat(oskoBox.getAttribute('y'));
             const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
-            const targetX = oskoX + oskoWidth;
+            const oskoHeight = parseFloat(oskoBox.getAttribute('height'));
 
-            // Same pattern as the other lines - curve UP first then go horizontal
-            const riseHeight = 138;
-            const curveEndY = startY - riseHeight;
-            const horizontalStartX = startX - 60; // Where the horizontal section begins
+            if (!Number.isFinite(oskoX) || !Number.isFinite(oskoY) ||
+                !Number.isFinite(oskoWidth) || !Number.isFinite(oskoHeight)) return;
 
-            // Control points for smooth curve - inverted ratios since going up instead of down
-            // Green/maroon use 0% and 15% for down curves, so we use 85% and 100% for up curves
-            const control1X = startX;
-            const control1Y = startY - riseHeight * 0.85; // 85% up (inverted from 15% down)
-            const control2X = horizontalStartX + 30; // Ease into horizontal
-            const control2Y = curveEndY; // At horizontal level (inverted from starting horizontal)
+            // Get Direct Entry (maroon line) position if available
+            let deY = oskoY - 100; // Default fallback
+            if (window.directEntryBox) {
+              deY = window.directEntryBox.y + window.directEntryBox.height / 2;
+            } else if (window.pexaExtensions && window.pexaExtensions.stackHeader && window.pexaExtensions.stackHeader.rect) {
+              const rect = window.pexaExtensions.stackHeader.rect;
+              const rectY = parseFloat(rect.getAttribute('y'));
+              const rectHeight = parseFloat(rect.getAttribute('height'));
+              if (Number.isFinite(rectY) && Number.isFinite(rectHeight)) {
+                deY = rectY + rectHeight / 2;
+              }
+            }
 
-            // Path: start at ADI top, curve up smoothly, then horizontal line
+            // Start from right edge of OSKO box, but higher - halfway between OSKO and Direct Entry
+            const startX = oskoX ;
+            const oskoMidY = oskoY + oskoHeight / 2;
+            const startY = (oskoY + deY) / 2 - 45; // Halfway between OSKO top and Direct Entry center
+
+            // Get stored geometry from maroon and green lines
+            const maroonGeom = window.directEntryToAdiGeometry;
+            const greenGeom = window.nppToAdiGeometry;
+
+            // Calculate end point between green and maroon lines
+            let endX;
+            if (maroonGeom && greenGeom && Number.isFinite(maroonGeom.endX) && Number.isFinite(greenGeom.endX)) {
+              endX = (maroonGeom.endX + greenGeom.endX) / 2;
+            } else if (maroonGeom && Number.isFinite(maroonGeom.endX)) {
+              endX = maroonGeom.endX - 15; // Default to 15px left of maroon
+            } else {
+              // Fallback positioning
+              endX = window.adiBoxData.x + window.adiBoxData.width / 2 + 200;
+            }
+            const endY = window.adiBoxData.y;
+
+            // Match the green line's approach more closely since OSKO is also above ADI
+            const referenceRightEdge = window.nonAdiBoxData ?
+              window.nonAdiBoxData.x + window.nonAdiBoxData.width :
+              startX + 300;
+
+            const extendPastReference = referenceRightEdge + 60;
+            const curveStartMinimum = startX + 120;
+            let curveStartX = Math.max(curveStartMinimum, referenceRightEdge - 80);
+            if (curveStartX < startX + 40) {
+              curveStartX = startX + 40;
+            }
+
+            const verticalDistance = endY - startY; // This will be positive (going down)
+
+            // Use control points that match the green line's steep rise
+            const control1X = curveStartX + 60;
+            const control1Y = startY; // Keep horizontal at start
+            const control2X = extendPastReference;
+            const control2Y = startY + verticalDistance * 0.15; // Same proportion as green line
+
+            // Create path with same structure as green line
             const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
                            `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
                            `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                           `${horizontalStartX.toFixed(2)} ${curveEndY.toFixed(2)} ` +
-                           `L ${targetX.toFixed(2)} ${curveEndY.toFixed(2)}`;
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
-            greyAdiLine.setAttribute('d', pathData);
+            oskoToAdiLine.setAttribute('d', pathData);
           };
 
-          window.greyAdiLine = greyAdiLine;
-          window.updateGreyAdiLine = updateGreyAdiLine;
-          updateGreyAdiLine();
+          window.oskoToAdiLine = oskoToAdiLine;
+          window.updateOskoToAdiLine = updateOskoToAdiLine;
+          updateOskoToAdiLine();
 
           window.otherCardsHierarchy = {
             parent: null,
@@ -4278,8 +4316,8 @@ function initializeDiagram() {
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
-            if (typeof window.updateGreyAdiLine === 'function') {
-              window.updateGreyAdiLine();
+            if (typeof window.updateOskoToAdiLine === 'function') {
+              window.updateOskoToAdiLine();
             }
 
             hierarchy.childWidth = childWidthUpdated;
@@ -4965,8 +5003,8 @@ function initializeDiagram() {
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
-            if (typeof window.updateGreyAdiLine === 'function') {
-              window.updateGreyAdiLine();
+            if (typeof window.updateOskoToAdiLine === 'function') {
+              window.updateOskoToAdiLine();
             }
 
             if (typeof window.updateCardLeftLines === 'function') {
@@ -5501,9 +5539,8 @@ function initializeDiagram() {
         const bottomRect = createStyledRect(rectX, clsAudYFinal, swiftRectWidth, smallRectHeight, {
           fill: '#0f766e',  // Dark teal like pacs.008
           stroke: 'none',    // No border like pacs.008
-          strokeWidth: '0',
-          rx: '12', // Rounded corners like pacs.008
-          ry: '12'  // Rounded corners like pacs.008
+          strokeWidth: '0'
+          // Square corners - no rx/ry
         });
         bottomRect.setAttribute('id', 'cls-aud-rect'); // Add ID for later reference
         labelsGroup.appendChild(bottomRect);
@@ -5527,7 +5564,9 @@ function initializeDiagram() {
           'CLS AUD',
           {
             fill: '#ffffff', // White text like pacs.008
-            fontSize: '14' // Smaller than SWIFT PDS (18)
+            fontSize: '12', // Smaller font size
+            dominantBaseline: 'middle', // Ensure vertical centering
+            textAnchor: 'middle' // Ensure horizontal centering
           }
         );
         labelsGroup.appendChild(bottomText);
@@ -7071,8 +7110,8 @@ function initializeDiagram() {
         if (typeof window.updateDirectEntryToAdiLine === 'function') {
           window.updateDirectEntryToAdiLine();
         }
-        if (typeof window.updateGreyAdiLine === 'function') {
-          window.updateGreyAdiLine();
+        if (typeof window.updateOskoToAdiLine === 'function') {
+          window.updateOskoToAdiLine();
         }
         if (typeof window.updateCardLeftLines === 'function') {
           window.updateCardLeftLines();
@@ -7258,7 +7297,7 @@ function initializeDiagram() {
           {
             fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border (same as group 3)
-            strokeWidth: '0.5',
+            strokeWidth: '1.2',
             rx: '4' // Small rounded corners
           }
         );
@@ -7316,7 +7355,7 @@ function initializeDiagram() {
           {
             fill: '#ccfbf1', // Soft aqua tone
             stroke: '#38bdf8', // Sky blue border
-            strokeWidth: '0.5',
+            strokeWidth: '1.2',
             rx: '4' // Small rounded corners
           }
         );
@@ -7514,8 +7553,8 @@ function initializeDiagram() {
           if (typeof window.updateDirectEntryToAdiLine === 'function') {
             window.updateDirectEntryToAdiLine();
           }
-          if (typeof window.updateGreyAdiLine === 'function') {
-            window.updateGreyAdiLine();
+          if (typeof window.updateOskoToAdiLine === 'function') {
+            window.updateOskoToAdiLine();
           }
 
           // Create orange line from Sympli to ADIs now that both box data are available
@@ -7541,7 +7580,7 @@ function initializeDiagram() {
             // Follow the same curve pattern as the blue line but extend much further right
             const nonAdiRightEdge = window.nonAdiBoxData ? window.nonAdiBoxData.x + window.nonAdiBoxData.width : 0;
             // Start curving up even closer to the ADIs box
-            const curveStartX = window.adiBoxData.x +300; // Start curve only 50px before ADI box left edge
+            const curveStartX = window.adiBoxData.x + 320; // Extended 20px further right
             const extendPastNonAdi = window.adiBoxData.x + 420; // Control point for curve
 
             // End point for orange line - next to where blue line connects
@@ -7590,13 +7629,12 @@ function initializeDiagram() {
             const cornerRadius = 20;
             const baseDownToY = window.asxLineData.horizontalY + 8; // Was 20, moved up 12 total
             let downToY = baseDownToY + horizontalSeparation;
-            const curveStartX = window.adiBoxData.x + 300;
+            const curveStartX = window.adiBoxData.x + 320; // Extended 20px further right to match orange line
             const extendPastNonAdi = window.adiBoxData.x + 420;
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkHorizontalOffset = offsetBetweenLines + 5;
-            const pinkEndX = orangeEndX + pinkHorizontalOffset;
+            const pinkEndX = orangeEndX; // Same endpoint as orange line
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
@@ -8397,6 +8435,11 @@ window.oskoElements = {
   line: oskoLine
 };
 window.updateOskoLine = updateOskoLine;
+
+// Update the OSKO to ADI curve now that OSKO box exists
+if (typeof window.updateOskoToAdiLine === 'function') {
+  window.updateOskoToAdiLine();
+}
 updateOskoLine();
 // XXX-to-ADI line update removed
 // if (typeof window.updateXXXToAdiLine === 'function') {
@@ -8405,8 +8448,8 @@ updateOskoLine();
 if (typeof window.updateDirectEntryToAdiLine === 'function') {
   window.updateDirectEntryToAdiLine();
 }
-if (typeof window.updateGreyAdiLine === 'function') {
-  window.updateGreyAdiLine();
+if (typeof window.updateOskoToAdiLine === 'function') {
+  window.updateOskoToAdiLine();
 }
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
