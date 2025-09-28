@@ -3280,6 +3280,79 @@ function initializeDiagram() {
                   }
                 });
               }
+
+              // Create horizontal continuation branch
+              if (!entry.horizontalBranch) {
+                const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizontalBranch.setAttribute('stroke', entry.color);
+                horizontalBranch.setAttribute('stroke-width', entry.strokeWidth);
+                horizontalBranch.setAttribute('stroke-linecap', 'round');
+                horizontalBranch.setAttribute('fill', 'none');
+                horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
+                labelsGroup.appendChild(horizontalBranch);
+                entry.horizontalBranch = horizontalBranch;
+              }
+
+              // Build horizontal path that continues from where the curve would start
+              const buildHorizontalPath = () => {
+                const clampedFraction = Math.min(Math.max(entry.fraction, 0), 1);
+                const startX = baseLeft + entry.offset;
+                const startY = baseTop + baseHeight * (1 - clampedFraction);
+                const baseFillet = metrics.filletRadiusUsed ?? 150;
+                const filletRadius = Math.max(20, baseFillet - entry.offset);
+                const firstLegX = startX - Math.max(15, entry.offset + 5);
+                const baseTurnX = metrics.turnX ?? (firstLegX - filletRadius - 20);
+                const turnX = baseTurnX + entry.offset;
+                const verticalShift = Math.max(2, (metrics.verticalShift ?? 9) - 4);
+                const baseVerticalX = metrics.verticalX ?? baseTurnX;
+                const verticalX = baseVerticalX + entry.offset - verticalShift;
+                const verticalY = startY - filletRadius;
+                const baseCorner = metrics.topCornerRadius ?? 20;
+                const topCornerRadius = Math.max(6, baseCorner - 8);
+                const baseHorizontalY = Number.isFinite(metrics.horizontalY)
+                  ? metrics.horizontalY
+                  : (verticalY - 40);
+                const horizontalY = baseHorizontalY - (entry.horizontalAdjust || 0);
+                const geometry = window.directEntryToAdiGeometry;
+                let horizontalEndX = Number.isFinite(metrics.horizontalEndX)
+                  ? metrics.horizontalEndX + entry.offset
+                  : (verticalX + 140);
+                if (geometry && Number.isFinite(geometry.curveStartX)) {
+                  horizontalEndX = Math.max(horizontalEndX, geometry.curveStartX);
+                }
+
+                // Create path that continues horizontally instead of curving down
+                if (window.adiBoxData && Number.isFinite(window.adiBoxData.y)) {
+                  const adiData = window.adiBoxData;
+                  const referenceRightEdge = window.nonAdiBoxData
+                    ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
+                    : horizontalEndX + 300;
+                  let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
+                  if (geometry && Number.isFinite(geometry.curveStartX)) {
+                    curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
+                  }
+
+                  // Continue horizontally to the right edge of the diagram
+                  const horizontalExtendX = curveStartX + 400; // Extend 400px to the right
+
+                  const horizontalPath = [
+                    `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
+                    `L ${firstLegX.toFixed(2)} ${startY.toFixed(2)}`,
+                    `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
+                    `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
+                    `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
+                    `L ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}`
+                  ].join(' ');
+
+                  return horizontalPath;
+                }
+                return '';
+              };
+
+              const horizontalPathData = buildHorizontalPath();
+              if (horizontalPathData && entry.horizontalBranch) {
+                entry.horizontalBranch.setAttribute('d', horizontalPathData);
+              }
             });
           };
 
@@ -3584,7 +3657,7 @@ function initializeDiagram() {
                     baselineEndX = adiLeft + adiData.width / 2;
                   }
 
-                  const entryOffset = isEftpos ? 25 : 20; // eftpos slightly farther than maroon, Mastercard a bit closer
+                  const entryOffset = isEftpos ? 25 : 18; // eftpos slightly farther than maroon, Mastercard 2px left of original
                   const endX = baselineEndX + entryOffset;
                   const endY = adiTopY;
 
@@ -3710,7 +3783,8 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'eftpos-left-line'
               });
-              labelsGroup.appendChild(eftposUpturnPath);
+              // Insert at beginning so lines go under ADI box
+              labelsGroup.insertBefore(eftposUpturnPath, labelsGroup.firstChild);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
                 stroke: 'rgb(216,46,43)', // Mastercard red border color
@@ -3719,7 +3793,8 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'mastercard-left-line'
               });
-              labelsGroup.appendChild(mastercardUpturnPath);
+              // Insert at beginning so lines go under ADI box
+              labelsGroup.insertBefore(mastercardUpturnPath, labelsGroup.firstChild);
 
           window.cardLeftLineData = {
             eftposPath: eftposUpturnPath,
