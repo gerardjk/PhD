@@ -45,7 +45,7 @@ function initializeDiagram() {
       }
 
       const extraGap = Number(extraGapRaw);
-      const verticalShift = 15; // Drop the blue horizontals slightly below the neon line
+      const verticalShift = 27; // Drop the blue horizontals further below the neon line
       const desiredTopY = neonY + extraGap + verticalShift;
       const newGoDown = desiredTopY - cornerRadius - startY;
 
@@ -391,8 +391,8 @@ function initializeDiagram() {
         endY
       };
 
-      if (typeof window.updateChequesToAdiLine === 'function') {
-        window.updateChequesToAdiLine();
+      if (typeof window.updateXXXToAdiLine === 'function') {
+        window.updateXXXToAdiLine();
       }
       if (typeof window.updateDirectEntryToAdiLine === 'function') {
         window.updateDirectEntryToAdiLine();
@@ -1036,7 +1036,10 @@ function initializeDiagram() {
 
 
         // Add narrow rectangle above Austraclear (CHESS-RTGS)
-        const narrowRect = createStyledRect(baseX, chessY, rectWidth, smallRectHeight, {
+        const chessBoxPaddingReduction = 8; // Reduce padding by 8 pixels total (4 on each side)
+        const chessBoxWidth = rectWidth - chessBoxPaddingReduction;
+        const chessBoxX = baseX + (chessBoxPaddingReduction / 2); // Shift right to center the narrower box
+        const narrowRect = createStyledRect(chessBoxX, chessY, chessBoxWidth, smallRectHeight, {
           fill: '#e8ecf7', // Same as Austraclear
           stroke: '#071f6a', // Same as Austraclear
           strokeWidth: '2'
@@ -1046,7 +1049,7 @@ function initializeDiagram() {
 
         // Add label for CHESS-RTGS
         const chessText = createStyledText(
-          baseX + rectWidth / 2,
+          chessBoxX + chessBoxWidth / 2,
           chessY + smallRectHeight / 2,
           'CHESS-RTGS',
           {
@@ -1126,7 +1129,7 @@ function initializeDiagram() {
 
         // Add ASX Settlement as elongated hexagon
         let dvpRtgsCenterX = dvpRtgsX + rectWidth / 4; // Center of reduced-width DvP RTGS (will be updated)
-        const chessRtgsCenterX = baseX + rectWidth / 2; // Center of CHESS-RTGS
+        const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS (adjusted for padding reduction)
         const bridgeX = dvpRtgsCenterX; // Left edge at DvP RTGS center
         const bridgeWidth = chessRtgsCenterX - dvpRtgsCenterX; // Width to reach CHESS-RTGS center
         const hexHeight = smallRectHeight * 1.5 * 0.8 * 0.9; // 50% taller, reduced by 20%, then by 10%
@@ -1228,7 +1231,7 @@ function initializeDiagram() {
           const lineY = chessY + (smallRectHeight + verticalGap) * j + smallRectHeight / 2;
           const x1 = dvpRtgsX + rectWidth / 2; // Right edge of DvP RTGS (half width)
           const y1 = lineY;
-          const x2 = baseX; // Left edge of CHESS-RTGS
+          const x2 = chessBoxX; // Left edge of CHESS-RTGS (adjusted for padding reduction)
           const y2 = lineY;
 
           const austLine = createStyledLine(x1, y1, x2, y2, {
@@ -1542,8 +1545,8 @@ function initializeDiagram() {
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f5efea', // Even lighter tan, same shade family
-          stroke: '#9b7a5f', // Brownish tan border
+          fill: '#f1ffcc', // Light yellow-green (from CECS)
+          stroke: '#2d5016', // Dark forest green (from CECS)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1554,15 +1557,23 @@ function initializeDiagram() {
         const cshdText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           cshdY + boxHeight / 2,
-          'CSHD',
+          'IAC (CECS)',
           {
-            fill: '#9b7a5f' // Same brownish tan color as border
+            fill: '#2d5016' // Dark forest green (from CECS)
           }
         );
         labelsGroup.appendChild(cshdText);
+
+        // Store IAC (CECS) position for direct entry bounding line updates
+        window.cecsBoxData = {
+          x: reducedNarrowBoxX,
+          y: cshdY,
+          width: reducedNarrowBoxWidth,
+          height: boxHeight
+        };
         const cecsBox = createStyledRect(reducedNarrowBoxX, cecsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f1ffcc', // Light yellow-green
-          stroke: '#2d5016', // Dark forest green
+          fill: '#000000', // Black fill (from GABS)
+          stroke: '#ff0000', // Bright red border (from GABS)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1571,17 +1582,17 @@ function initializeDiagram() {
 
         // CECS label
         const cecsText = createStyledText(
-          reducedNarrowBoxX + reducedNarrowBoxWidth / 2, 
-          cecsY + boxHeight / 2, 
-          'IAC (CECS)',
+          reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
+          cecsY + boxHeight / 2,
+          'GABS',
           {
-            fill: '#2d5016' // Dark forest green
+            fill: '#FFFFFF' // White text (from GABS)
           }
         );
         labelsGroup.appendChild(cecsText);
 
-        // Store CECS position for later line drawing
-        window.cecsBoxData = {
+        // Store GABS position separately if needed later
+        window.gabsBoxData = {
           x: reducedNarrowBoxX,
           y: cecsY,
           width: reducedNarrowBoxWidth,
@@ -1591,8 +1602,8 @@ function initializeDiagram() {
         // BECS (third from bottom)
         const becsY = cshdY - boxHeight - squareRectGap; // Above CSHD (automatically shifted with CSHD)
         const becsBox = createStyledRect(reducedNarrowBoxX, becsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#ffc0cb', // Pink fill (keeping current)
-          stroke: '#8B0000', // Dark red border
+          fill: '#f5efea', // Light tan (from CSHD)
+          stroke: '#9b7a5f', // Brownish tan border (from CSHD)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1611,9 +1622,9 @@ function initializeDiagram() {
         const becsText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           becsY + boxHeight / 2,
-          'BECS',
+          'CSHD',
           {
-            fill: '#8b0000', // Dark red text
+            fill: '#9b7a5f', // Brownish tan (from CSHD)
             fontSize: '12'
           }
         );
@@ -1622,8 +1633,8 @@ function initializeDiagram() {
         // APCS (fourth from bottom)
         const apcsY = becsY - boxHeight - squareRectGap;
         const apcsBox = createStyledRect(reducedNarrowBoxX, apcsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#e5e7eb', // Light grey
-          stroke: '#6b7280', // Grey border
+          fill: '#ffc0cb', // Pink fill (from BECS)
+          stroke: '#8B0000', // Dark red border (from BECS)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1634,9 +1645,9 @@ function initializeDiagram() {
         const apcsText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           apcsY + boxHeight / 2,
-          'APCS',
+          'BECS',
           {
-            fill: '#0a0e27', // Very dark blue
+            fill: '#8b0000', // Dark red text (from BECS)
             fontSize: '12'
           }
         );
@@ -1664,8 +1675,8 @@ function initializeDiagram() {
         const gabsBottomY = apcsY - squareRectGap; // Bottom edge position
         const gabsY = gabsBottomY - boxHeight; // Top edge raised to accommodate full height
         const gabsBox = createStyledRect(reducedNarrowBoxX, gabsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#000000', // Black fill (like BDF)
-          stroke: '#ff0000', // Bright red border
+          fill: '#e5e7eb', // Light grey (from APCS)
+          stroke: '#6b7280', // Grey border (from APCS)
           strokeWidth: '2',
           rx: '8',
           ry: '8'
@@ -1676,13 +1687,152 @@ function initializeDiagram() {
         const gabsText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           gabsY + boxHeight / 2,
-          'GABS',
+          'APCS',
           {
-            fill: '#FFFFFF', // White text
+            fill: '#0a0e27', // Very dark blue (from APCS)
             fontSize: '12'
           }
         );
         labelsGroup.appendChild(gabsText);
+
+        // Add three small boxes directly above APCS box
+        const newSmallBoxGap = 5; // Gap between the new small boxes
+        const newSmallBoxHeight = boxHeight * 0.8; // Same as original APCE/APCR/ACPT boxes
+        const newTotalGapWidth = newSmallBoxGap * 2; // Two gaps between three boxes
+        const newAvailableWidth = reducedNarrowBoxWidth - newTotalGapWidth; // Total width matches APCS box
+        const newSmallBoxWidth = newAvailableWidth / 3; // Each box gets 1/3 of available width
+        const newSmallBoxesY = gabsY - newSmallBoxHeight - boxHeight; // Gap equal to APCS box height
+
+        // New APCE box (leftmost)
+        const newApceX = reducedNarrowBoxX; // Left edge aligns with APCS left edge
+        const newApceBox = createStyledRect(newApceX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border
+          strokeWidth: '1',
+          rx: '4',
+          ry: '4'
+        });
+        labelsGroup.appendChild(newApceBox);
+
+        const newApceText = createStyledText(
+          newApceX + newSmallBoxWidth / 2,
+          newSmallBoxesY + newSmallBoxHeight / 2,
+          'APCE',
+          {
+            fill: '#0a0e27', // Dark blue
+            fontSize: '8'
+          }
+        );
+        labelsGroup.appendChild(newApceText);
+
+        // New APCR box (middle)
+        const newApcrX = newApceX + newSmallBoxWidth + newSmallBoxGap;
+        const newApcrBox = createStyledRect(newApcrX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border
+          strokeWidth: '1',
+          rx: '4',
+          ry: '4'
+        });
+        labelsGroup.appendChild(newApcrBox);
+
+        const newApcrText = createStyledText(
+          newApcrX + newSmallBoxWidth / 2,
+          newSmallBoxesY + newSmallBoxHeight / 2,
+          'APCR',
+          {
+            fill: '#0a0e27', // Dark blue
+            fontSize: '8'
+          }
+        );
+        labelsGroup.appendChild(newApcrText);
+
+        // New ACPT box (rightmost)
+        const newAcptX = newApcrX + newSmallBoxWidth + newSmallBoxGap;
+        const newAcptBox = createStyledRect(newAcptX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+          fill: '#e5e7eb', // Light grey
+          stroke: '#6b7280', // Grey border
+          strokeWidth: '1',
+          rx: '4',
+          ry: '4'
+        });
+        labelsGroup.appendChild(newAcptBox);
+
+        const newAcptText = createStyledText(
+          newAcptX + newSmallBoxWidth / 2,
+          newSmallBoxesY + newSmallBoxHeight / 2,
+          'APCT',
+          {
+            fill: '#0a0e27', // Dark blue
+            fontSize: '8'
+          }
+        );
+        labelsGroup.appendChild(newAcptText);
+
+        // Add Cheques box above the three small boxes
+        const newChequesBoxHeight = boxHeight * 0.8; // Same as original Cheques box
+        const newChequesBoxY = newSmallBoxesY - newChequesBoxHeight - 3; // Position above small boxes with reduced gap
+        const newChequesBox = createStyledRect(reducedNarrowBoxX, newChequesBoxY, reducedNarrowBoxWidth, newChequesBoxHeight, {
+          fill: '#4b5563', // Dark grey (same as original Cheques box)
+          stroke: 'none',
+          rx: '5',
+          ry: '5'
+        });
+        labelsGroup.appendChild(newChequesBox);
+
+        const newChequesText = createStyledText(
+          reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
+          newChequesBoxY + newChequesBoxHeight / 2,
+          'Cheques',
+          {
+            fill: '#ffffff', // White text (same as original)
+            fontSize: '11'
+          }
+        );
+        labelsGroup.appendChild(newChequesText);
+
+        // Add vertical connecting lines from new boxes to APCS
+        const apcsTopY = gabsY; // Top of APCS box
+        const newBoxesBottomY = newSmallBoxesY + newSmallBoxHeight; // Bottom of new boxes
+
+        // Vertical line from new APCE to APCS
+        const newApceLine = createStyledLine(
+          newApceX + newSmallBoxWidth / 2, // Center of APCE
+          newBoxesBottomY,
+          newApceX + newSmallBoxWidth / 2, // Same X (vertical line)
+          apcsTopY,
+          {
+            stroke: '#6B5D54',
+            strokeWidth: '1'
+          }
+        );
+        labelsGroup.insertBefore(newApceLine, newApceBox);
+
+        // Vertical line from new APCR to APCS
+        const newApcrLine = createStyledLine(
+          newApcrX + newSmallBoxWidth / 2, // Center of APCR
+          newBoxesBottomY,
+          newApcrX + newSmallBoxWidth / 2, // Same X (vertical line)
+          apcsTopY,
+          {
+            stroke: '#6B5D54',
+            strokeWidth: '1'
+          }
+        );
+        labelsGroup.insertBefore(newApcrLine, newApcrBox);
+
+        // Vertical line from new ACPT to APCS
+        const newAcptLine = createStyledLine(
+          newAcptX + newSmallBoxWidth / 2, // Center of ACPT
+          newBoxesBottomY,
+          newAcptX + newSmallBoxWidth / 2, // Same X (vertical line)
+          apcsTopY,
+          {
+            stroke: '#6B5D54',
+            strokeWidth: '1'
+          }
+        );
+        labelsGroup.insertBefore(newAcptLine, newAcptBox);
 
         // Add NPP box aligned with RBA dot at top
         // Position NPP much higher to align with RBA area
@@ -1796,144 +1946,144 @@ function initializeDiagram() {
         } // End of NPP box creation else block
 
 
-        // Add APCE, APCR, and ACPT boxes where Cheques was
-        const apceApcrAcptGap = 5; // Gap between the three boxes
+        // Add XX1, XX2, and XX3 boxes where XXX was
+        const xx1Xx2Xx3Gap = 5; // Gap between the three boxes
         const singleSmallBoxWidth = narrowBoxWidth / 3; // Each box is 1/3 width (same as before)
-        const apceApcrAcptHeight = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
+        const xx1Xx2Xx3Height = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
         const nppBottomY = nppBoxCreated ? (nppY + nppRectHeight) : null; // Bottom of NPP (if created)
         const referenceGabsY = typeof gabsY === 'number'
           ? gabsY
           : (nppBottomY !== null ? nppBottomY - squareRectGap - boxHeight : 0);
         const smallBoxY = referenceGabsY - 25; // Align with GABS box, shifted up more
 
-        // Calculate Cheques box width to match APCS exactly
-        const chequesBoxWidth = reducedNarrowBoxWidth; // Use exact same width as APCS box
+        // Calculate XXX box width to match APCS exactly
+        const xxxBoxWidth = reducedNarrowBoxWidth; // Use exact same width as APCS box
         // Use fixed position based on original layout, not dependent on moveable boxes
         const originalGabsX = adminBatchesLeftEdge; // Original position before any moves
-        const chequesBoxX = originalGabsX - chequesBoxWidth + 10; // Right edge aligns with original GABS position, shifted right
+        const xxxBoxX = originalGabsX - xxxBoxWidth + 10; // Right edge aligns with original GABS position, shifted right
 
-        // Recalculate box widths to fit within cheques box
-        const totalGapWidth = apceApcrAcptGap * 2; // Two gaps between three boxes
-        const availableWidth = chequesBoxWidth - totalGapWidth;
+        // Recalculate box widths to fit within XXX box
+        const totalGapWidth = xx1Xx2Xx3Gap * 2; // Two gaps between three boxes
+        const availableWidth = xxxBoxWidth - totalGapWidth;
         const newSingleSmallBoxWidth = availableWidth / 3; // Each box gets 1/3 of available width
 
-        // Calculate positions to align with moved Cheques box
-        const apceX = chequesBoxX; // APCE left edge aligns with Cheques left edge
-        const apcrX = apceX + newSingleSmallBoxWidth + apceApcrAcptGap; // APCR to the right with gap
-        const acptX = apcrX + newSingleSmallBoxWidth + apceApcrAcptGap; // ACPT to the right with gap
+        // Calculate positions to align with moved XXX box
+        const xx1X = xxxBoxX; // XX1 left edge aligns with XXX left edge
+        const xx2X = xx1X + newSingleSmallBoxWidth + xx1Xx2Xx3Gap; // XX2 to the right with gap
+        const xx3X = xx2X + newSingleSmallBoxWidth + xx1Xx2Xx3Gap; // XX3 to the right with gap
 
-        // Store APCR right edge for ASX bounding box alignment
-        window.apcrRightEdge = apcrX + newSingleSmallBoxWidth;
+        // Store XX2 right edge for ASX bounding box alignment
+        window.apcrRightEdge = xx2X + newSingleSmallBoxWidth;
 
-        // APCE box (leftmost)
-        const threeBoxesAdjustedY = smallBoxY - 25; // Move three boxes up by additional 10 pixels with small gap from Cheques
-        const apceBox = createStyledRect(apceX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        // XX1 box (leftmost)
+        const threeBoxesAdjustedY = smallBoxY - 10; // Further reduced gap between XXX and XX1/XX2/XX3
+        const xx1Box = createStyledRect(xx1X, threeBoxesAdjustedY, newSingleSmallBoxWidth, xx1Xx2Xx3Height, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border
           strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(apceBox);
+        labelsGroup.appendChild(xx1Box);
         window.apceApcrAcptData = window.apceApcrAcptData || {};
-        window.apceApcrAcptData.APCE = { rect: apceBox };
+        window.apceApcrAcptData.APCE = { rect: xx1Box };
 
-        // APCE text
-        const apceText = createStyledText(
-          apceX + newSingleSmallBoxWidth / 2, 
-          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
-          'APCE',
+        // XX1 text
+        const xx1Text = createStyledText(
+          xx1X + newSingleSmallBoxWidth / 2,
+          threeBoxesAdjustedY + xx1Xx2Xx3Height / 2,
+          'XX1',
           {
             fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(apceText);
-        window.apceApcrAcptData.APCE.text = apceText;
+        labelsGroup.appendChild(xx1Text);
+        window.apceApcrAcptData.APCE.text = xx1Text;
 
-        // APCR box (middle)
-        const apcrBox = createStyledRect(apcrX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        // XX2 box (middle)
+        const xx2Box = createStyledRect(xx2X, threeBoxesAdjustedY, newSingleSmallBoxWidth, xx1Xx2Xx3Height, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
           strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(apcrBox);
-        window.apceApcrAcptData.APCR = { rect: apcrBox };
+        labelsGroup.appendChild(xx2Box);
+        window.apceApcrAcptData.APCR = { rect: xx2Box };
 
-        // APCR text
-        const apcrText = createStyledText(
-          apcrX + newSingleSmallBoxWidth / 2, 
-          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
-          'APCR',
+        // XX2 text
+        const xx2Text = createStyledText(
+          xx2X + newSingleSmallBoxWidth / 2,
+          threeBoxesAdjustedY + xx1Xx2Xx3Height / 2,
+          'XX2',
           {
             fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(apcrText);
-        window.apceApcrAcptData.APCR.text = apcrText;
+        labelsGroup.appendChild(xx2Text);
+        window.apceApcrAcptData.APCR.text = xx2Text;
 
-        // ACPT box (rightmost)
-        const acptBox = createStyledRect(acptX, threeBoxesAdjustedY, newSingleSmallBoxWidth, apceApcrAcptHeight, {
+        // XX3 box (rightmost)
+        const xx3Box = createStyledRect(xx3X, threeBoxesAdjustedY, newSingleSmallBoxWidth, xx1Xx2Xx3Height, {
           fill: '#e5e7eb', // Light grey
           stroke: '#6b7280', // Grey border,
           strokeWidth: '1',
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(acptBox);
-        window.apceApcrAcptData.ACPT = { rect: acptBox };
+        labelsGroup.appendChild(xx3Box);
+        window.apceApcrAcptData.ACPT = { rect: xx3Box };
 
-        // ACPT text
-        const acptText = createStyledText(
-          acptX + newSingleSmallBoxWidth / 2, 
-          threeBoxesAdjustedY + apceApcrAcptHeight / 2, 
-          'APCT',
+        // XX3 text
+        const xx3Text = createStyledText(
+          xx3X + newSingleSmallBoxWidth / 2,
+          threeBoxesAdjustedY + xx1Xx2Xx3Height / 2,
+          'XX3',
           {
             fill: '#0a0e27', // Very dark blue
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(acptText);
-        window.apceApcrAcptData.ACPT.text = acptText;
+        labelsGroup.appendChild(xx3Text);
+        window.apceApcrAcptData.ACPT.text = xx3Text;
 
-        // Add Cheques box above the three small boxes
-        const chequesBoxExtraGap = -12; // Much smaller gap to bring boxes closer
-        const chequesBoxGap = squareRectGap + chequesBoxExtraGap; // Much reduced gap
-        // chequesBoxX and chequesBoxWidth already calculated above
-        const chequesBoxHeight = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
-        const chequesBaseY = smallBoxY - chequesBoxHeight - chequesBoxGap; // Baseline position shared with BEC*/DE
-        const chequesBoxOffsetY = 0; // Maintain original gap between Cheques and APCE row
-        const chequesBoxY = chequesBaseY + chequesBoxOffsetY - 35; // Actual Cheques render position, shifted up by additional 10 pixels
+        // Add XXX box above the three small boxes
+        const xxxBoxExtraGap = -12; // Much smaller gap to bring boxes closer
+        const xxxBoxGap = squareRectGap + xxxBoxExtraGap; // Much reduced gap
+        // xxxBoxX and xxxBoxWidth already calculated above
+        const xxxBoxHeight = boxHeight * 0.8; // Reduced by 1/5 (4/5 of original height)
+        const xxxBaseY = smallBoxY - xxxBoxHeight - xxxBoxGap; // Baseline position shared with BEC*/DE
+        const xxxBoxOffsetY = 0; // Maintain original gap between XXX and XX1 row
+        const xxxBoxY = xxxBaseY + xxxBoxOffsetY - 15; // Lowered XXX box to reduce gap with new boxes below
 
-        // Create filled Cheques box
-        const chequesBox = createStyledRect(chequesBoxX, chequesBoxY, chequesBoxWidth, chequesBoxHeight, {
+        // Create filled XXX box
+        const xxxBox = createStyledRect(xxxBoxX, xxxBoxY, xxxBoxWidth, xxxBoxHeight, {
           fill: '#4b5563', // Dark grey
           stroke: 'none',
           rx: '5',
           ry: '5'
         });
-        labelsGroup.appendChild(chequesBox);
+        labelsGroup.appendChild(xxxBox);
 
-        // Add Cheques text
-        const chequesText = createStyledText(
-          chequesBoxX + chequesBoxWidth / 2, 
-          chequesBoxY + chequesBoxHeight / 2, 
-          'Cheques',
+        // Add XXX text
+        const xxxText = createStyledText(
+          xxxBoxX + xxxBoxWidth / 2,
+          xxxBoxY + xxxBoxHeight / 2,
+          'XXX',
           {
             fill: '#ffffff', // White text
             fontSize: '11'
           }
         );
-        labelsGroup.appendChild(chequesText);
+        labelsGroup.appendChild(xxxText);
 
-        window.chequesBoxData = {
-          x: chequesBoxX,
-          y: chequesBoxY,
-          width: chequesBoxWidth,
-          height: chequesBoxHeight
+        window.xxxBoxData = {
+          x: xxxBoxX,
+          y: xxxBoxY,
+          width: xxxBoxWidth,
+          height: xxxBoxHeight
         };
 
         // Store ASX boxes alignment for later use
@@ -1990,54 +2140,8 @@ function initializeDiagram() {
           // Line position stays the same since right edge is unchanged
         }
 
-        // Add lines from APCS to all three small boxes
-        const apcsLeftX = reducedNarrowBoxX; // Left edge of APCS
-        const smallBoxesBottomY = threeBoxesAdjustedY + apceApcrAcptHeight; // Bottom of small boxes for connection
-        // apcsCenterY already declared above
-
-        // Calculate vertical positions for three connection points on APCS left side
-        const apcsTopThird = apcsY + boxHeight * 0.1;
-        const apcsMiddle = apcsY + boxHeight * 0.3;
-        const apcsBottomThird = apcsY + boxHeight * 0.5;
-
-        // Line from APCE bottom to APCS left side (bottom third - furthest box connects lowest)
-        const apceCenterX = apceX + newSingleSmallBoxWidth / 2;
-        const apcsToApceData = `M ${apceCenterX} ${smallBoxesBottomY}
-                                Q ${apceCenterX} ${apcsBottomThird} ${apcsLeftX} ${apcsBottomThird}`;
-        const apcsToApcePath = createStyledPath(apcsToApceData, {
-          stroke: '#6B5D54',
-          strokeWidth: '1',
-          fill: 'none',
-          strokeLinejoin: 'round',
-          strokeLinecap: 'round'
-        });
-        labelsGroup.insertBefore(apcsToApcePath, apceBox);
-
-        // Line from APCR bottom to APCS left side (middle)
-        const apcrCenterX = apcrX + newSingleSmallBoxWidth / 2;
-        const apcsToApcrData = `M ${apcrCenterX} ${smallBoxesBottomY}
-                                Q ${apcrCenterX} ${apcsMiddle} ${apcsLeftX} ${apcsMiddle}`;
-        const apcsToApcrPath = createStyledPath(apcsToApcrData, {
-          stroke: '#6B5D54',
-          strokeWidth: '1',
-          fill: 'none',
-          strokeLinejoin: 'round',
-          strokeLinecap: 'round'
-        });
-        labelsGroup.insertBefore(apcsToApcrPath, apcrBox);
-
-        // Line from ACPT bottom to APCS left side (top third - closest box connects highest)
-        const acptCenterX = acptX + newSingleSmallBoxWidth / 2;
-        const apcsToAcptData = `M ${acptCenterX} ${smallBoxesBottomY}
-                                Q ${acptCenterX} ${apcsTopThird} ${apcsLeftX} ${apcsTopThird}`;
-        const apcsToAcptPath = createStyledPath(apcsToAcptData, {
-          stroke: '#6B5D54',
-          strokeWidth: '1',
-          fill: 'none',
-          strokeLinejoin: 'round',
-          strokeLinecap: 'round'
-        });
-        labelsGroup.insertBefore(apcsToAcptPath, acptBox);
+        // Old lines from original XX1/XX2/XX3 to APCS have been removed
+        // The new boxes above APCS now have vertical connecting lines instead
 
 
 
@@ -3109,11 +3213,11 @@ function initializeDiagram() {
           );
 
 
-          // Add double lines from bounding box to IAC (CECS) in LVSS style - draw BEFORE bounding box so it's behind
-          if (window.cecsBoxData) {
-            const cecsData = window.cecsBoxData;
-            const cecsLeftX = cecsData.x; // Left side of CECS box
-            const cecsCenterY = cecsData.y + cecsData.height / 2;
+          // Add double lines from bounding box to CSHD in LVSS style - draw BEFORE bounding box so it's behind
+          if (window.lvssBoxPositions && window.lvssBoxPositions.cshdY) {
+            const cshdX = reducedNarrowBoxX; // Use the same X as other boxes in that column
+            const cshdY = window.lvssBoxPositions.cshdY;
+            const cshdCenterY = cshdY + boxHeight / 2;
             // Stop line 2px inside the bounding box so it doesn't poke out
             const lineEndX = containerX + containerWidth - 2;
 
@@ -3127,9 +3231,9 @@ function initializeDiagram() {
             lineOffsets.forEach((offset) => {
               const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
               line.setAttribute('x1', lineEndX); // START at right edge of bounding box
-              line.setAttribute('y1', (cecsCenterY + offset).toFixed(2));
-              line.setAttribute('x2', cecsLeftX); // END at left side of CECS
-              line.setAttribute('y2', (cecsCenterY + offset).toFixed(2));
+              line.setAttribute('y1', (cshdCenterY + offset).toFixed(2));
+              line.setAttribute('x2', cshdX); // END at left side of CSHD
+              line.setAttribute('y2', (cshdCenterY + offset).toFixed(2));
               line.setAttribute('stroke', lineColor);
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
@@ -3541,22 +3645,22 @@ function initializeDiagram() {
           }
 
           const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          chequesToAdiLine.setAttribute('id', 'cheques-to-adi-line');
+          chequesToAdiLine.setAttribute('id', 'xxx-to-adi-line');
           chequesToAdiLine.setAttribute('stroke', '#4b5563');
           chequesToAdiLine.setAttribute('stroke-width', '1');
           chequesToAdiLine.setAttribute('stroke-linecap', 'round');
           chequesToAdiLine.setAttribute('fill', 'none');
           labelsGroup.appendChild(chequesToAdiLine);
 
-          const updateChequesToAdiLine = () => {
-            if (!window.chequesToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
+          const updateXXXToAdiLine = () => {
+            if (!window.xxxToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
 
-            // Get Cheques box position for the starting point
-            if (!window.chequesBoxData) return;
-            const chequesX = window.chequesBoxData.x;
-            const chequesY = window.chequesBoxData.y;
-            const chequesWidth = window.chequesBoxData.width;
-            const chequesMidX = chequesX + chequesWidth / 2;
+            // Get XXX box position for the starting point
+            if (!window.xxxBoxData) return;
+            const xxxX = window.xxxBoxData.x;
+            const xxxY = window.xxxBoxData.y;
+            const xxxWidth = window.xxxBoxData.width;
+            const xxxMidX = xxxX + xxxWidth / 2;
 
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
@@ -3596,19 +3700,19 @@ function initializeDiagram() {
             const control4Y = horizontalY + verticalDistance * 0.15;
 
             // Create complete path with arc for corner (no overshoot)
-            const pathData = `M ${chequesMidX.toFixed(2)} ${chequesY.toFixed(2)} ` +
-                           `L ${chequesMidX.toFixed(2)} ${(horizontalY + cornerRadius).toFixed(2)} ` +
-                           `A ${cornerRadius} ${cornerRadius} 0 0 1 ${(chequesMidX + cornerRadius).toFixed(2)} ${horizontalY.toFixed(2)} ` +
+            const pathData = `M ${xxxMidX.toFixed(2)} ${xxxY.toFixed(2)} ` +
+                           `L ${xxxMidX.toFixed(2)} ${(horizontalY + cornerRadius).toFixed(2)} ` +
+                           `A ${cornerRadius} ${cornerRadius} 0 0 1 ${(xxxMidX + cornerRadius).toFixed(2)} ${horizontalY.toFixed(2)} ` +
                            `L ${curveToAdiStartX.toFixed(2)} ${horizontalY.toFixed(2)} ` +
                            `C ${control3X.toFixed(2)} ${control3Y.toFixed(2)}, ` +
                            `${control4X.toFixed(2)} ${control4Y.toFixed(2)}, ` +
                            `${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
-            window.chequesToAdiLine.setAttribute('d', pathData);
+            window.xxxToAdiLine.setAttribute('d', pathData);
           };
 
-          window.chequesToAdiLine = chequesToAdiLine;
-          window.updateChequesToAdiLine = updateChequesToAdiLine;
+          window.xxxToAdiLine = chequesToAdiLine;
+          window.updateXXXToAdiLine = updateXXXToAdiLine;
 
           // Create double red lines from Direct Entry to ADIs (matching BECN/BECG line style)
           const deToAdiLineGap = 2.5; // Gap between double lines
@@ -3953,8 +4057,8 @@ function initializeDiagram() {
               }
             }
 
-            if (typeof window.updateChequesToAdiLine === 'function') {
-              window.updateChequesToAdiLine();
+            if (typeof window.updateXXXToAdiLine === 'function') {
+              window.updateXXXToAdiLine();
             }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
@@ -4411,31 +4515,61 @@ function initializeDiagram() {
               // Use reduced width for BECN and BECG boxes to match Direct Entry width
               const boxWidth = ((headerWidth + padX * 2) - spacing) / 2;
 
-              // Create or update first child box
+              // Calculate BPAY width and shift amount BEFORE creating boxes
+              const bpayHeight = headerHeight + gap + boxHeight;
+              const originalBpayWidth = bpayHeight; // Original square width
+              const bpayWidth = boxWidth; // Same width as BECN box
+              const bpayGap = 4; // Gap between BPAY and Direct Entry
+
+              // Calculate new position for DE/BECN/BECG
+              // BPAY's left edge stays at original position
+              const originalBpayX = headerX - originalBpayWidth - bpayGap;
+              const bpayX = originalBpayX; // Keep left edge fixed
+              // DE should start after BPAY with a gap
+              const newHeaderX = bpayX + bpayWidth + bpayGap;
+
+              // Update Direct Entry position first
+              headerInfo.rect.setAttribute('x', newHeaderX.toFixed(2));
+              if (headerInfo.text) {
+                headerInfo.text.setAttribute('x', (newHeaderX + (headerWidth + padX * 2) / 2).toFixed(2));
+              }
+              // Update stored position for connection lines
+              window.directEntryBox.x = newHeaderX;
+
+              // Create or update first child box with shifted position
               if (!window.directEntryChild1) {
                 window.directEntryChild1 = {
-                  rect: createStyledRect(headerX, boxY, boxWidth, boxHeight, {
+                  rect: createStyledRect(newHeaderX, boxY, boxWidth, boxHeight, {
                     fill: '#ffc0cb',
                     stroke: '#8B0000',
                     strokeWidth: '2.25',
                     rx: '4',
                     ry: '4'
                   }),
-                  text: createStyledText(headerX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
-                    { fill: '#8b0000', fontSize: '12' })
+                  text: createStyledText(newHeaderX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
+                    { fill: '#8b0000', fontSize: '12' }),
+                  x: newHeaderX,
+                  y: boxY,
+                  width: boxWidth,
+                  height: boxHeight
                 };
                 labelsGroup.appendChild(window.directEntryChild1.rect);
                 labelsGroup.appendChild(window.directEntryChild1.text);
               } else {
-                window.directEntryChild1.rect.setAttribute('x', headerX.toFixed(2));
+                window.directEntryChild1.rect.setAttribute('x', newHeaderX.toFixed(2));
                 window.directEntryChild1.rect.setAttribute('y', boxY.toFixed(2));
                 window.directEntryChild1.rect.setAttribute('width', boxWidth.toFixed(2));
-                window.directEntryChild1.text.setAttribute('x', (headerX + boxWidth / 2).toFixed(2));
+                window.directEntryChild1.text.setAttribute('x', (newHeaderX + boxWidth / 2).toFixed(2));
                 window.directEntryChild1.text.setAttribute('y', (boxY + boxHeight / 2).toFixed(2));
+                // Update stored positions
+                window.directEntryChild1.x = newHeaderX;
+                window.directEntryChild1.y = boxY;
+                window.directEntryChild1.width = boxWidth;
+                window.directEntryChild1.height = boxHeight;
               }
 
               // Create or update second child box
-              const box2X = headerX + boxWidth + spacing;
+              const box2X = newHeaderX + boxWidth + spacing;
               if (!window.directEntryChild2) {
                 window.directEntryChild2 = {
                   rect: createStyledRect(box2X, boxY, boxWidth, boxHeight, {
@@ -4446,7 +4580,11 @@ function initializeDiagram() {
                     ry: '4'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
-                    { fill: '#8b0000', fontSize: '12' })
+                    { fill: '#8b0000', fontSize: '12' }),
+                  x: box2X,
+                  y: boxY,
+                  width: boxWidth,
+                  height: boxHeight
                 };
                 labelsGroup.appendChild(window.directEntryChild2.rect);
                 labelsGroup.appendChild(window.directEntryChild2.text);
@@ -4456,14 +4594,13 @@ function initializeDiagram() {
                 window.directEntryChild2.rect.setAttribute('width', boxWidth.toFixed(2));
                 window.directEntryChild2.text.setAttribute('x', (box2X + boxWidth / 2).toFixed(2));
                 window.directEntryChild2.text.setAttribute('y', (boxY + boxHeight / 2).toFixed(2));
+                // Update stored positions
+                window.directEntryChild2.x = box2X;
+                window.directEntryChild2.y = boxY;
               }
 
               // Add BPAY box to the left of Direct Entry and BECN/BECG
-              // Calculate BPAY box dimensions - square, as tall as Direct Entry + BECN combined
-              const bpayHeight = headerHeight + gap + boxHeight; // Total height of Direct Entry + gap + BECN
-              const bpayWidth = bpayHeight; // Square box
-              const bpayGap = 4; // Reduced gap between BPAY and Direct Entry
-              const bpayX = headerX - bpayWidth - bpayGap;
+              // bpayHeight, bpayWidth, bpayX, and positioning already calculated above
               const bpayY = headerY; // Aligned with top of Direct Entry
 
               // Create BPAY box with style like Osko
@@ -4517,18 +4654,17 @@ function initializeDiagram() {
               bpayToBecnLine.setAttribute('stroke-linecap', 'round');
               labelsGroup.insertBefore(bpayToBecnLine, labelsGroup.firstChild); // Insert at the back of everything
 
-              // Add curved lines from BECN and BECG to BECS
-              if (window.becsBoxData && window.directEntryChild1 && window.directEntryChild2) {
-                const becsData = window.becsBoxData;
-                const becsLeftX = becsData.x;
-                const becsRightX = becsData.x + becsData.width;
-                const becsY = becsData.y;
-                const becsHeight = becsData.height;
+              // Add curved lines from BECN and BECG to APCS
+              if (window.directEntryChild1 && window.directEntryChild2) {
+                // Use APCS position (we know it's at reducedNarrowBoxX and apcsY)
+                const apcsLeftX = reducedNarrowBoxX;
+                const apcsY_local = becsY - boxHeight - squareRectGap; // BECS is above APCS
+                const apcsHeight = boxHeight;
 
-                // BECS connection points (like APCS)
-                const becsTopThird = becsY + becsHeight / 2;
-                const becsMiddle = becsY + becsHeight / 2;
-                const becsBottomThird = becsY + (2 * becsHeight) / 3;
+                // APCS connection points
+                const apcsTopThird = apcsY_local + apcsHeight * 0.3;
+                const apcsMiddle = apcsY_local + apcsHeight * 0.5;
+                const apcsBottomThird = apcsY_local + apcsHeight * 0.7;
 
                 // BECN and BECG bottom centers
                 const becnCenterX = headerX + boxWidth / 2;
@@ -4543,9 +4679,9 @@ function initializeDiagram() {
                   const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                   // Offset the X coordinates for double lines
                   const offsetBecnX = becnCenterX + offset;
-                  const offsetBecsX = becsLeftX + offset;
+                  const offsetApcsX = apcsLeftX + offset;
                   const becnToBecsData = `M ${offsetBecnX} ${childBottomY}
-                                          Q ${offsetBecnX} ${becsBottomThird} ${offsetBecsX} ${becsBottomThird}`;
+                                          Q ${offsetBecnX} ${apcsBottomThird} ${offsetApcsX} ${apcsBottomThird}`;
                   becnToBecsPath.setAttribute('d', becnToBecsData);
                   becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
                   becnToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
@@ -4568,9 +4704,11 @@ function initializeDiagram() {
                   const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                   // Offset the X coordinates for double lines
                   const offsetBecgX = becgCenterX + offset;
-                  const offsetBecsX = becsLeftX + offset;
+                  const offsetApcsX = apcsLeftX + offset;
+                  // Make the curve straighter/bend left to avoid APCR box
+                  const controlPointX = offsetBecgX - 30; // Pull control point to the left for straighter path
                   const becgToBecsData = `M ${offsetBecgX} ${childBottomY}
-                                          Q ${offsetBecgX} ${becsTopThird} ${offsetBecsX} ${becsTopThird}`;
+                                          Q ${controlPointX} ${apcsTopThird} ${offsetApcsX} ${apcsTopThird}`;
                   becgToBecsPath.setAttribute('d', becgToBecsData);
                   becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
                   becgToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
@@ -4590,8 +4728,8 @@ function initializeDiagram() {
               }
             }
 
-            if (typeof window.updateChequesToAdiLine === 'function') {
-              window.updateChequesToAdiLine();
+            if (typeof window.updateXXXToAdiLine === 'function') {
+              window.updateXXXToAdiLine();
             }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
@@ -4689,7 +4827,7 @@ function initializeDiagram() {
 
           // Simple path: straight down then curve right
           const cornerRadius = 30;
-          const goDownDistance = 168; // How far down to go - lowered by 8 pixels
+          const goDownDistance = 175; // How far down to go - increased to move below green line
 
           // Store line data for later use by non-ADIs curve
           if (!window.asxLineData) window.asxLineData = {};
@@ -4725,7 +4863,7 @@ function initializeDiagram() {
           const asxLine2StartY = asxBoxY + asxBoxHeight + 2; // Bottom edge + 2px gap
 
           // Same initial path structure as first blue line but go deeper
-          const extraDownForRightLine = 10; // Extra distance to put right line below left line - reduced by 5
+          const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
           const asxPath2 = `M ${asxLine2StartX} ${asxLine2StartY} ` +
                         `L ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine} ` + // Go straight down (extra to separate from first line)
                         `Q ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius}, ` +
@@ -5127,10 +5265,11 @@ function initializeDiagram() {
         // CLS AUD uses adjusted position if available
         const clsAudYFinal = window.clsAudAdjustedY || clsAudY;
         const bottomRect = createStyledRect(rectX, clsAudYFinal, swiftRectWidth, smallRectHeight, {
-          fill: '#bdf7e9',
-          stroke: '#0f766e',
-          strokeWidth: '2'
-          // No rx attribute = square corners
+          fill: '#0f766e',  // Dark teal like pacs.008
+          stroke: 'none',    // No border like pacs.008
+          strokeWidth: '0',
+          rx: '12', // Rounded corners like pacs.008
+          ry: '12'  // Rounded corners like pacs.008
         });
         bottomRect.setAttribute('id', 'cls-aud-rect'); // Add ID for later reference
         labelsGroup.appendChild(bottomRect);
@@ -5153,7 +5292,7 @@ function initializeDiagram() {
           clsAudYFinal + smallRectHeight / 2,
           'CLS AUD',
           {
-            fill: '#0f766e', // Dark gray text
+            fill: '#ffffff', // White text like pacs.008
             fontSize: '14' // Smaller than SWIFT PDS (18)
           }
         );
@@ -5224,7 +5363,7 @@ function initializeDiagram() {
           { x: baseX + rectWidth, y: austraclearY + austraclearHeight / 3 },
           { x: baseX + rectWidth, y: austraclearY + 2 * austraclearHeight / 3 },
           // One line from CHESS-RTGS
-          { x: baseX + rectWidth, y: chessY + smallRectHeight / 2 }
+          { x: chessBoxX + chessBoxWidth, y: chessY + smallRectHeight / 2 }
         ];
 
         curveSources.forEach((source, i) => {
@@ -6352,7 +6491,7 @@ function initializeDiagram() {
               }
             }
 
-            // Keep APCE/APCR/ACPT anchored to the admin batches layout; do not shift them with NPP
+            // Keep XX1/XX2/XX3 anchored to the admin batches layout; do not shift them with NPP
 
             // Update stored NPP data
             window.nppBoxData.y = newNppY;
@@ -6422,7 +6561,7 @@ function initializeDiagram() {
       path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       const gearBorder = createStyledPath(path, {
-        fill: '#000000' // Black for gear
+        fill: '#fffaf0' // Light cream like trade-by-trade
       });
       gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
       gearBorder.setAttribute('fill-rule', 'evenodd');
@@ -6672,7 +6811,7 @@ function initializeDiagram() {
           (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
           (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
           {
-            fill: '#dbeafe', // Light blue
+            fill: 'rgba(219, 234, 254, 1)', // Light blue fully opaque
             stroke: '#2563eb', // Darker blue border
             strokeWidth: '2',
             rx: '8' // Slightly less rounded corners
@@ -6691,8 +6830,8 @@ function initializeDiagram() {
         window.adiBoxData.y = minY2 - innerTopPadding - dotRadius;
         window.adiBoxData.width = (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2;
         window.adiBoxData.height = (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2;
-        if (typeof window.updateChequesToAdiLine === 'function') {
-          window.updateChequesToAdiLine();
+        if (typeof window.updateXXXToAdiLine === 'function') {
+          window.updateXXXToAdiLine();
         }
         if (typeof window.updateDirectEntryToAdiLine === 'function') {
           window.updateDirectEntryToAdiLine();
@@ -7127,8 +7266,8 @@ function initializeDiagram() {
           window.adiBoxData.y = adiBoxY;
           window.adiBoxData.width = adiBoxWidth;
           window.adiBoxData.height = adiBoxHeight;
-          if (typeof window.updateChequesToAdiLine === 'function') {
-            window.updateChequesToAdiLine();
+          if (typeof window.updateXXXToAdiLine === 'function') {
+            window.updateXXXToAdiLine();
           }
           if (typeof window.updateDirectEntryToAdiLine === 'function') {
             window.updateDirectEntryToAdiLine();
@@ -7152,7 +7291,7 @@ function initializeDiagram() {
 
             // Curve down to same Y level as blue lines (where they turn horizontal)
             const cornerRadius = 20;
-            const downToY = window.asxLineData.horizontalY + 20; // Go 20px below the blue lines
+            const downToY = window.asxLineData.horizontalY + 8; // Go 8px below the blue lines (was 20, moved up 12)
 
             // Follow the same curve pattern as the blue line but extend much further right
             const nonAdiRightEdge = window.nonAdiBoxData ? window.nonAdiBoxData.x + window.nonAdiBoxData.width : 0;
@@ -7204,7 +7343,7 @@ function initializeDiagram() {
             const startX = actualPexaX;
             const startY = window.pexaConveyBoxData.y + window.pexaConveyBoxData.height / 2;
             const cornerRadius = 20;
-            const baseDownToY = window.asxLineData.horizontalY + 20;
+            const baseDownToY = window.asxLineData.horizontalY + 8; // Was 20, moved up 12 total
             let downToY = baseDownToY + horizontalSeparation;
             const curveStartX = window.adiBoxData.x + 300;
             const extendPastNonAdi = window.adiBoxData.x + 420;
@@ -7257,8 +7396,8 @@ function initializeDiagram() {
           const clsRadius = smallCircleRadius * 12; // CLS has large radius
           const rectHeight = (clsY + clsRadius + 16) - rectY; // Raised bottom edge slightly (was 20)
 
-          const nonAdiRect = createStyledRect(rectX, rectY, rectWidth, rectHeight, {
-            fill: '#fef3c7', // Light gold
+          const nonAdiRect = createStyledRect(rectX - 3, rectY, rectWidth + 3, rectHeight, {
+            fill: 'rgba(254, 243, 199, 1)', // Light gold fully opaque
             stroke: '#f59e0b', // Darker gold/amber border
             strokeWidth: '2', // Same thickness as ADI box
             rx: '8' // Same rounded corners as ADI box
@@ -7382,7 +7521,7 @@ function initializeDiagram() {
         const nonAdiLabelRightPadding = 15;
         const nonAdiLabelBottomPadding = 20; // Move label lower (approx 15% closer to bottom edge)
         const nonADIsText = createStyledText(
-          nonAdiRectX + nonAdiRectWidth - nonAdiLabelRightPadding,
+          nonAdiRectX + nonAdiRectWidth - nonAdiLabelRightPadding + 3,
           nonAdiRectY + nonAdiRectHeight - nonAdiLabelBottomPadding,
           'Non-ADIs',
           {
@@ -8014,8 +8153,8 @@ window.oskoElements = {
 };
 window.updateOskoLine = updateOskoLine;
 updateOskoLine();
-if (typeof window.updateChequesToAdiLine === 'function') {
-  window.updateChequesToAdiLine();
+if (typeof window.updateXXXToAdiLine === 'function') {
+  window.updateXXXToAdiLine();
 }
 if (typeof window.updateDirectEntryToAdiLine === 'function') {
   window.updateDirectEntryToAdiLine();
@@ -8301,7 +8440,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
         (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
         {
-          fill: '#dbeafe', // Light blue
+          fill: 'rgba(219, 234, 254, 1)', // Light blue fully opaque
           stroke: '#2563eb', // Darker blue border
           strokeWidth: '2',
           rx: '8' // Slightly less rounded corners
