@@ -391,9 +391,10 @@ function initializeDiagram() {
         endY
       };
 
-      if (typeof window.updateXXXToAdiLine === 'function') {
-        window.updateXXXToAdiLine();
-      }
+      // XXX-to-ADI line update removed
+      // if (typeof window.updateXXXToAdiLine === 'function') {
+      //   window.updateXXXToAdiLine();
+      // }
       if (typeof window.updateDirectEntryToAdiLine === 'function') {
         window.updateDirectEntryToAdiLine();
       }
@@ -1984,7 +1985,7 @@ function initializeDiagram() {
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(xx1Box);
+        // labelsGroup.appendChild(xx1Box); // REMOVED: XX1 box not rendered
         window.apceApcrAcptData = window.apceApcrAcptData || {};
         window.apceApcrAcptData.APCE = { rect: xx1Box };
 
@@ -1998,7 +1999,7 @@ function initializeDiagram() {
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(xx1Text);
+        // labelsGroup.appendChild(xx1Text); // REMOVED: XX1 text not rendered
         window.apceApcrAcptData.APCE.text = xx1Text;
 
         // XX2 box (middle)
@@ -2009,7 +2010,7 @@ function initializeDiagram() {
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(xx2Box);
+        // labelsGroup.appendChild(xx2Box); // REMOVED: XX2 box not rendered
         window.apceApcrAcptData.APCR = { rect: xx2Box };
 
         // XX2 text
@@ -2022,7 +2023,7 @@ function initializeDiagram() {
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(xx2Text);
+        // labelsGroup.appendChild(xx2Text); // REMOVED: XX2 text not rendered
         window.apceApcrAcptData.APCR.text = xx2Text;
 
         // XX3 box (rightmost)
@@ -2033,7 +2034,7 @@ function initializeDiagram() {
           rx: '4',
           ry: '4'
         });
-        labelsGroup.appendChild(xx3Box);
+        // labelsGroup.appendChild(xx3Box); // REMOVED: XX3 box not rendered
         window.apceApcrAcptData.ACPT = { rect: xx3Box };
 
         // XX3 text
@@ -2046,7 +2047,7 @@ function initializeDiagram() {
             fontSize: '8'
           }
         );
-        labelsGroup.appendChild(xx3Text);
+        // labelsGroup.appendChild(xx3Text); // REMOVED: XX3 text not rendered
         window.apceApcrAcptData.ACPT.text = xx3Text;
 
         // Add XXX box above the three small boxes
@@ -2065,7 +2066,7 @@ function initializeDiagram() {
           rx: '5',
           ry: '5'
         });
-        labelsGroup.appendChild(xxxBox);
+        // labelsGroup.appendChild(xxxBox); // REMOVED: XXX box not rendered
 
         // Add XXX text
         const xxxText = createStyledText(
@@ -2077,7 +2078,7 @@ function initializeDiagram() {
             fontSize: '11'
           }
         );
-        labelsGroup.appendChild(xxxText);
+        // labelsGroup.appendChild(xxxText); // REMOVED: XXX text not rendered
 
         window.xxxBoxData = {
           x: xxxBoxX,
@@ -3644,13 +3645,14 @@ function initializeDiagram() {
             }
           }
 
-          const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          chequesToAdiLine.setAttribute('id', 'xxx-to-adi-line');
-          chequesToAdiLine.setAttribute('stroke', '#4b5563');
-          chequesToAdiLine.setAttribute('stroke-width', '1');
-          chequesToAdiLine.setAttribute('stroke-linecap', 'round');
-          chequesToAdiLine.setAttribute('fill', 'none');
-          labelsGroup.appendChild(chequesToAdiLine);
+          // XXX-to-ADI line removed since XXX box is not rendered
+          // const chequesToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          // chequesToAdiLine.setAttribute('id', 'xxx-to-adi-line');
+          // chequesToAdiLine.setAttribute('stroke', '#4b5563');
+          // chequesToAdiLine.setAttribute('stroke-width', '1');
+          // chequesToAdiLine.setAttribute('stroke-linecap', 'round');
+          // chequesToAdiLine.setAttribute('fill', 'none');
+          // labelsGroup.appendChild(chequesToAdiLine);
 
           const updateXXXToAdiLine = () => {
             if (!window.xxxToAdiLine || !window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
@@ -3711,8 +3713,8 @@ function initializeDiagram() {
             window.xxxToAdiLine.setAttribute('d', pathData);
           };
 
-          window.xxxToAdiLine = chequesToAdiLine;
-          window.updateXXXToAdiLine = updateXXXToAdiLine;
+          // window.xxxToAdiLine = chequesToAdiLine;
+          // window.updateXXXToAdiLine = updateXXXToAdiLine;
 
           // Create double red lines from Direct Entry to ADIs (matching BECN/BECG line style)
           const deToAdiLineGap = 2.5; // Gap between double lines
@@ -4057,9 +4059,10 @@ function initializeDiagram() {
               }
             }
 
-            if (typeof window.updateXXXToAdiLine === 'function') {
-              window.updateXXXToAdiLine();
-            }
+            // XXX-to-ADI line update removed
+            // if (typeof window.updateXXXToAdiLine === 'function') {
+            //   window.updateXXXToAdiLine();
+            // }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
@@ -4728,9 +4731,10 @@ function initializeDiagram() {
               }
             }
 
-            if (typeof window.updateXXXToAdiLine === 'function') {
-              window.updateXXXToAdiLine();
-            }
+            // XXX-to-ADI line update removed
+            // if (typeof window.updateXXXToAdiLine === 'function') {
+            //   window.updateXXXToAdiLine();
+            // }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
@@ -6830,9 +6834,10 @@ function initializeDiagram() {
         window.adiBoxData.y = minY2 - innerTopPadding - dotRadius;
         window.adiBoxData.width = (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2;
         window.adiBoxData.height = (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2;
-        if (typeof window.updateXXXToAdiLine === 'function') {
-          window.updateXXXToAdiLine();
-        }
+        // XXX-to-ADI line update removed
+        // if (typeof window.updateXXXToAdiLine === 'function') {
+        //   window.updateXXXToAdiLine();
+        // }
         if (typeof window.updateDirectEntryToAdiLine === 'function') {
           window.updateDirectEntryToAdiLine();
         }
@@ -7266,9 +7271,10 @@ function initializeDiagram() {
           window.adiBoxData.y = adiBoxY;
           window.adiBoxData.width = adiBoxWidth;
           window.adiBoxData.height = adiBoxHeight;
-          if (typeof window.updateXXXToAdiLine === 'function') {
-            window.updateXXXToAdiLine();
-          }
+          // XXX-to-ADI line update removed
+          // if (typeof window.updateXXXToAdiLine === 'function') {
+          //   window.updateXXXToAdiLine();
+          // }
           if (typeof window.updateDirectEntryToAdiLine === 'function') {
             window.updateDirectEntryToAdiLine();
           }
@@ -8153,9 +8159,10 @@ window.oskoElements = {
 };
 window.updateOskoLine = updateOskoLine;
 updateOskoLine();
-if (typeof window.updateXXXToAdiLine === 'function') {
-  window.updateXXXToAdiLine();
-}
+// XXX-to-ADI line update removed
+// if (typeof window.updateXXXToAdiLine === 'function') {
+//   window.updateXXXToAdiLine();
+// }
 if (typeof window.updateDirectEntryToAdiLine === 'function') {
   window.updateDirectEntryToAdiLine();
 }
