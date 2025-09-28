@@ -3,6 +3,10 @@ function initializeDiagram() {
   // Global constant for CLS sigmoid curve expansion
   const CLS_SIGMOID_EXPANSION = 1.5; // How much to expand horizontally (1.5 = 150% wider on each side)
 
+  // Global offset to move Eftpos and Mastercard horizontal line segments up/down together
+  // Negative values move lines up, positive values move lines down
+  const GLOBAL_HORIZONTAL_LINES_OFFSET = +210; // Adjust this value to move Eftpos/Mastercard lines together
+
   const svg = document.getElementById('diagram');
   const p = document.getElementById('params').dataset;
 
@@ -1644,6 +1648,14 @@ function initializeDiagram() {
         });
         labelsGroup.appendChild(apcsBox);
 
+        // Store APCS box data (which has BECS label) for connecting lines
+        window.apcsBoxData = {
+          x: reducedNarrowBoxX,
+          y: apcsY,
+          width: reducedNarrowBoxWidth,
+          height: boxHeight
+        };
+
         // APCS label
         const apcsText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
@@ -1782,6 +1794,14 @@ function initializeDiagram() {
           ry: '5'
         });
         labelsGroup.appendChild(newChequesBox);
+
+        // Store Cheques box data for line connections
+        window.chequesBoxData = {
+          x: reducedNarrowBoxX,
+          y: newChequesBoxY,
+          width: reducedNarrowBoxWidth,
+          height: newChequesBoxHeight
+        };
 
         const newChequesText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
@@ -2907,7 +2927,7 @@ function initializeDiagram() {
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
-          const topMarginHeight = reducedHeight; // Reserve space equal to one internal box
+          const topMarginHeight = reducedHeight - 3; // Reserve space equal to one internal box minus 3px
 
           // Use the full width for the green bounding box to match the Mastercard box
           const stackBoxWidth = boxWidth; // Full width to match Mastercard
@@ -2955,7 +2975,7 @@ function initializeDiagram() {
 
           const stackBoundingLabel = createStyledText(0, 0, 'IAC', {
             fill: '#2d5016',
-            fontSize: '18',
+            fontSize: '14',
             fontWeight: 'bold'
           });
           stackBoundingLabel.setAttribute('id', 'direct-entry-stack-label');
@@ -3010,7 +3030,7 @@ function initializeDiagram() {
               : topMarginHeight;
             const centerX = rectLeft + (rectRight - rectLeft) / 2;
             const labelVerticalFactor = 0.75;
-            const labelPixelOffset = 3;
+            const labelPixelOffset = 3; // Shift label down by 3 pixels
             const labelY = rectTop + topMarginValue * labelVerticalFactor + labelPixelOffset;
 
             label.setAttribute('x', centerX.toFixed(2));
@@ -3512,10 +3532,10 @@ function initializeDiagram() {
                   let horizontalY;
                   let verticalShift;
                   if (isEftpos) {
-                    horizontalY = bpay.y - 15 - 3 - 3 - 2; // eftpos line: 15px above BPay top, shifted up 8px total
+                    horizontalY = bpay.y - 15 - 3 - 3 - 2 - GLOBAL_HORIZONTAL_LINES_OFFSET; // eftpos line: 15px above BPay top, shifted up 8px total plus global offset
                     verticalShift = 3 + 3 + 2; // eftpos vertical: shift 8px left
                   } else {
-                    horizontalY = bpay.y - 10 - 4 - 3 - 2; // Mastercard line: 10px above BPay top, shifted up 9px total
+                    horizontalY = bpay.y - 10 - 4 - 3 - 2 - GLOBAL_HORIZONTAL_LINES_OFFSET; // Mastercard line: 10px above BPay top, shifted up 9px total plus global offset
                     verticalShift = 4 + 3 + 2; // Mastercard vertical: shift 9px left
                   }
 
@@ -3898,9 +3918,29 @@ function initializeDiagram() {
 
             if (!deX) return;
 
-            // Start from right edge of Direct Entry box, middle height
-            const startX = deX + deWidth;
-            const startY = deY + deHeight / 2;
+            // Start from above the grey line instead of from DE box
+            // Get OSKO box position to calculate grey line height
+            let greyLineY = deY - 30; // Default position above DE
+            if (window.oskoElements && window.oskoElements.box) {
+              const oskoBox = window.oskoElements.box;
+              const oskoY = parseFloat(oskoBox.getAttribute('y'));
+              if (Number.isFinite(oskoY)) {
+                // Grey line is at this height
+                greyLineY = (oskoY + deY) / 2 -100;
+                // Position maroon line above the grey line
+                greyLineY = greyLineY - 15; // 15px above grey line
+              }
+            }
+            // Start from where grey line's horizontal section begins (after C-curve, at OSKO left edge)
+            let startX = deX + deWidth; // Default to DE right edge
+            if (window.oskoElements && window.oskoElements.box) {
+              const oskoBox = window.oskoElements.box;
+              const oskoX = parseFloat(oskoBox.getAttribute('x'));
+              if (Number.isFinite(oskoX)) {
+                startX = oskoX; // Start from OSKO left edge (where grey line's horizontal section begins)
+              }
+            }
+            const startY = greyLineY;
 
             // Get ADIs box position
             const adiX = window.adiBoxData.x;
@@ -3918,7 +3958,7 @@ function initializeDiagram() {
             // End point - enters ADI box from top, slightly right of grey line
             const greyEndX = extendPastReference + 25; // Where grey line enters
             const endX = greyEndX + 10; // 30px to the right of grey line
-           const endY = adiY;
+            const endY = adiY;
 
             // Control points for smooth downward curve
             const verticalDistance = endY - startY;
@@ -3941,6 +3981,8 @@ function initializeDiagram() {
                              `${offsetEndX.toFixed(2)} ${endY.toFixed(2)}`;
 
               directEntryToAdiLines[index].setAttribute('d', pathData);
+              // Keep original lines visible - they were correct
+              // directEntryToAdiLines[index].setAttribute('opacity', '0');
             });
 
           window.directEntryToAdiGeometry = {
@@ -3986,20 +4028,33 @@ function initializeDiagram() {
           labelsGroup.appendChild(oskoToAdiLine);
 
           const updateOskoToAdiLine = () => {
-            if (!window.oskoElements || !window.oskoElements.box || !window.adiBoxData) return;
+            if (!window.chequesBoxData || !window.adiBoxData) return;
 
-            // Get OSKO box position
+            // Get Cheques box position
+            const chequesX = window.chequesBoxData.x;
+            const chequesY = window.chequesBoxData.y;
+            const chequesHeight = window.chequesBoxData.height;
+
+            // Get NPP box position to curve around it
+            const nppBoxEl = document.getElementById('npp-box');
+            if (!nppBoxEl) return;
+            const nppX = parseFloat(nppBoxEl.getAttribute('x'));
+            const nppY = parseFloat(nppBoxEl.getAttribute('y'));
+            const nppWidth = parseFloat(nppBoxEl.getAttribute('width'));
+            const nppHeight = parseFloat(nppBoxEl.getAttribute('height'));
+
+            if (!Number.isFinite(nppX) || !Number.isFinite(nppY) ||
+                !Number.isFinite(nppWidth) || !Number.isFinite(nppHeight)) return;
+
+            // Get OSKO box position - this is where our horizontal section joins
+            if (!window.oskoElements || !window.oskoElements.box) return;
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
             const oskoY = parseFloat(oskoBox.getAttribute('y'));
             const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
-            const oskoHeight = parseFloat(oskoBox.getAttribute('height'));
 
-            if (!Number.isFinite(oskoX) || !Number.isFinite(oskoY) ||
-                !Number.isFinite(oskoWidth) || !Number.isFinite(oskoHeight)) return;
-
-            // Get Direct Entry (maroon line) position if available
-            let deY = oskoY - 100; // Default fallback
+            // Get Direct Entry position for height reference
+            let deY = oskoY - 100;
             if (window.directEntryBox) {
               deY = window.directEntryBox.y + window.directEntryBox.height / 2;
             } else if (window.pexaExtensions && window.pexaExtensions.stackHeader && window.pexaExtensions.stackHeader.rect) {
@@ -4011,55 +4066,65 @@ function initializeDiagram() {
               }
             }
 
-            // Start from right edge of OSKO box, but higher - halfway between OSKO and Direct Entry
-            const startX = oskoX ;
-            const oskoMidY = oskoY + oskoHeight / 2;
-            const startY = (oskoY + deY) / 2 - 45; // Halfway between OSKO top and Direct Entry center
+            // The horizontal section height (halfway between OSKO and Direct Entry)
+            const horizontalY = (oskoY + deY) / 2 - 48;
 
-            // Get stored geometry from maroon and green lines
+            // Connection point at LEFT edge of OSKO box
+            const connectionX = oskoX;
+            const connectionY = horizontalY;
+
+            // Start from LEFT edge of Cheques box, middle height
+            const startX = chequesX;
+            const startY = chequesY + chequesHeight / 2;
+
+            // Create C-curve that goes around the RIGHT side of NPP box
+            const clearanceGap = 30;
+            const nppRightEdge = nppX + nppWidth;
+
+            // Two control points for C-curve around NPP - both with same X coordinate
+            const ctrlX = nppRightEdge + clearanceGap - 325; // Same X for both control points
+            const ctrl1Y = startY //- (startY - connectionY) + 150//* 0.3; // First control point Y
+            const ctrl2Y = connectionY //+ (startY - connectionY) - 100 //* 0.3; // Second control point Y
+
+            // Get stored geometry from maroon and green lines for final approach to ADI
             const maroonGeom = window.directEntryToAdiGeometry;
             const greenGeom = window.nppToAdiGeometry;
 
-            // Calculate end point between green and maroon lines
+            // Calculate end point between green and maroon lines at ADI
             let endX;
             if (maroonGeom && greenGeom && Number.isFinite(maroonGeom.endX) && Number.isFinite(greenGeom.endX)) {
               endX = (maroonGeom.endX + greenGeom.endX) / 2;
             } else if (maroonGeom && Number.isFinite(maroonGeom.endX)) {
-              endX = maroonGeom.endX - 15; // Default to 15px left of maroon
+              endX = maroonGeom.endX - 15;
             } else {
-              // Fallback positioning
               endX = window.adiBoxData.x + window.adiBoxData.width / 2 + 200;
             }
             const endY = window.adiBoxData.y;
 
-            // Match the green line's approach more closely since OSKO is also above ADI
+            // Calculate curve start for descent to ADI
             const referenceRightEdge = window.nonAdiBoxData ?
               window.nonAdiBoxData.x + window.nonAdiBoxData.width :
-              startX + 300;
-
+              oskoX + oskoWidth + 300;
             const extendPastReference = referenceRightEdge + 60;
-            const curveStartMinimum = startX + 120;
-            let curveStartX = Math.max(curveStartMinimum, referenceRightEdge - 80);
-            if (curveStartX < startX + 40) {
-              curveStartX = startX + 40;
-            }
+            const curveStartX = Math.max(oskoX + oskoWidth + 120, referenceRightEdge - 80);
 
-            const verticalDistance = endY - startY; // This will be positive (going down)
-
-            // Use control points that match the green line's steep rise
-            const control1X = curveStartX + 60;
-            const control1Y = startY; // Keep horizontal at start
-            const control2X = extendPastReference;
-            const control2Y = startY + verticalDistance * 0.15; // Same proportion as green line
-
-            // Create path with same structure as green line
-            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
-                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+            // Create path: horizontal from Cheques, then C-curve up to OSKO, then horizontal, then down to ADI
+            const horizontalEndX = startX + (connectionX - startX) / 6; // One third the distance to connection point
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` + // Start at Cheques left edge
+                           `L ${horizontalEndX.toFixed(2)} ${startY.toFixed(2)} ` + // Horizontal line (half length)
+                           `C ${ctrlX.toFixed(2)} ${ctrl1Y.toFixed(2)}, ` + // First control point
+                           `${ctrlX.toFixed(2)} ${ctrl2Y.toFixed(2)}, ` + // Second control point (same X)
+                           `${connectionX.toFixed(2)} ${connectionY.toFixed(2)} ` + // End at OSKO left edge (up at connection height)
+                           `L ${curveStartX.toFixed(2)} ${connectionY.toFixed(2)} ` + // Horizontal to curve start
+                           `C ${curveStartX + 60} ${connectionY.toFixed(2)}, ` + // Control point for down curve
+                           `${extendPastReference.toFixed(2)} ${connectionY + (endY - connectionY) * 0.15}, ` + // Control point 2
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`; // End at ADI
 
             oskoToAdiLine.setAttribute('d', pathData);
+
+            // Remove any existing control point dots
+            const existingDots = document.querySelectorAll('.control-point-dot');
+            existingDots.forEach(dot => dot.remove());
           };
 
           window.oskoToAdiLine = oskoToAdiLine;
@@ -4760,10 +4825,28 @@ function initializeDiagram() {
               const headerWidth = stackWidth * 0.8;
               const headerX = baseX + (stackWidth - headerWidth) / 2 - padX;
 
-              const nppTopValue = window.nppBoxData && Number.isFinite(window.nppBoxData.y) ? window.nppBoxData.y : NaN;
-              const headerY = Number.isFinite(nppTopValue)
-                ? (nppTopValue - headerGapNpp - headerHeight - headerLift)
-                : (atmsY - padY) - headerGap - headerHeight - headerLift;
+              // Define child box dimensions first (needed for positioning calculation)
+              const gap = 4; // Small gap between Direct Entry and its child boxes
+              const boxHeight = headerHeight * 0.9;
+
+              // Position to have same gap from IAC as IAC has from Mastercard
+              // Get the IAC bounding box info
+              const boundingPadY = 7 + 2; // Same as defined for IAC bounding box
+              const iacBottom = visaY + reducedHeight + boundingPadY;
+              const iacToMastercardGap = mastercardY - iacBottom;
+
+              // Position BECN with same gap above IAC
+              // Calculate where IAC top is
+              const topMarginHeight = reducedHeight - 3; // Same as IAC box calculation (reduced by 3px)
+              const stackTopY = atmsY;
+              const stackBoundingTop = stackTopY - boundingPadY - topMarginHeight;
+
+              // BECN+BECG are under Direct Entry, so we need to position Direct Entry appropriately
+              // boxY = headerY + headerHeight + gap (where child boxes are)
+              // We want: boxY + boxHeight = iacTop - iacToMastercardGap
+              const iacTop = stackBoundingTop;
+              const targetBecnBottom = iacTop - iacToMastercardGap;
+              const headerY = targetBecnBottom - boxHeight - headerHeight - gap - 15; // Shifted up by 15px (removed the +3 adjustment)
               headerInfo.rect.setAttribute('x', headerX.toFixed(2));
               headerInfo.rect.setAttribute('y', headerY.toFixed(2));
               headerInfo.rect.setAttribute('width', (headerWidth + padX * 2).toFixed(2));
@@ -4776,9 +4859,8 @@ function initializeDiagram() {
               window.pexaExtensions.stackHeader = headerInfo;
 
               // Now create the child boxes under Direct Entry with the updated position
-              const gap = 4; // Small gap between Direct Entry and its child boxes
+              // gap and boxHeight already defined above for positioning calculation
               const spacing = 5;
-              const boxHeight = headerHeight * 0.9;
               const boxY = headerY + headerHeight + gap;
               // Use reduced width for BECN and BECG boxes to match Direct Entry width
               const boxWidth = ((headerWidth + padX * 2) - spacing) / 2;
@@ -4789,12 +4871,21 @@ function initializeDiagram() {
               const bpayWidth = boxWidth; // Same width as BECN box
               const bpayGap = 4; // Gap between BPAY and Direct Entry
 
-              // Calculate new position for DE/BECN/BECG
-              // BPAY's left edge stays at original position
-              const originalBpayX = headerX - originalBpayWidth - bpayGap;
-              const bpayX = originalBpayX; // Keep left edge fixed
-              // DE should start after BPAY with a gap
-              const newHeaderX = bpayX + bpayWidth + bpayGap;
+              // Center the BPAY/DE/BECN/BECG group above ASX stack
+              // Get ASX center position
+              const asxCenter = window.asxBoxesAlignment ? window.asxBoxesAlignment.center :
+                (window.asxGroupShiftAmount ? moneyMarketX + window.asxGroupShiftAmount : moneyMarketX);
+
+              // Since BECN is in the middle of the group and has same width as BPAY and BECG,
+              // we want BECN's center to align with ASX center
+              // BECN is positioned at newHeaderX, so:
+              // BECN center = newHeaderX + boxWidth/2 = asxCenter
+              // Therefore: newHeaderX = asxCenter - boxWidth/2
+              // Then shift right by BECN width (boxWidth)
+              const newHeaderX = asxCenter - boxWidth / 2 + boxWidth;
+
+              // BPAY should be to the left of Direct Entry/BECN
+              const bpayX = newHeaderX - bpayGap - bpayWidth;
 
               // Update Direct Entry position first
               headerInfo.rect.setAttribute('x', newHeaderX.toFixed(2));
@@ -4901,7 +4992,7 @@ function initializeDiagram() {
               // Horizontal line from Direct Entry (left edge middle) to BPAY (right edge)
               const directEntryMidY = headerY + headerHeight / 2;
               const bpayToDirectEntryLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              bpayToDirectEntryLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of Direct Entry
+              bpayToDirectEntryLine.setAttribute('x1', newHeaderX.toFixed(2)); // Left edge of Direct Entry
               bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
               bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
@@ -4913,7 +5004,7 @@ function initializeDiagram() {
               // Horizontal line from BECN (left edge middle) to BPAY (right edge)
               const becnMidY = boxY + boxHeight / 2;
               const bpayToBecnLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              bpayToBecnLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of BECN
+              bpayToBecnLine.setAttribute('x1', newHeaderX.toFixed(2)); // Left edge of BECN
               bpayToBecnLine.setAttribute('y1', becnMidY.toFixed(2)); // Middle height of BECN
               bpayToBecnLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
               bpayToBecnLine.setAttribute('y2', becnMidY.toFixed(2)); // Same Y (horizontal)
@@ -4922,77 +5013,77 @@ function initializeDiagram() {
               bpayToBecnLine.setAttribute('stroke-linecap', 'round');
               labelsGroup.insertBefore(bpayToBecnLine, labelsGroup.firstChild); // Insert at the back of everything
 
-              // Add curved lines from BECN and BECG to APCS
-              if (window.directEntryChild1 && window.directEntryChild2) {
-                // Use APCS position (we know it's at reducedNarrowBoxX and apcsY)
-                const apcsLeftX = reducedNarrowBoxX;
-                const apcsY_local = becsY - boxHeight - squareRectGap; // BECS is above APCS
-                const apcsHeight = boxHeight;
+              // Curved lines from BECN and BECG to BECS (which is now labeled on APCS box)
+              if (window.directEntryChild1 && window.directEntryChild2 && window.apcsBoxData) {
+                // Common endpoint at APCS (labeled BECS) left edge midpoint
+                const becsLeftX = window.apcsBoxData.x;
+                const becsMidY = window.apcsBoxData.y + window.apcsBoxData.height / 2;
 
-                // APCS connection points
-                const apcsTopThird = apcsY_local + apcsHeight * 0.3;
-                const apcsMiddle = apcsY_local + apcsHeight * 0.5;
-                const apcsBottomThird = apcsY_local + apcsHeight * 0.7;
+                // BECN to BECS curved line
+                const becnBottomX = window.directEntryChild1.x + window.directEntryChild1.width / 2;
+                const becnBottomY = window.directEntryChild1.y + window.directEntryChild1.height;
 
-                // BECN and BECG bottom centers
-                const becnCenterX = headerX + boxWidth / 2;
-                const becgCenterX = box2X + boxWidth * 0.5;
-                const childBottomY = boxY + boxHeight;
+                // Calculate vertical midpoint between start and end for control points
+                const verticalMidpoint = (becnBottomY + becsMidY) / 2;
 
-                // Create double curved lines from BECN to BECS
-                const lineGap = 2.5; // Gap between double lines
-                const lineOffsets = [-lineGap/2, lineGap/2];
+                // Create double J-shaped curved paths from BECN bottom to BECS left midpoint
+                const lineOffset = 1.5; // Offset for double lines
 
-                lineOffsets.forEach((offset, index) => {
-                  const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                  // Offset the X coordinates for double lines
-                  const offsetBecnX = becnCenterX + offset;
-                  const offsetApcsX = apcsLeftX + offset;
-                  const becnToBecsData = `M ${offsetBecnX} ${childBottomY}
-                                          Q ${offsetBecnX} ${apcsBottomThird} ${offsetApcsX} ${apcsBottomThird}`;
-                  becnToBecsPath.setAttribute('d', becnToBecsData);
-                  becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                  becnToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
-                  becnToBecsPath.setAttribute('fill', 'none');
-                  becnToBecsPath.setAttribute('stroke-linecap', 'round');
+                // First BECN line (slightly left) - using quadratic Bezier for smooth J-curve
+                const becnToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnPathData1 = `M ${becnBottomX - lineOffset} ${becnBottomY} ` +
+                  `Q ${becnBottomX - lineOffset} ${becsMidY - lineOffset}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY - lineOffset}`; // End at BECS
+                becnToBecsPath1.setAttribute('d', becnPathData1);
+                becnToBecsPath1.setAttribute('stroke', '#8B0000');
+                becnToBecsPath1.setAttribute('stroke-width', '2');
+                becnToBecsPath1.setAttribute('fill', 'none');
+                becnToBecsPath1.setAttribute('stroke-linecap', 'round');
+                labelsGroup.appendChild(becnToBecsPath1);
 
-                  // Insert before BECN box so lines appear behind it
-                  if (window.directEntryChild1.rect.parentNode) {
-                    window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath, window.directEntryChild1.rect);
-                  }
+                // Second BECN line (slightly right) - using quadratic Bezier for smooth J-curve
+                const becnToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnPathData2 = `M ${becnBottomX + lineOffset} ${becnBottomY} ` +
+                  `Q ${becnBottomX + lineOffset} ${becsMidY + lineOffset}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY + lineOffset}`; // End at BECS
+                becnToBecsPath2.setAttribute('d', becnPathData2);
+                becnToBecsPath2.setAttribute('stroke', '#8B0000');
+                becnToBecsPath2.setAttribute('stroke-width', '2');
+                becnToBecsPath2.setAttribute('fill', 'none');
+                becnToBecsPath2.setAttribute('stroke-linecap', 'round');
+                labelsGroup.appendChild(becnToBecsPath2);
 
-                  // Store reference for first line
-                  if (index === 0) {
-                    window.becnToBecsLine = becnToBecsPath;
-                  }
-                });
+                // BECG to BECS curved line
+                const becgBottomX = window.directEntryChild2.x + window.directEntryChild2.width / 2;
+                const becgBottomY = window.directEntryChild2.y + window.directEntryChild2.height;
 
-                // Create double curved lines from BECG to BECS
-                lineOffsets.forEach((offset, index) => {
-                  const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                  // Offset the X coordinates for double lines
-                  const offsetBecgX = becgCenterX + offset;
-                  const offsetApcsX = apcsLeftX + offset;
-                  // Make the curve straighter/bend left to avoid APCR box
-                  const controlPointX = offsetBecgX - 30; // Pull control point to the left for straighter path
-                  const becgToBecsData = `M ${offsetBecgX} ${childBottomY}
-                                          Q ${controlPointX} ${apcsTopThird} ${offsetApcsX} ${apcsTopThird}`;
-                  becgToBecsPath.setAttribute('d', becgToBecsData);
-                  becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                  becgToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
-                  becgToBecsPath.setAttribute('fill', 'none');
-                  becgToBecsPath.setAttribute('stroke-linecap', 'round');
+                // Use same vertical midpoint for consistency
+                const verticalMidpoint2 = (becgBottomY + becsMidY) / 2;
 
-                  // Insert before BECG box so lines appear behind it
-                  if (window.directEntryChild2.rect.parentNode) {
-                    window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath, window.directEntryChild2.rect);
-                  }
+                // Create double J-shaped curved paths from BECG bottom to BECS left midpoint (same endpoint)
+                // First BECG line (slightly left) - using quadratic Bezier for smooth J-curve
+                const becgToBecsPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgPathData1 = `M ${becgBottomX - lineOffset} ${becgBottomY} ` +
+                  `Q ${becgBottomX - lineOffset} ${becsMidY - lineOffset}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY - lineOffset}`; // End at BECS
+                becgToBecsPath1.setAttribute('d', becgPathData1);
+                becgToBecsPath1.setAttribute('stroke', '#8B0000');
+                becgToBecsPath1.setAttribute('stroke-width', '2');
+                becgToBecsPath1.setAttribute('fill', 'none');
+                becgToBecsPath1.setAttribute('stroke-linecap', 'round');
+                labelsGroup.appendChild(becgToBecsPath1);
 
-                  // Store reference for first line
-                  if (index === 0) {
-                    window.becgToBecsLine = becgToBecsPath;
-                  }
-                });
+                // Second BECG line (slightly right) - using quadratic Bezier for smooth J-curve
+                const becgToBecsPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgPathData2 = `M ${becgBottomX + lineOffset} ${becgBottomY} ` +
+                  `Q ${becgBottomX + lineOffset} ${becsMidY + lineOffset}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY + lineOffset}`; // End at BECS
+                becgToBecsPath2.setAttribute('d', becgPathData2);
+                becgToBecsPath2.setAttribute('stroke', '#8B0000');
+                becgToBecsPath2.setAttribute('stroke-width', '2');
+                becgToBecsPath2.setAttribute('fill', 'none');
+                becgToBecsPath2.setAttribute('stroke-linecap', 'round');
+                labelsGroup.appendChild(becgToBecsPath2);
               }
             }
 
