@@ -3062,7 +3062,7 @@ function initializeDiagram() {
               color: '#27AEE3',
               fraction: 0.2,
               offset: 9,
-              strokeWidth: 1,
+              strokeWidth: 1.8,
               doubleLine: true,
               doubleOffset: 3,
               horizontalAdjust: -2.5,
@@ -3113,9 +3113,11 @@ function initializeDiagram() {
             });
 
             if (backgroundGroup) {
-              backgroundGroup.appendChild(path);
+              // Insert at beginning of backgroundGroup to ensure lines go under boxes
+              backgroundGroup.insertBefore(path, backgroundGroup.firstChild);
             } else {
-              labelsGroup.appendChild(path);
+              // Insert at beginning of labelsGroup as fallback
+              labelsGroup.insertBefore(path, labelsGroup.firstChild);
             }
 
             const lineEntry = { ...config, path };
@@ -3134,7 +3136,8 @@ function initializeDiagram() {
                 secondary.classList.add('direct-entry-stack-line-secondary');
 
                 const parentGroup = backgroundGroup || labelsGroup;
-                parentGroup.appendChild(secondary);
+                // Insert at beginning to ensure secondary lines also go under boxes
+                parentGroup.insertBefore(secondary, parentGroup.firstChild);
 
                 secondary.dataset.parallelOffset = offsetValue.toString();
                 return secondary;
@@ -3285,11 +3288,12 @@ function initializeDiagram() {
               if (!entry.horizontalBranch) {
                 const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 horizontalBranch.setAttribute('stroke', entry.color);
-                horizontalBranch.setAttribute('stroke-width', entry.strokeWidth);
+                horizontalBranch.setAttribute('stroke-width', entry.strokeWidth.toString());
                 horizontalBranch.setAttribute('stroke-linecap', 'round');
                 horizontalBranch.setAttribute('fill', 'none');
                 horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
-                labelsGroup.appendChild(horizontalBranch);
+                // Insert at beginning to ensure horizontal branches also go under boxes
+                labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
                 entry.horizontalBranch = horizontalBranch;
               }
 
@@ -3332,8 +3336,18 @@ function initializeDiagram() {
                     curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
                   }
 
-                  // Continue horizontally to the right edge of the diagram
-                  const horizontalExtendX = curveStartX + 400; // Extend 400px to the right
+                  // Continue horizontally then curve down along ADI box
+                  const adiRightEdge = adiData.x + adiData.width;
+                  // Offset each line based on its color to prevent overlap
+                  let xOffset = 25; // Default offset
+                  if (entry.color === '#412e29') xOffset = 20; // Brown
+                  else if (entry.color === '#008000') xOffset = 22; // Green
+                  else if (entry.color === '#FFA500') xOffset = 25; // Yellow
+                  else if (entry.color === '#27AEE3') xOffset = 28; // Blue
+
+                  const horizontalExtendX = adiRightEdge + xOffset;
+                  const curveRadius = 30; // Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
+                  const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
 
                   const horizontalPath = [
                     `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
@@ -3341,7 +3355,9 @@ function initializeDiagram() {
                     `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
                     `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
                     `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
-                    `L ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}`
+                    `L ${(horizontalExtendX - curveRadius).toFixed(2)} ${horizontalY.toFixed(2)}`, // Horizontal to curve start
+                    `Q ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(horizontalY + curveRadius).toFixed(2)}`, // Curve down
+                    `L ${horizontalExtendX.toFixed(2)} ${verticalDropY.toFixed(2)}` // Vertical down
                   ].join(' ');
 
                   return horizontalPath;
@@ -3599,7 +3615,7 @@ function initializeDiagram() {
                   const bpay = window.bpayBoxData;
                   const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
                   const bpayRight = bpay.x + bpay.width + 5; // 5px gap from BPay right edge
-                  const topCornerRadius = 180; // Much sharper corner at the top
+                  const topCornerRadius = 175; // Much sharper corner at the top
 
                   // Set different horizontal Y positions for each line
                   let horizontalY;
@@ -3796,9 +3812,60 @@ function initializeDiagram() {
               // Insert at beginning so lines go under ADI box
               labelsGroup.insertBefore(mastercardUpturnPath, labelsGroup.firstChild);
 
+              // Create horizontal branches for Eftpos and Mastercard
+              const createHorizontalBranch = (segments, color, id) => {
+                const horizontalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizontalPath.setAttribute('stroke', color);
+                horizontalPath.setAttribute('stroke-width', '2');
+                horizontalPath.setAttribute('stroke-linecap', 'round');
+                horizontalPath.setAttribute('fill', 'none');
+                horizontalPath.setAttribute('id', `${id}-horizontal`);
+
+                // Build horizontal continuation path with downward curve
+                if (segments.horizontalY && segments.curveStartX && segments.pathString && window.adiBoxData) {
+                  const adiData = window.adiBoxData;
+                  const adiRightEdge = adiData.x + adiData.width;
+                  // Offset Eftpos and Mastercard differently
+                  const xOffset = id.includes('eftpos') ? 34 : 31; // Purple (Eftpos) at 34px, Red (Mastercard) at 31px
+                  const horizontalExtendX = adiRightEdge + xOffset;
+                  const curveRadius = 90; // Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
+                  const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
+
+                  // Find the last 'L' command before the curve 'C' command
+                  const lastCIndex = segments.pathString.lastIndexOf(' C ');
+                  if (lastCIndex > -1) {
+                    // Get everything before the curve command
+                    const pathBeforeCurve = segments.pathString.substring(0, lastCIndex);
+                    // Add horizontal extension with downward curve
+                    const horizontalPathData = pathBeforeCurve +
+                                             ` L ${(horizontalExtendX - curveRadius).toFixed(2)} ${segments.horizontalY.toFixed(2)}` + // Horizontal to curve start
+                                             ` Q ${horizontalExtendX.toFixed(2)} ${segments.horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(segments.horizontalY + curveRadius).toFixed(2)}` + // Curve down
+                                             ` L ${horizontalExtendX.toFixed(2)} ${verticalDropY.toFixed(2)}`; // Vertical down
+                    horizontalPath.setAttribute('d', horizontalPathData);
+                  }
+                }
+
+                labelsGroup.appendChild(horizontalPath);
+                return horizontalPath;
+              };
+
+              const eftposHorizontalPath = createHorizontalBranch(
+                eftposSegments,
+                'rgb(100,80,180)',
+                'eftpos-left-line'
+              );
+
+              const mastercardHorizontalPath = createHorizontalBranch(
+                mastercardSegments,
+                'rgb(216,46,43)',
+                'mastercard-left-line'
+              );
+
           window.cardLeftLineData = {
             eftposPath: eftposUpturnPath,
             mastercardPath: mastercardUpturnPath,
+            eftposHorizontalPath,
+            mastercardHorizontalPath,
             eftposRect,
             mastercardRect,
             baseVerticalDistance,
@@ -3858,6 +3925,43 @@ function initializeDiagram() {
 
                 data.eftposPath.setAttribute('d', updatedEftposSegments.pathString);
                 data.mastercardPath.setAttribute('d', updatedMastercardSegments.pathString);
+
+                // Update horizontal branches with downward curve
+                if (window.adiBoxData) {
+                  const adiData = window.adiBoxData;
+                  const adiRightEdge = adiData.x + adiData.width;
+                  const eftposXOffset = 34; // Purple (Eftpos) offset
+                  const mastercardXOffset = 31; // Red (Mastercard) offset
+                  const curveRadius = 30;
+                  const verticalDropY = adiData.y + adiData.height + 100;
+
+                  if (data.eftposHorizontalPath && updatedEftposSegments.horizontalY && updatedEftposSegments.curveStartX) {
+                    const eftposExtendX = adiRightEdge + eftposXOffset;
+                    const lastCIndex = updatedEftposSegments.pathString.lastIndexOf(' C ');
+                    if (lastCIndex > -1) {
+                      const pathBeforeCurve = updatedEftposSegments.pathString.substring(0, lastCIndex);
+                      const horizontalPathData = pathBeforeCurve +
+                                               ` L ${(eftposExtendX - curveRadius).toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}` +
+                                               ` Q ${eftposExtendX.toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}, ${eftposExtendX.toFixed(2)} ${(updatedEftposSegments.horizontalY + curveRadius).toFixed(2)}` +
+                                               ` L ${eftposExtendX.toFixed(2)} ${verticalDropY.toFixed(2)}`;
+                      data.eftposHorizontalPath.setAttribute('d', horizontalPathData);
+                    }
+                  }
+
+                  if (data.mastercardHorizontalPath && updatedMastercardSegments.horizontalY && updatedMastercardSegments.curveStartX) {
+                    const mastercardExtendX = adiRightEdge + mastercardXOffset;
+                    const lastCIndex = updatedMastercardSegments.pathString.lastIndexOf(' C ');
+                    if (lastCIndex > -1) {
+                      const pathBeforeCurve = updatedMastercardSegments.pathString.substring(0, lastCIndex);
+                      const horizontalPathData = pathBeforeCurve +
+                                               ` L ${(mastercardExtendX - curveRadius).toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}` +
+                                               ` Q ${mastercardExtendX.toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}, ${mastercardExtendX.toFixed(2)} ${(updatedMastercardSegments.horizontalY + curveRadius).toFixed(2)}` +
+                                               ` L ${mastercardExtendX.toFixed(2)} ${verticalDropY.toFixed(2)}`;
+                      data.mastercardHorizontalPath.setAttribute('d', horizontalPathData);
+                    }
+                  }
+                }
+
                 data.eftposTurnX = updatedEftposSegments.turnX;
                 data.mastercardTurnX = updatedMastercardSegments.turnX;
                 data.eftposMetrics = updatedEftposSegments;
