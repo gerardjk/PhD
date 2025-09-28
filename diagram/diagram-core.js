@@ -3873,22 +3873,33 @@ function initializeDiagram() {
           // window.xxxToAdiLine = chequesToAdiLine;
           // window.updateXXXToAdiLine = updateXXXToAdiLine;
 
-          // Create double red lines from Direct Entry to ADIs (matching BECN/BECG line style)
-          const deToAdiLineGap = 2.5; // Gap between double lines
-          const deToAdiLineOffsets = [-deToAdiLineGap/2, deToAdiLineGap/2];
+          // Create maroon lines from Direct Entry to ADIs
           const directEntryToAdiLines = [];
+          const maroonLineDuplicates = [];
 
-          // Create two parallel lines for double line effect
-          deToAdiLineOffsets.forEach((offset, index) => {
+          [0, 1].forEach(index => {
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             line.setAttribute('id', `directentry-to-adi-line-${index}`);
             line.setAttribute('stroke', '#800000'); // Maroon
-            line.setAttribute('stroke-width', '1.5'); // Thinner for double line effect
+            line.setAttribute('stroke-width', '1.5');
             line.setAttribute('stroke-linecap', 'round');
             line.setAttribute('fill', 'none');
             labelsGroup.appendChild(line);
             directEntryToAdiLines.push(line);
+
+            // Create visible duplicate that will mirror the invisible original
+            const duplicate = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            duplicate.setAttribute('id', `maroon-line-duplicate-${index}`);
+            duplicate.setAttribute('stroke', '#800000'); // Same maroon color
+            duplicate.setAttribute('stroke-width', '1.5');
+            duplicate.setAttribute('stroke-linecap', 'round');
+            duplicate.setAttribute('fill', 'none');
+            // Insert at the beginning so it goes under other elements
+            labelsGroup.insertBefore(duplicate, labelsGroup.firstChild);
+            maroonLineDuplicates.push(duplicate);
           });
+
+          window.maroonLineDuplicates = maroonLineDuplicates;
 
           const updateDirectEntryToAdiLine = () => {
             if (directEntryToAdiLines.length === 0 || !window.adiBoxData) return;
@@ -3967,25 +3978,65 @@ function initializeDiagram() {
             const control2X = extendPastReference + 15;
             const control2Y = startY + verticalDistance * 0.15;
 
-            // Update each line in the double line pair with offset
-            deToAdiLineOffsets.forEach((offset, index) => {
-              const offsetStartY = startY + offset;
-              const offsetEndX = endX + offset;
-              const offsetControl1Y = control1Y + offset;
+            // Create two paths with slight vertical offset (gap of 2.5px between them)
+            directEntryToAdiLines.forEach((line, index) => {
+              const offset = index === 0 ? -1.25 : 1.25; // Offset by 1.25px each way for a 2.5px gap
+              const pathData = `M ${startX.toFixed(2)} ${(startY + offset).toFixed(2)} ` +
+                             `L ${curveStartX.toFixed(2)} ${(startY + offset).toFixed(2)} ` +
+                             `C ${control1X.toFixed(2)} ${(control1Y + offset).toFixed(2)}, ` +
+                             `${control2X.toFixed(2)} ${(control2Y + offset).toFixed(2)}, ` +
+                             `${endX.toFixed(2)} ${(endY + offset).toFixed(2)}`;
 
-              // Create path data with horizontal segment then Bézier curve down
-              const pathData = `M ${startX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
-                             `L ${curveStartX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
-                             `C ${control1X.toFixed(2)} ${offsetControl1Y.toFixed(2)}, ` +
-                             `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                             `${offsetEndX.toFixed(2)} ${endY.toFixed(2)}`;
-
-              directEntryToAdiLines[index].setAttribute('d', pathData);
-              // Keep original lines visible - they were correct
-              // directEntryToAdiLines[index].setAttribute('opacity', '0');
+              line.setAttribute('d', pathData);
+              // Step 1: Make existing maroon lines invisible (keep for reference)
+              line.setAttribute('opacity', '0');
             });
 
-          window.directEntryToAdiGeometry = {
+            // Step 2: Update the duplicates with C-CURVE path instead
+            if (window.maroonLineDuplicates && window.maroonLineDuplicates.length > 0) {
+              window.maroonLineDuplicates.forEach((duplicate, index) => {
+                const offset = index === 0 ? -1.25 : 1.25; // Same offset as original lines
+                // Start point (bottom of C) - CENTER of DE box instead of top
+                const cStartX = deX + deWidth / 2;
+                const cStartY = deY + deHeight / 2 + offset; // Center Y of DE box
+
+                // Connection point (top of C) - OSKO left edge at maroon line height
+                const cConnectionX = startX; // OSKO left edge
+                const cConnectionY = startY + offset;
+
+                // Get NPP box position for control points
+                const nppBoxEl = document.getElementById('npp-box');
+                let cCtrlX = cStartX - 50; // Default
+                if (nppBoxEl) {
+                  const nppX = parseFloat(nppBoxEl.getAttribute('x'));
+                  const nppWidth = parseFloat(nppBoxEl.getAttribute('width'));
+                  if (Number.isFinite(nppX) && Number.isFinite(nppWidth)) {
+                    const nppRightEdge = nppX + nppWidth;
+                    const clearanceGap = 30;
+                    // Position control points LEFT of grey line's control points
+                    cCtrlX = nppRightEdge + clearanceGap - 325 - 10;
+                  }
+                }
+
+                // Control points Y positions (same X for C-curve)
+                const cCtrl1Y = cStartY - 80;
+                const cCtrl2Y = cConnectionY + 10;
+
+                // Create C-curve path that continues to ADI
+                const cCurvePathData = `M ${cStartX.toFixed(2)} ${cStartY.toFixed(2)} ` + // Start at DE top
+                                       `C ${cCtrlX.toFixed(2)} ${cCtrl1Y.toFixed(2)}, ` + // First control point
+                                       `${cCtrlX.toFixed(2)} ${cCtrl2Y.toFixed(2)}, ` + // Second control point
+                                       `${cConnectionX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // End of C-curve at OSKO
+                                       `L ${curveStartX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // Horizontal segment
+                                       `C ${control1X.toFixed(2)} ${cConnectionY.toFixed(2)}, ` + // Continue to ADI
+                                       `${control2X.toFixed(2)} ${(control2Y + offset).toFixed(2)}, ` +
+                                       `${endX.toFixed(2)} ${(endY + offset).toFixed(2)}`;
+
+                window.maroonLineDuplicates[index].setAttribute('d', cCurvePathData);
+              });
+            }
+
+            window.directEntryToAdiGeometry = {
             startX,
             startY,
             curveStartX,
