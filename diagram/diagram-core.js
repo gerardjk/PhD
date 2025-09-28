@@ -398,6 +398,9 @@ function initializeDiagram() {
       if (typeof window.updateDirectEntryToAdiLine === 'function') {
         window.updateDirectEntryToAdiLine();
       }
+      if (typeof window.updateGreyAdiLine === 'function') {
+        window.updateGreyAdiLine();
+      }
     };
 
     // Distribute circles in groups: 1, triple gap, 45, gap, 5, double gap, 34, gap, 3, gap, 4, double gap, 8
@@ -1542,7 +1545,7 @@ function initializeDiagram() {
         const groupShift = -boxHeight / 4; // Move entire group up by quarter box height
         const cshdY = realAdminBoxY - reducedBoxHeight * 1.5 - boxHeight - squareRectGap * 2 - 20 + groupShift + 5; // Position CSHD - moved down by half box height + 5 pixels
 
-        // CECS (IAC) - position below CSHD with same gap as CSHD-BECS
+        // CECS - position below CSHD with same gap as CSHD-BECS
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
@@ -1554,18 +1557,18 @@ function initializeDiagram() {
         });
         labelsGroup.appendChild(cshdBox);
 
-        // CSHD label
+        // CECS label
         const cshdText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           cshdY + boxHeight / 2,
-          'IAC (CECS)',
+          'CECS',
           {
             fill: '#2d5016' // Dark forest green (from CECS)
           }
         );
         labelsGroup.appendChild(cshdText);
 
-        // Store IAC (CECS) position for direct entry bounding line updates
+        // Store CECS position for direct entry bounding line updates
         window.cecsBoxData = {
           x: reducedNarrowBoxX,
           y: cshdY,
@@ -2839,8 +2842,8 @@ function initializeDiagram() {
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
               stroke: 'none',
-              rx: '14',
-              ry: '14'
+              rx: '8',
+              ry: '8'
             });
             labelsGroup.appendChild(rect);
 
@@ -2905,6 +2908,7 @@ function initializeDiagram() {
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
+          const topMarginHeight = reducedHeight; // Reserve space equal to one internal box
 
           // Use the full width for the green bounding box to match the Mastercard box
           const stackBoxWidth = boxWidth; // Full width to match Mastercard
@@ -2917,11 +2921,13 @@ function initializeDiagram() {
           const innerBoxWidth = boxWidth * 0.8;
           const containerX = atmsActualX - (stackBoxWidth - innerBoxWidth) / 2 - boundingPadX;
           const containerWidth = stackBoxWidth + boundingPadX * 2;
+          const stackBoundingTop = stackTopY - boundingPadY - topMarginHeight;
+          const stackBoundingHeight = (stackBottomY - stackTopY) + boundingPadY * 2 + topMarginHeight;
           const stackBoundingRect = createStyledRect(
             containerX,
-            stackTopY - boundingPadY,
+            stackBoundingTop,
             containerWidth,
-            (stackBottomY - stackTopY) + boundingPadY * 2,
+            stackBoundingHeight,
             {
               fill: '#f1ffcc',
               stroke: '#2d5016',
@@ -2935,6 +2941,7 @@ function initializeDiagram() {
           stackBoundingRect.setAttribute('id', 'direct-entry-stack-bounding-box');
           stackBoundingRect.setAttribute('data-left-edge', stackBoundingLeftEdge.toFixed(2));
           stackBoundingRect.setAttribute('data-right-edge', stackBoundingRightEdge.toFixed(2));
+          stackBoundingRect.setAttribute('data-top-margin', topMarginHeight.toFixed(2));
           if (typeof cacheRectEdges === 'function') {
             cacheRectEdges(stackBoundingRect, 'directEntryStackBounding');
           }
@@ -2942,9 +2949,93 @@ function initializeDiagram() {
           window.directEntryBoundingBoxEdges = {
             left: stackBoundingLeftEdge,
             right: stackBoundingRightEdge,
-            top: stackTopY - boundingPadY,
+            top: stackBoundingTop,
             bottom: stackBottomY + boundingPadY
           };
+          window.directEntryBoundingTopMargin = topMarginHeight;
+
+          const stackBoundingLabel = createStyledText(0, 0, 'IAC', {
+            fill: '#2d5016',
+            fontSize: '18',
+            fontWeight: 'bold'
+          });
+          stackBoundingLabel.setAttribute('id', 'direct-entry-stack-label');
+          window.directEntryBoundingLabel = stackBoundingLabel;
+
+          const positionDirectEntryLabel = () => {
+            const label = window.directEntryBoundingLabel;
+            if (!label) return;
+
+            // Prefer live geometry from the rendered rectangle
+            const boundingRectEl = document.getElementById('direct-entry-stack-bounding-box');
+            let rectLeft = NaN;
+            let rectRight = NaN;
+            let rectTop = NaN;
+            let rectBottom = NaN;
+
+            if (boundingRectEl) {
+              const attrLeft = parseFloat(boundingRectEl.getAttribute('x'));
+              const attrWidth = parseFloat(boundingRectEl.getAttribute('width'));
+              const attrTop = parseFloat(boundingRectEl.getAttribute('y'));
+              const attrHeight = parseFloat(boundingRectEl.getAttribute('height'));
+
+              if (Number.isFinite(attrLeft) && Number.isFinite(attrWidth)) {
+                rectLeft = attrLeft;
+                rectRight = attrLeft + attrWidth;
+              }
+              if (Number.isFinite(attrTop)) {
+                rectTop = attrTop;
+              }
+              if (Number.isFinite(attrTop) && Number.isFinite(attrHeight)) {
+                rectBottom = attrTop + attrHeight;
+              }
+
+              const attrTopMargin = parseFloat(boundingRectEl.getAttribute('data-top-margin'));
+              if (Number.isFinite(attrTopMargin)) {
+                window.directEntryBoundingTopMargin = attrTopMargin;
+              }
+            }
+
+            const edges = window.directEntryBoundingBoxEdges || {};
+            if (!Number.isFinite(rectLeft)) rectLeft = edges.left;
+            if (!Number.isFinite(rectRight)) rectRight = edges.right;
+            if (!Number.isFinite(rectTop)) rectTop = edges.top;
+            if (!Number.isFinite(rectBottom)) rectBottom = edges.bottom;
+
+            if (!Number.isFinite(rectLeft) || !Number.isFinite(rectRight) || !Number.isFinite(rectTop)) {
+              return;
+            }
+
+            const topMarginValue = Number.isFinite(window.directEntryBoundingTopMargin)
+              ? window.directEntryBoundingTopMargin
+              : topMarginHeight;
+            const centerX = rectLeft + (rectRight - rectLeft) / 2;
+            const labelVerticalFactor = 0.75;
+            const labelPixelOffset = 3;
+            const labelY = rectTop + topMarginValue * labelVerticalFactor + labelPixelOffset;
+
+            label.setAttribute('x', centerX.toFixed(2));
+            label.setAttribute('y', labelY.toFixed(2));
+
+            window.directEntryBoundingBoxEdges = {
+              left: rectLeft,
+              right: rectRight,
+              top: rectTop,
+              bottom: Number.isFinite(rectBottom) ? rectBottom : rectTop + topMarginValue
+            };
+
+            console.log('DirectEntry label positioned', {
+              centerX,
+              labelY,
+              rectLeft,
+              rectRight,
+              rectTop,
+              rectBottom,
+              topMargin: topMarginValue
+            });
+          };
+          positionDirectEntryLabel();
+          window.positionDirectEntryLabel = positionDirectEntryLabel;
 
           const stackLineConfigs = [
             {
@@ -3173,7 +3264,7 @@ function initializeDiagram() {
             });
           };
 
-          window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackTopY - boundingPadY, (stackBottomY - stackTopY) + boundingPadY * 2);
+          window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackBoundingTop, stackBoundingHeight);
 
           const stackHeaderHeight = stackedHeight;
           const stackHeaderGap = gapHalf;
@@ -3224,7 +3315,7 @@ function initializeDiagram() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#968F7F'; // Updated color for LVSS lines
+            const lineColor = '#2d5016'; // Match CECS stroke color
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -3255,13 +3346,16 @@ function initializeDiagram() {
 
           if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
             labelsGroup.insertBefore(stackBoundingRect, visa.rect);
+            labelsGroup.insertBefore(stackBoundingLabel, visa.rect);
             labelsGroup.insertBefore(stackHeaderRect, visa.rect);
             labelsGroup.insertBefore(stackHeaderText, visa.rect);
           } else {
             const firstChild = labelsGroup.firstChild;
             labelsGroup.insertBefore(stackBoundingRect, firstChild);
             const rectNextSibling = stackBoundingRect.nextSibling;
-            labelsGroup.insertBefore(stackHeaderRect, rectNextSibling);
+            labelsGroup.insertBefore(stackBoundingLabel, rectNextSibling);
+            const labelNextSibling = stackBoundingLabel.nextSibling;
+            labelsGroup.insertBefore(stackHeaderRect, labelNextSibling);
             const headerRectNextSibling = stackHeaderRect.nextSibling;
             labelsGroup.insertBefore(stackHeaderText, headerRectNextSibling);
           }
@@ -3456,54 +3550,98 @@ function initializeDiagram() {
                   verticalXValue = turnX;
                 }
 
-                // If ADI geometry exists, extend the path to follow the same down-curve
+                // Extend the horizontal run and curve gently down into the ADIs box from the left
                 if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
-                  const geometry = window.directEntryToAdiGeometry;
+                  const adiData = window.adiBoxData;
+                  const adiTopY = adiData.y;
+                  const adiLeft = adiData.x;
+                  const geometry = window.directEntryToAdiGeometry || window.nppToAdiGeometry || null;
 
-                  if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
-                    const curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
-                    const endX = geometry.endX;
-                    const endY = geometry.endY ?? window.adiBoxData.y;
-                    const control1X = geometry.control1X ?? (curveStartX + 60);
-                    const control1Y = horizontalYValue;
-                    const control2X = geometry.control2X ?? (geometry.extendPastReference ?? (curveStartX + 80));
-                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
-
-                    if (curveStartX > horizontalEndX) {
-                      pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
-                    }
-                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-                    horizontalEndX = Math.max(horizontalEndX, curveStartX);
-                    curveStartXValue = curveStartX;
-                    extendPastReferenceValue = geometry.extendPastReference ?? (curveStartX + 120);
-                    control1XValue = control1X;
-                    control2XValue = control2X;
-                    control2YValue = control2Y;
-                    endXValue = endX;
-                  } else {
-                    const referenceRightEdge = window.nonAdiBoxData
-                      ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
-                      : horizontalEndX + 300;
-                    const extendPastReference = referenceRightEdge + 60;
-                    const curveStartX = Math.max(horizontalEndX + 120, referenceRightEdge - 80);
-                    const endX = extendPastReference + 10;
-                    const endY = window.adiBoxData.y;
-                    const control1X = curveStartX + 60;
-                    const control1Y = horizontalYValue;
-                    const control2X = extendPastReference + 15;
-                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
-
-                    pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
-                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-                    curveStartXValue = curveStartX;
-                    extendPastReferenceValue = extendPastReference;
-                    control1XValue = control1X;
-                    control2XValue = control2X;
-                    control2YValue = control2Y;
-                    endXValue = endX;
+                  // Place entries to the right of the maroon line using stored geometry when available
+                  let baselineEndX = geometry && Number.isFinite(geometry.endX)
+                    ? geometry.endX
+                    : (adiLeft + adiData.width / 2);
+                  if (!Number.isFinite(baselineEndX)) {
+                    baselineEndX = adiLeft + adiData.width / 2;
                   }
+
+                  const entryOffset = isEftpos ? 25 : 20; // eftpos slightly farther than maroon, Mastercard a bit closer
+                  const endX = baselineEndX + entryOffset;
+                  const endY = adiTopY;
+
+                  let curveStartX;
+                  if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
+                    // Start the drop where the maroon/green lines do, adjusted for the new end point
+                    const baseCurveStart = geometry.curveStartX;
+                    const baseEndX = geometry.endX;
+                    const deltaEnd = endX - baseEndX;
+                    curveStartX = baseCurveStart + deltaEnd;
+                    if (!Number.isFinite(curveStartX)) {
+                      curveStartX = baseCurveStart;
+                    }
+                    curveStartX = Math.max(horizontalEndX + 60, curveStartX);
+                  } else {
+                    curveStartX = horizontalEndX + 120;
+                  }
+
+                  // Ensure the horizontal run stays to the left of the ADIs entry point
+                  if (curveStartX > endX - 20) {
+                    curveStartX = endX - 20;
+                  }
+                  if (curveStartX < horizontalEndX) {
+                    curveStartX = horizontalEndX;
+                  }
+
+                  const horizontalExtension = Math.max(0, curveStartX - horizontalEndX);
+                  if (horizontalExtension > 0.01) {
+                    pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
+                  }
+
+                  const verticalSpan = endY - horizontalYValue;
+
+                  let control1X;
+                  let control2X;
+                  if (geometry && Number.isFinite(geometry.control1X) && Number.isFinite(geometry.control2X) && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
+                    // Shift control points to maintain the same curvature as the maroon line
+                    const baseCurveStart = geometry.curveStartX;
+                    const baseEndX = geometry.endX;
+                    const ctrl1Offset = geometry.control1X - baseCurveStart;
+                    const ctrl2Offset = geometry.control2X - baseCurveStart;
+                    const deltaEnd = endX - baseEndX;
+
+                    control1X = curveStartX + ctrl1Offset + deltaEnd;
+                    control2X = curveStartX + ctrl2Offset + deltaEnd;
+                  } else {
+                    control1X = curveStartX + Math.max(40, horizontalExtension * 0.6);
+                    control2X = endX - Math.max(28, horizontalExtension * 0.45);
+                  }
+
+                  const control1Y = horizontalYValue;
+                  const control2Y = horizontalYValue + verticalSpan * 0.15;
+
+                  // Clamp controls to maintain smoothness
+                  if (control1X > endX - 10) {
+                    control1X = endX - 10;
+                  }
+                  if (control1X <= curveStartX + 12) {
+                    control1X = curveStartX + Math.max(16, horizontalExtension * 0.45 + 16);
+                  }
+                  if (control2X <= curveStartX + 18) {
+                    control2X = curveStartX + Math.max(26, horizontalExtension * 0.55 + 22);
+                  }
+                  if (control2X >= endX - 6) {
+                    control2X = endX - 6;
+                  }
+
+                  pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+                  horizontalEndX = Math.max(horizontalEndX, curveStartX);
+                  curveStartXValue = curveStartX;
+                  extendPastReferenceValue = endX;
+                  control1XValue = control1X;
+                  control2XValue = control2X;
+                  control2YValue = control2Y;
+                  endXValue = endX;
                 }
                 return {
                   pathString,
@@ -3806,21 +3944,26 @@ function initializeDiagram() {
               directEntryToAdiLines[index].setAttribute('d', pathData);
             });
 
-            window.directEntryToAdiGeometry = {
-              curveStartX,
-              extendPastReference,
-              control1X,
-              control1Y,
-              control2X,
-              control2Y,
-              endX,
-              endY
-            };
+          window.directEntryToAdiGeometry = {
+            curveStartX,
+            extendPastReference,
+            control1X,
+            control1Y,
+            control2X,
+            control2Y,
+            endX,
+            endY
+          };
 
-            if (typeof window.updateDirectEntryBoundingLine === 'function') {
-              const edges = window.directEntryBoundingBoxEdges;
-              if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
-                window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
+          if (typeof window.updateCardLeftLines === 'function') {
+            // Rebuild eftpos/Mastercard connectors so they mirror the latest ADI geometry
+            window.updateCardLeftLines();
+          }
+
+          if (typeof window.updateDirectEntryBoundingLine === 'function') {
+            const edges = window.directEntryBoundingBoxEdges;
+            if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
+              window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
               } else {
                 window.updateDirectEntryBoundingLine();
               }
@@ -3831,6 +3974,59 @@ function initializeDiagram() {
           window.directEntryToAdiLines = directEntryToAdiLines;
           window.updateDirectEntryToAdiLine = updateDirectEntryToAdiLine;
           updateDirectEntryToAdiLine(); // Initial update
+
+          // Create grey line from ADI top - same pattern as green/maroon lines
+          const greyAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          greyAdiLine.setAttribute('id', 'grey-adi-line');
+          greyAdiLine.setAttribute('stroke', '#6b7280'); // Grey
+          greyAdiLine.setAttribute('stroke-width', '2');
+          greyAdiLine.setAttribute('stroke-linecap', 'round');
+          greyAdiLine.setAttribute('fill', 'none');
+          labelsGroup.appendChild(greyAdiLine);
+
+          const updateGreyAdiLine = () => {
+            if (!window.adiBoxData || !window.oskoElements || !window.oskoElements.box) return;
+
+            // Get ADI box position
+            const adiX = window.adiBoxData.x;
+            const adiY = window.adiBoxData.y;
+            const adiWidth = window.adiBoxData.width;
+
+            // Start from ADI top (like where the lines enter)
+            const startX = adiX + adiWidth / 2 + 190; // Left of center
+            const startY = adiY;
+
+            // Get OSKO box edge as target
+            const oskoBox = window.oskoElements.box;
+            const oskoX = parseFloat(oskoBox.getAttribute('x'));
+            const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
+            const targetX = oskoX + oskoWidth;
+
+            // Same pattern as the other lines - curve UP first then go horizontal
+            const riseHeight = 138;
+            const curveEndY = startY - riseHeight;
+            const horizontalStartX = startX - 60; // Where the horizontal section begins
+
+            // Control points for smooth curve - inverted ratios since going up instead of down
+            // Green/maroon use 0% and 15% for down curves, so we use 85% and 100% for up curves
+            const control1X = startX;
+            const control1Y = startY - riseHeight * 0.85; // 85% up (inverted from 15% down)
+            const control2X = horizontalStartX + 30; // Ease into horizontal
+            const control2Y = curveEndY; // At horizontal level (inverted from starting horizontal)
+
+            // Path: start at ADI top, curve up smoothly, then horizontal line
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
+                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
+                           `${horizontalStartX.toFixed(2)} ${curveEndY.toFixed(2)} ` +
+                           `L ${targetX.toFixed(2)} ${curveEndY.toFixed(2)}`;
+
+            greyAdiLine.setAttribute('d', pathData);
+          };
+
+          window.greyAdiLine = greyAdiLine;
+          window.updateGreyAdiLine = updateGreyAdiLine;
+          updateGreyAdiLine();
 
           window.otherCardsHierarchy = {
             parent: null,
@@ -3894,6 +4090,8 @@ function initializeDiagram() {
               rect: stackBoundingRect,
               padX: boundingPadX,
               padY: boundingPadY,
+              topMargin: topMarginHeight,
+              label: stackBoundingLabel,
               leftEdge: stackBoundingLeftEdge,
               rightEdge: stackBoundingRightEdge
             },
@@ -3956,16 +4154,20 @@ function initializeDiagram() {
             if (boundingInfo && boundingInfo.rect) {
               const bPadX = Number.isFinite(boundingInfo.padX) ? boundingInfo.padX : 6;
               const bPadY = Number.isFinite(boundingInfo.padY) ? boundingInfo.padY : 6;
+              const topMargin = Number.isFinite(boundingInfo.topMargin)
+                ? boundingInfo.topMargin
+                : (Number.isFinite(window.directEntryBoundingTopMargin) ? window.directEntryBoundingTopMargin : 0);
               const visaRectCurrent = visa?.rect;
               const visaBottom = visaRectCurrent
                 ? parseFloat(visaRectCurrent.getAttribute('y')) + parseFloat(visaRectCurrent.getAttribute('height'))
                 : visaY + childHeight;
               const topY = atmsYCurrent;
               const boundingLeftEdge = stackBaseX - bPadX;
-              const boundingTop = topY - bPadY;
+              const boundingTop = topY - bPadY - topMargin;
               const boundingWidth = stackWidth + bPadX * 2;
-              const boundingHeight = visaBottom - topY + bPadY * 2;
+              const boundingHeight = visaBottom - topY + bPadY * 2 + topMargin;
               const boundingRightEdge = boundingLeftEdge + boundingWidth;
+              const boundingBottom = visaBottom + bPadY;
 
               boundingInfo.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
               boundingInfo.rect.setAttribute('y', boundingTop.toFixed(2));
@@ -3973,12 +4175,12 @@ function initializeDiagram() {
               boundingInfo.rect.setAttribute('height', boundingHeight.toFixed(2));
               boundingInfo.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
               boundingInfo.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+              boundingInfo.rect.setAttribute('data-top-margin', topMargin.toFixed(2));
 
               if (typeof cacheRectEdges === 'function') {
                 cacheRectEdges(boundingInfo.rect, 'directEntryStackBounding');
               }
 
-              const boundingBottom = visaBottom + bPadY;
               window.directEntryBoundingBoxLeftEdge = boundingLeftEdge;
               window.directEntryBoundingBoxEdges = {
                 left: boundingLeftEdge,
@@ -3986,8 +4188,18 @@ function initializeDiagram() {
                 top: boundingTop,
                 bottom: boundingBottom
               };
+              window.directEntryBoundingTopMargin = topMargin;
               boundingInfo.leftEdge = boundingLeftEdge;
               boundingInfo.rightEdge = boundingRightEdge;
+              boundingInfo.topMargin = topMargin;
+              const labelElement = boundingInfo.label || window.directEntryBoundingLabel;
+              if (labelElement) {
+                boundingInfo.label = labelElement;
+                window.directEntryBoundingLabel = labelElement;
+              }
+              if (typeof window.positionDirectEntryLabel === 'function') {
+                window.positionDirectEntryLabel();
+              }
               if (window.pexaExtensions) {
                 window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
                 window.pexaExtensions.boundingRightEdge = boundingRightEdge;
@@ -4065,6 +4277,9 @@ function initializeDiagram() {
             // }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
+            }
+            if (typeof window.updateGreyAdiLine === 'function') {
+              window.updateGreyAdiLine();
             }
 
             hierarchy.childWidth = childWidthUpdated;
@@ -4414,6 +4629,11 @@ function initializeDiagram() {
             if (stackBounding && stackBounding.rect) {
               const padX = Number.isFinite(stackBounding.padX) ? stackBounding.padX : 6;
               const padY = Number.isFinite(stackBounding.padY) ? stackBounding.padY : 6;
+              const topMargin = Number.isFinite(stackBounding.topMargin)
+                ? stackBounding.topMargin
+                : (Number.isFinite(window.directEntryBoundingTopMargin)
+                    ? window.directEntryBoundingTopMargin
+                    : (Number.isFinite(reducedHeight) ? reducedHeight : stackedHeight * 0.9));
               const topY = atmsY;
               const bottomY = visaY + reducedHeight;
 
@@ -4423,14 +4643,16 @@ function initializeDiagram() {
               const boundingLeftEdge = boundingX - padX;
               const boundingTotalWidth = boundingWidth + padX * 2;
               const boundingRightEdge = boundingLeftEdge + boundingTotalWidth;
-              const boundingHeight = (bottomY - topY + padY * 2);
+              const boundingTop = topY - padY - topMargin;
+              const boundingHeight = (bottomY - topY + padY * 2 + topMargin);
 
               stackBounding.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
-              stackBounding.rect.setAttribute('y', (topY - padY).toFixed(2));
+              stackBounding.rect.setAttribute('y', boundingTop.toFixed(2));
               stackBounding.rect.setAttribute('width', boundingTotalWidth.toFixed(2));
-              stackBounding.rect.setAttribute('height', (bottomY - topY + padY * 2).toFixed(2));
+              stackBounding.rect.setAttribute('height', boundingHeight.toFixed(2));
               stackBounding.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
               stackBounding.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+              stackBounding.rect.setAttribute('data-top-margin', topMargin.toFixed(2));
 
               if (typeof cacheRectEdges === 'function') {
                 cacheRectEdges(stackBounding.rect, 'directEntryStackBounding');
@@ -4440,16 +4662,18 @@ function initializeDiagram() {
               window.directEntryBoundingBoxEdges = {
                 left: boundingLeftEdge,
                 right: boundingRightEdge,
-                top: topY - padY,
+                top: boundingTop,
                 bottom: bottomY + padY
               };
+              window.directEntryBoundingTopMargin = topMargin;
               if (typeof window.updateDirectEntryBoundingLine === 'function') {
-                window.updateDirectEntryBoundingLine(boundingLeftEdge, topY - padY, boundingHeight);
+                window.updateDirectEntryBoundingLine(boundingLeftEdge, boundingTop, boundingHeight);
               }
               window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
               window.pexaExtensions.boundingRightEdge = boundingRightEdge;
               stackBounding.leftEdge = boundingLeftEdge;
               stackBounding.rightEdge = boundingRightEdge;
+              stackBounding.topMargin = topMargin;
               if (window.otherCardsHierarchy && window.otherCardsHierarchy.bounding) {
                 window.otherCardsHierarchy.bounding.leftEdge = boundingLeftEdge;
                 window.otherCardsHierarchy.bounding.rightEdge = boundingRightEdge;
@@ -4481,6 +4705,9 @@ function initializeDiagram() {
 
                 window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
                 window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
+              }
+              if (typeof window.positionDirectEntryLabel === 'function') {
+                window.positionDirectEntryLabel();
               }
             }
             if (headerInfo && headerInfo.rect) {
@@ -4737,6 +4964,9 @@ function initializeDiagram() {
             // }
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
+            }
+            if (typeof window.updateGreyAdiLine === 'function') {
+              window.updateGreyAdiLine();
             }
 
             if (typeof window.updateCardLeftLines === 'function') {
@@ -6527,7 +6757,7 @@ function initializeDiagram() {
       const hexHeight_ref = window.hexagonPositions ? window.hexagonPositions.hexHeight || 20 : 20;
       const apcsY_ref = mastercardY_ref - (verticalGap_ref * 2) - hexHeight_ref - 20;
       // Calculate LVSS Y to make IAC line horizontal
-      // IAC (CECS) Y position will be cecsY + boxHeight / 2
+      // CECS Y position will be cecsY + boxHeight / 2
       // We need to match this Y position
       let redCircleY;
       if (window.needsLvssUpdate && window.needsLvssUpdate.y) {
@@ -6617,10 +6847,10 @@ function initializeDiagram() {
         const narrowBoxWidth = window.lvssBoxPositions.narrowBoxWidth;
         const boxHeight = window.lvssBoxPositions.boxHeight;
 
-        // IAC (CECS) - thick line
+        // CECS - thick line
         const iacLineY = window.lvssBoxPositions.cecsY + boxHeight / 2;
 
-        // Force LVSS to be at same Y as IAC
+        // Force LVSS to be at same Y as CECS
         const yDiff = iacLineY - lvssY;
         if (Math.abs(yDiff) > 1) { // Only adjust if difference is significant
           console.log('Adjusting LVSS Y from', lvssY, 'to', iacLineY, 'diff:', yDiff);
@@ -6840,6 +7070,12 @@ function initializeDiagram() {
         // }
         if (typeof window.updateDirectEntryToAdiLine === 'function') {
           window.updateDirectEntryToAdiLine();
+        }
+        if (typeof window.updateGreyAdiLine === 'function') {
+          window.updateGreyAdiLine();
+        }
+        if (typeof window.updateCardLeftLines === 'function') {
+          window.updateCardLeftLines();
         }
 
         // Add "ADIs" text to top right corner of inner blue box
@@ -7277,6 +7513,9 @@ function initializeDiagram() {
           // }
           if (typeof window.updateDirectEntryToAdiLine === 'function') {
             window.updateDirectEntryToAdiLine();
+          }
+          if (typeof window.updateGreyAdiLine === 'function') {
+            window.updateGreyAdiLine();
           }
 
           // Create orange line from Sympli to ADIs now that both box data are available
@@ -8165,6 +8404,9 @@ updateOskoLine();
 // }
 if (typeof window.updateDirectEntryToAdiLine === 'function') {
   window.updateDirectEntryToAdiLine();
+}
+if (typeof window.updateGreyAdiLine === 'function') {
+  window.updateGreyAdiLine();
 }
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
