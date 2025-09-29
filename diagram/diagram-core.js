@@ -1099,8 +1099,8 @@ function initializeDiagram() {
           fill: '#4a5a8a', // Match CHESS equities shade
           stroke: 'none',
           opacity: '0.5',
-          rx: '20',
-          ry: '20'
+          rx: '10',
+          ry: '10'
         });
         labelsGroup.appendChild(dvpRtgsRect);
 
@@ -1188,8 +1188,8 @@ function initializeDiagram() {
           fill: '#4a5a8a', // Match CHESS equities shade
           stroke: 'none',
           opacity: '0.5',
-          rx: '20',
-          ry: '20'
+          rx: '10',
+          ry: '10'
         });
         labelsGroup.appendChild(rtgsRect);
 
@@ -3452,7 +3452,7 @@ function initializeDiagram() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#2d5016'; // Match CECS stroke color
+            const lineColor = '#968F7F'; // Grey color matching LVSS lines
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -3991,30 +3991,32 @@ function initializeDiagram() {
 
                   if (data.eftposHorizontalPath && updatedEftposSegments.horizontalY && updatedEftposSegments.curveStartX) {
                     const eftposExtendX = adiRightEdge + eftposXOffset;
+                    let eftposEntryY = nonAdiEntryY + 6; // Purple (Eftpos) - 7th from top (last)
                     const lastCIndex = updatedEftposSegments.pathString.lastIndexOf(' C ');
                     if (lastCIndex > -1) {
                       const pathBeforeCurve = updatedEftposSegments.pathString.substring(0, lastCIndex);
                       const horizontalPathData = pathBeforeCurve +
                                                ` L ${(eftposExtendX - curveRadius).toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}` +
                                                ` Q ${eftposExtendX.toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}, ${eftposExtendX.toFixed(2)} ${(updatedEftposSegments.horizontalY + curveRadius).toFixed(2)}` +
-                                               ` L ${eftposExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
-                                               ` Q ${eftposExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(eftposExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal into non-ADIs box
+                                               ` L ${eftposExtendX.toFixed(2)} ${(eftposEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${eftposExtendX.toFixed(2)} ${eftposEntryY.toFixed(2)}, ${(eftposExtendX - leftCurveRadius).toFixed(2)} ${eftposEntryY.toFixed(2)}` + // Curve left
+                                               ` L ${nonAdiEntryX.toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Horizontal into non-ADIs box
                       data.eftposHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
 
                   if (data.mastercardHorizontalPath && updatedMastercardSegments.horizontalY && updatedMastercardSegments.curveStartX) {
                     const mastercardExtendX = adiRightEdge + mastercardXOffset;
+                    let mastercardEntryY = nonAdiEntryY + 5; // Red (Mastercard) - 6th from top
                     const lastCIndex = updatedMastercardSegments.pathString.lastIndexOf(' C ');
                     if (lastCIndex > -1) {
                       const pathBeforeCurve = updatedMastercardSegments.pathString.substring(0, lastCIndex);
                       const horizontalPathData = pathBeforeCurve +
                                                ` L ${(mastercardExtendX - curveRadius).toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}` +
                                                ` Q ${mastercardExtendX.toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}, ${mastercardExtendX.toFixed(2)} ${(updatedMastercardSegments.horizontalY + curveRadius).toFixed(2)}` +
-                                               ` L ${mastercardExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
-                                               ` Q ${mastercardExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(mastercardExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal into non-ADIs box
+                                               ` L ${mastercardExtendX.toFixed(2)} ${(mastercardEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${mastercardExtendX.toFixed(2)} ${mastercardEntryY.toFixed(2)}, ${(mastercardExtendX - leftCurveRadius).toFixed(2)} ${mastercardEntryY.toFixed(2)}` + // Curve left
+                                               ` L ${nonAdiEntryX.toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Horizontal into non-ADIs box
                       data.mastercardHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
@@ -4300,6 +4302,7 @@ function initializeDiagram() {
                   if (window.nonAdiBoxData) {
                     nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
+                    // Maroon is first (topmost) - no offset needed (offset = 0)
                   }
                   const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
 
@@ -5325,15 +5328,26 @@ function initializeDiagram() {
               // Add horizontal purple lines from Direct Entry and BECN to BPAY
               // Horizontal line from Direct Entry (left edge middle) to BPAY (right edge)
               const directEntryMidY = headerY + headerHeight / 2;
-              const bpayToDirectEntryLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              bpayToDirectEntryLine.setAttribute('x1', newHeaderX.toFixed(2)); // Left edge of Direct Entry
-              bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
-              bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
-              bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToDirectEntryLine.setAttribute('stroke', 'rgb(100,80,180)'); // Thick purple
-              bpayToDirectEntryLine.setAttribute('stroke-width', '6');
-              bpayToDirectEntryLine.setAttribute('stroke-linecap', 'round');
-              labelsGroup.insertBefore(bpayToDirectEntryLine, labelsGroup.firstChild); // Insert at the back of everything
+              // Create double maroon line (like the DE to ADI style)
+              const bpayToDirectEntryLine1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              bpayToDirectEntryLine1.setAttribute('x1', newHeaderX.toFixed(2)); // Left edge of Direct Entry
+              bpayToDirectEntryLine1.setAttribute('y1', (directEntryMidY - 2).toFixed(2)); // Slightly above middle
+              bpayToDirectEntryLine1.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
+              bpayToDirectEntryLine1.setAttribute('y2', (directEntryMidY - 2).toFixed(2)); // Same Y (horizontal)
+              bpayToDirectEntryLine1.setAttribute('stroke', '#800000'); // Maroon color
+              bpayToDirectEntryLine1.setAttribute('stroke-width', '1.5');
+              bpayToDirectEntryLine1.setAttribute('stroke-linecap', 'round');
+              labelsGroup.insertBefore(bpayToDirectEntryLine1, labelsGroup.firstChild); // Insert at the back
+
+              const bpayToDirectEntryLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              bpayToDirectEntryLine2.setAttribute('x1', newHeaderX.toFixed(2)); // Left edge of Direct Entry
+              bpayToDirectEntryLine2.setAttribute('y1', (directEntryMidY + 2).toFixed(2)); // Slightly below middle
+              bpayToDirectEntryLine2.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
+              bpayToDirectEntryLine2.setAttribute('y2', (directEntryMidY + 2).toFixed(2)); // Same Y (horizontal)
+              bpayToDirectEntryLine2.setAttribute('stroke', '#800000'); // Maroon color
+              bpayToDirectEntryLine2.setAttribute('stroke-width', '1.5');
+              bpayToDirectEntryLine2.setAttribute('stroke-linecap', 'round');
+              labelsGroup.insertBefore(bpayToDirectEntryLine2, labelsGroup.firstChild); // Insert at the back
 
               // Horizontal line from BECN (left edge middle) to BPAY (right edge)
               const becnMidY = boxY + boxHeight / 2;
@@ -5523,7 +5537,7 @@ function initializeDiagram() {
           const horizontalY = hvcsLineY_update  ; // Blue line 8px below green line
 
           // Simple path: straight down then curve right
-          const cornerRadius = 30;
+          const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
           // Store line data for later use by non-ADIs curve
@@ -7259,7 +7273,7 @@ function initializeDiagram() {
       path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       const gearBorder = createStyledPath(path, {
-        fill: '#fffaf0' // Light cream like trade-by-trade
+        fill: '#43464B' // Dark gunmetal grey
       });
       gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
       gearBorder.setAttribute('fill-rule', 'evenodd');
@@ -8059,7 +8073,7 @@ function initializeDiagram() {
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkEndX = orangeEndX; // Same endpoint as orange line
+            const pinkEndX = orangeEndX + 3; // 3 pixels to the right of orange line
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
@@ -8813,7 +8827,7 @@ const oskoLine = createStyledLine(
   (window.nppBoundingData ? window.nppBoundingData.y : desiredNppY), // End at top of NPP
   {
     stroke: 'rgb(100,80,180)',
-    strokeWidth: '4',
+    strokeWidth: '8', // Made thicker (was 4)
     strokeLinecap: 'round'
   }
 );

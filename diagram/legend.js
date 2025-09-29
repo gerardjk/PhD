@@ -1,26 +1,19 @@
-// All lines from the diagram
+// All lines from the diagram in specified order
 const allLines = [
-  { color: '#0a4f8f', strokeWidth: 4, style: 'solid', name: 'ASX to ADI' },
-  { color: '#3da88a', strokeWidth: 6, style: 'solid', name: 'SWIFT to RITS' },
-  { color: '#7FFF00', strokeWidth: 6, style: 'solid', name: 'CLS AUD' },
-  { color: '#800000', strokeWidth: 1.5, style: 'double', name: 'Direct Entry to ADI' },
-  { color: '#2d5016', strokeWidth: 1.5, style: 'double', name: 'NPP to ADI' },
-  { color: '#808080', strokeWidth: 3, style: 'solid', name: 'Grey ADI Line' },
-  { color: '#B91199', strokeWidth: 3, style: 'solid', name: 'Sympli' },
-  { color: '#B91199', strokeWidth: 3, style: 'solid', name: 'PEXA' },
-  { color: 'rgb(100,80,180)', strokeWidth: 6, style: 'solid', name: 'BPAY' },
-  { color: 'rgb(100,80,180)', strokeWidth: 2, style: 'solid', name: 'Osko' },
-  { color: '#8B0000', strokeWidth: 2, style: 'double', name: 'BECN/BECG to BECS' },
-  { color: 'rgb(100,80,180)', strokeWidth: 2, style: 'solid', name: 'Eftpos' },
-  { color: 'rgb(216,46,43)', strokeWidth: 2, style: 'solid', name: 'Mastercard' },
-  { color: '#27AEE3', strokeWidth: 1, style: 'double', name: 'Visa/Other Cards' },
-  { color: '#FFA500', strokeWidth: 2, style: 'solid', name: 'ATMs' },
-  { color: '#008000', strokeWidth: 1.2, style: 'solid', name: 'Claims' },
-  { color: '#412e29', strokeWidth: 1.2, style: 'solid', name: 'Other Networks' },
-  { color: '#0a4f8f', strokeWidth: 4, style: 'dotted', name: 'Dotted Connection' },
-  { color: '#DC143C', strokeWidth: 3, style: 'solid', name: 'Critical Path' },
-  { color: '#968F7F', strokeWidth: 1.5, style: 'double', name: 'LVSS' },
-  { color: '#8B1538', strokeWidth: 3, style: 'solid', name: 'International Banks' }
+  { color: '#3da88a', strokeWidth: 6, style: 'solid', name: 'ISO 20022 (SWIFT)' },
+  { color: '#7FFF00', strokeWidth: 6, style: 'solid', name: 'ISO 20022 CLS PvP' },
+  { color: '#0a4f8f', strokeWidth: 6, style: 'solid', name: 'ASX EXIGO' },
+  { color: '#FFA500', strokeWidth: 2, style: 'double', name: 'Settlement-only Batch XML' },
+  { color: '#B91199', strokeWidth: 1, style: 'triple', name: 'Reservation Batch XML' },
+  { color: '#968F7F', strokeWidth: 1.5, style: 'double', name: 'LVSS FSI XML' },
+  { color: '#800000', strokeWidth: 1.5, style: 'double', name: 'AusPayNet DE (ABA) file' },
+  { color: '#808080', strokeWidth: 1, style: 'solid', name: 'APCS Image Exchange Presentment' },
+  { color: 'rgb(100,80,180)', strokeWidth: 2, style: 'solid', name: 'EPAL Settlement File Formats' },
+  { color: 'rgb(216,46,43)', strokeWidth: 2, style: 'solid', name: 'Mastercard IPM File Format' },
+  { color: '#FFA500', strokeWidth: 2, style: 'solid', name: 'Visa Base II File Format' },
+  { color: '#27AEE3', strokeWidth: 1, style: 'double', name: 'Proprietary Scheme Formats (AMEX / UnionPay / Diners)' },
+  { color: '#B91199', strokeWidth: 3, style: 'solid', name: 'PEXA ELNO Messages' },
+  { color: 'rgb(239,136,51)', strokeWidth: 3, style: 'solid', name: 'Sympli ELNO Messages' }
 ];
 
 // Create SVG line sample
@@ -30,7 +23,22 @@ function createLineSample(lineConfig) {
   svg.setAttribute('height', '30');
   svg.setAttribute('viewBox', '0 0 200 30');
 
-  if (lineConfig.style === 'double') {
+  if (lineConfig.style === 'triple') {
+    // Triple line for Sympli/PEXA
+    const gap = 2;
+    const positions = [-gap, 0, gap];
+    positions.forEach(offset => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '10');
+      line.setAttribute('y1', `${15 + offset}`);
+      line.setAttribute('x2', '190');
+      line.setAttribute('y2', `${15 + offset}`);
+      line.setAttribute('stroke', lineConfig.color);
+      line.setAttribute('stroke-width', lineConfig.strokeWidth);
+      line.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(line);
+    });
+  } else if (lineConfig.style === 'double') {
     // Double line
     const gap = 1.5; // Match the spacing in the actual visualization
     const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -95,10 +103,55 @@ function createLegendItem(lineConfig) {
   return item;
 }
 
+// Create dot sample
+function createDotSample(color, strokeColor) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '200');
+  svg.setAttribute('height', '30');
+  svg.setAttribute('viewBox', '0 0 200 30');
+
+  // Create a single dot with black outline, centered under the lines
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '100');  // Center of the 200px width
+  circle.setAttribute('cy', '15');
+  circle.setAttribute('r', '5');
+  circle.setAttribute('fill', color);
+  circle.setAttribute('stroke', strokeColor || '#000000');
+  circle.setAttribute('stroke-width', '1');
+  svg.appendChild(circle);
+
+  return svg;
+}
+
+// Create dot legend item
+function createDotLegendItem(color, strokeColor, name) {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+
+  const sampleContainer = document.createElement('div');
+  sampleContainer.className = 'line-sample';
+  sampleContainer.appendChild(createDotSample(color, strokeColor));
+
+  const label = document.createElement('div');
+  label.className = 'line-label';
+  label.textContent = name;
+
+  item.appendChild(sampleContainer);
+  item.appendChild(label);
+
+  return item;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
   const container = document.getElementById('legend-container');
+
+  // Add all lines
   allLines.forEach(line => {
     container.appendChild(createLegendItem(line));
   });
+
+  // Add dots at the bottom
+  container.appendChild(createDotLegendItem('#3b82f6', '#000000', 'ESA (unconnected use Settlement Agent)'));
+  container.appendChild(createDotLegendItem('#FFA500', '#000000', 'FSS Allocations'));
 });
