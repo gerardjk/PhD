@@ -5269,14 +5269,14 @@ function initializeDiagram() {
               if (!window.directEntryChild2) {
                 window.directEntryChild2 = {
                   rect: createStyledRect(box2X, boxY, boxWidth, boxHeight, {
-                    fill: '#ffc0cb',
-                    stroke: '#8B0000',
-                    strokeWidth: '2.25',
+                    fill: '#000000',  // Black fill (from GABS)
+                    stroke: '#ff0000',  // Bright red border (from GABS)
+                    strokeWidth: '2',
                     rx: '4',
                     ry: '4'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
-                    { fill: '#8b0000', fontSize: '12' }),
+                    { fill: '#FFFFFF', fontSize: '12' }),  // White text (from GABS)
                   x: box2X,
                   y: boxY,
                   width: boxWidth,
