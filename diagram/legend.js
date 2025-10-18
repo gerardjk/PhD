@@ -1,18 +1,18 @@
 // All lines from the diagram in specified order
 const allLines = [
-  { color: '#3da88a', strokeWidth: 6, style: 'solid', name: 'ISO 20022 (SWIFT)' },
-  { color: '#7FFF00', strokeWidth: 6, style: 'solid', name: 'ISO 20022 CLS PvP' },
-  { color: '#0a4f8f', strokeWidth: 6, style: 'solid', name: 'ASX EXIGO' },
-  { color: '#FFA500', strokeWidth: 2, style: 'double', name: 'Settlement-only Batch XML' },
-  { color: '#B91199', strokeWidth: 1, style: 'triple', name: 'Reservation Batch XML' },
-  { color: '#968F7F', strokeWidth: 1.5, style: 'double', name: 'LVSS FSI XML' },
+  { color: '#5dd9b8', strokeWidth: 6, style: 'solid', name: 'ISO 20022 (SWIFT)' },
+  { color: '#00FF33', strokeWidth: 6, style: 'solid', name: 'ISO 20022 CLS PvP' },
+  { color: '#5B8FE8', strokeWidth: 6, style: 'solid', name: 'ASX EXIGO' },
+  { color: '#FFB380', strokeWidth: 2, style: 'double', name: 'Settlement-only Batch XML' },
+  { color: '#E94B9C', strokeWidth: 1, style: 'triple', name: 'Reservation Batch XML' },
+  { color: '#B5AFA0', strokeWidth: 1.5, style: 'double', name: 'LVSS FSI XML' },
   { color: '#800000', strokeWidth: 1.5, style: 'double', name: 'AusPayNet DE (ABA) file' },
   { color: '#808080', strokeWidth: 1, style: 'solid', name: 'APCS Image Exchange Presentment' },
   { color: 'rgb(100,80,180)', strokeWidth: 2, style: 'solid', name: 'EPAL Settlement File Formats' },
   { color: 'rgb(216,46,43)', strokeWidth: 2, style: 'solid', name: 'Mastercard IPM File Format' },
-  { color: '#FFA500', strokeWidth: 2, style: 'solid', name: 'Visa Base II File Format' },
+  { color: '#FFB380', strokeWidth: 2, style: 'solid', name: 'Visa Base II File Format' },
   { color: '#27AEE3', strokeWidth: 1, style: 'double', name: 'Proprietary Scheme Formats (AMEX / UnionPay / Diners)' },
-  { color: '#B91199', strokeWidth: 3, style: 'solid', name: 'PEXA ELNO Messages' },
+  { color: '#E94B9C', strokeWidth: 3, style: 'solid', name: 'PEXA ELNO Messages' },
   { color: 'rgb(239,136,51)', strokeWidth: 3, style: 'solid', name: 'Sympli ELNO Messages' }
 ];
 

@@ -48,6 +48,20 @@ function createStyledText(x, y, textContent, options = {}) {
   return text;
 }
 
+// Helper to create styled circle
+function createStyledCircle(cx, cy, r, options = {}) {
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', typeof cx === 'number' ? cx.toFixed(2) : cx);
+  circle.setAttribute('cy', typeof cy === 'number' ? cy.toFixed(2) : cy);
+  circle.setAttribute('r', r);
+  circle.setAttribute('fill', options.fill || '#3b82f6');
+  circle.setAttribute('stroke', options.stroke || '#1e3a8a');
+  circle.setAttribute('stroke-width', options.strokeWidth || '2');
+  if (options.opacity) circle.setAttribute('opacity', options.opacity);
+  if (options.id) circle.setAttribute('id', options.id);
+  return circle;
+}
+
 // Helper to create styled line
 function createStyledLine(x1, y1, x2, y2, options = {}) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -61,6 +75,7 @@ function createStyledLine(x1, y1, x2, y2, options = {}) {
   if (options.strokeLinejoin) line.setAttribute('stroke-linejoin', options.strokeLinejoin);
   if (options.strokeDasharray) line.setAttribute('stroke-dasharray', options.strokeDasharray);
   if (options.opacity) line.setAttribute('opacity', options.opacity);
+  if (options.id) line.setAttribute('id', options.id);
   return line;
 }
 
@@ -222,11 +237,87 @@ function sigmoid(x, steepness = 1) {
   return 1 / (1 + Math.exp(-t));
 }
 
+// Helper to calculate exact connection point on box edge accounting for stroke width
+// The strokeWidth parameter is the width of the LINE connecting to the box, not the box stroke
+// This ensures the line visually touches the box edge perfectly
+function getBoxEdgePoint(boxData, side, lineStrokeWidth = 0) {
+  const halfStroke = lineStrokeWidth / 2;
+  const { x, y, width, height } = boxData;
+
+  switch(side) {
+    case 'top':
+      // Line coming from above DOWN into box - endpoint goes past edge (upward) so round cap hidden
+      return { x: x + width / 2, y: y - halfStroke };
+    case 'bottom':
+      // Line coming from below - just touch the edge exactly
+      return { x: x + width / 2, y: y + height };
+    case 'left':
+      // Line coming from left - endpoint goes slightly past edge so stroke sits ON edge
+      return { x: x - halfStroke, y: y + height / 2 };
+    case 'right':
+      // Line coming from right - endpoint goes slightly past edge so stroke sits ON edge
+      return { x: x + width + halfStroke, y: y + height / 2 };
+    case 'top-left':
+      return { x: x, y: y };
+    case 'top-right':
+      return { x: x + width, y: y };
+    case 'bottom-left':
+      return { x: x, y: y + height };
+    case 'bottom-right':
+      return { x: x + width, y: y + height };
+    default:
+      return { x: x + width / 2, y: y + height / 2 };
+  }
+}
+
+// Helper to create a box with multi-line text label
+function createLabeledBox(x, y, width, height, lines, options = {}) {
+  const boxOptions = {
+    fill: options.fill || '#e8ecf7',
+    stroke: options.stroke || '#071f6a',
+    strokeWidth: options.strokeWidth || '2',
+    rx: options.rx,
+    ry: options.ry
+  };
+
+  const rect = createStyledRect(x, y, width, height, boxOptions);
+  if (options.id) rect.setAttribute('id', options.id);
+
+  // Create text element
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', centerX.toFixed(2));
+  text.setAttribute('y', centerY.toFixed(2));
+  text.setAttribute('text-anchor', options.textAnchor || 'middle');
+  text.setAttribute('dominant-baseline', options.dominantBaseline || 'middle');
+  text.setAttribute('fill', options.textFill || options.stroke || '#071f6a');
+  text.setAttribute('font-family', options.fontFamily || 'Arial, sans-serif');
+  text.setAttribute('font-size', options.fontSize || '12');
+  text.setAttribute('font-weight', options.fontWeight || 'bold');
+
+  // Add lines as tspans
+  const lineHeight = parseFloat(options.fontSize || '12') * 1.2;
+  const totalHeight = (lines.length - 1) * lineHeight;
+  const startOffset = -totalHeight / 2;
+
+  lines.forEach((line, i) => {
+    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    tspan.setAttribute('x', centerX.toFixed(2));
+    tspan.setAttribute('dy', i === 0 ? startOffset : lineHeight);
+    tspan.textContent = line;
+    text.appendChild(tspan);
+  });
+
+  return { rect, text };
+}
+
 // Export functions if using modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     createStyledRect,
     createStyledText,
+    createStyledCircle,
     createStyledLine,
     createStyledPath,
     getRectEdges,
@@ -234,6 +325,8 @@ if (typeof module !== 'undefined' && module.exports) {
     cacheRectEdges,
     createGearPath,
     createGearRing,
-    sigmoid
+    sigmoid,
+    getBoxEdgePoint,
+    createLabeledBox
   };
 }

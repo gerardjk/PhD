@@ -1,94 +1,29 @@
-function initializeDiagramAbsolute() {
+/**
+ * Refactored Diagram Core - Complete Original Functionality
+ */
+
+function initializeDiagram() {
   // ----- Compute precise positions and the arc path deterministically -----
   // Global constant for CLS sigmoid curve expansion
   const CLS_SIGMOID_EXPANSION = 1.5; // How much to expand horizontally (1.5 = 150% wider on each side)
 
+  // Global offset to move Eftpos and Mastercard horizontal line segments up/down together
+  // Negative values move lines up, positive values move lines down
+  const GLOBAL_HORIZONTAL_LINES_OFFSET = +210; // Adjust this value to move Eftpos/Mastercard lines together
+
   const svg = document.getElementById('diagram');
+  const p = document.getElementById('params').dataset;
 
-    const BASE_LAYOUT = {
-      strokeWidth: 8,
-      circles: {
-        big: {
-          cx: 300,
-          cy: 450,
-          radius: 113,
-          outerRadius: 117,
-          innerRadius: 93,
-          gear: { radius: 81, toothHeight: 8, teeth: 16 },
-          gearBorder: { outerRadius: 107, innerRadius: 93, toothHeight: 6, teeth: 20 }
-        },
-        small: {
-          cx: 300,
-          cy: 266,
-          radius: 63,
-          outerRadius: 67,
-          innerRadius: 47,
-          gear: { radius: 39, toothHeight: 4, teeth: 10 },
-          gearBorder: { outerRadius: 60.6, innerRadius: 47, toothHeight: 4, teeth: 12 }
-        }
-      },
-      arc: {
-        path: 'M 497 -416 A 276 276 0 0 1 497 1182',
-        startX: 497,
-        startY: -416,
-        endX: 497,
-        endY: 1182,
-        radius: 276,
-        radiusX: 276,
-        radiusY: 289.8,
-        verticalStretch: 1.05,
-        centerX: 221,
-        centerY: 383,
-        startAngle: -1.222849592741449,
-        endAngle: 1.222849592741449
-      },
-      dots: {
-        count: 100,
-        radius: 2.4
-      },
-      swiftCluster: {
-        swift: { x: 53.92491425406945, y: 714, width: 81, height: 81 },
-        clsAud: { x: 53.92491425406945, y: 685.3333333333333, width: 81, height: 23.666666666666668 },
-        austraclear: { x: 5.324914254069455, y: 607.3333333333333, width: 129.6, height: 54 },
-        pacs: [
-          { x: -244.57508574593055, y: 715.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.009' },
-          { x: -158.57508574593055, y: 742.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.008' },
-          { x: -72.57508574593055, y: 769.6666666666666, width: 121.5, height: 23.666666666666668, label: 'pacs.004' }
-        ],
-        bounding: {
-          x: -254.57508574593055,
-          y: 709,
-          width: 313.5,
-          height: 136
-        },
-        hvcsLabel: {
-          x: -97.82508574593056,
-          y: 822.5
-        },
-        metadata: {
-          hvcsX: -168.07508574593055,
-          smallRectHeight: 23.666666666666668,
-          verticalGap: 5,
-          horizontalGap: 30
-        }
-      },
-      asxCluster: {
-        chessRtgs: { x: 9.324914254069455, y: 578.6666666666666, width: 121.6, height: 23.666666666666668 },
-        dvpRtgs: { x: -104.79508574593055, y: 578.6666666666666, width: 64.8, height: 54 },
-        rtgs: { x: -104.79508574593055, y: 637.6666666666666, width: 64.8, height: 23.666666666666668 },
-        moneyMarket: { x: -332.6750857459306, y: 637.6666666666666, width: 142.56, height: 21.3 },
-        asxSettlement: { x: -72.39508574593054, y: 509.10666666666657, width: 142.52, height: 25.56 },
-        asxf: { x: -72.39508574593054, y: 452.98666666666657, width: 142.52, height: 25.56 }
-      }
-    };
-
-    const cx = BASE_LAYOUT.circles.big.cx;
-    const cyBig = BASE_LAYOUT.circles.big.cy;
-    const rBig = BASE_LAYOUT.circles.big.radius;
-    const strokeW = BASE_LAYOUT.strokeWidth;
-    const rSmall = BASE_LAYOUT.circles.small.radius;
-    const cySmall = BASE_LAYOUT.circles.small.cy;
-    const absoluteLayout = JSON.parse(JSON.stringify(BASE_LAYOUT));
+    // Read parameters (numbers only)
+    const cx       = +p.cx;          // shared x for circles
+    const cyBig    = +p.cyBig;       // center y of big circle
+    const rBig     = +p.rBig * 1.05; // Increased by 5%
+    const gap      = +p.gap;         // vertical clearance between the two circles' edges
+    const rSmall   = +p.rSmall * 0.90; // 10% smaller (was 5%, now additional 5%)
+    const arcR     = +p.arcR;        // radius of the enclosing arc
+    const arcSpan  = +p.arcAngleDeg; // total degrees swept by the arc (e.g., 220°)
+    const arcShift = +p.arcOffsetDeg;// rotate arc around its center (degrees)
+    const strokeW  = +p.strokeWidth;
 
     function adjustAsxBlueLinesToNeonSpacing() {
       const endpoints = window.clsEndpoints;
@@ -163,24 +98,28 @@ function initializeDiagramAbsolute() {
 
     bigOuter.setAttribute('cx', cx);
     bigOuter.setAttribute('cy', cyBig);
-    bigOuter.setAttribute('r', BASE_LAYOUT.circles.big.outerRadius); // Absolute outer radius
+    bigOuter.setAttribute('r', rBig + strokeW/2); // Slightly larger to ensure background coverage
 
     bigInner.setAttribute('cx', cx);
     bigInner.setAttribute('cy', cyBig);
-    bigInner.setAttribute('r', BASE_LAYOUT.circles.big.innerRadius); // Absolute inner radius
+    bigInner.setAttribute('r', rBig - strokeW * 2.5); // Inner circle radius
 
     // Orange circle - update all layers
     const smallOuter = document.getElementById('small-outer');
     const smallGearBorder = document.getElementById('small-gear-border');
     const smallInner = document.getElementById('small-inner');
 
+    // For outer edges to touch, we need to account for stroke width
+    // Distance between centers = r1 + r2 + strokeWidth (since stroke extends outward from the edge)
+    const cySmall = cyBig - (rBig + rSmall + strokeW);
+
     smallOuter.setAttribute('cx', cx);
     smallOuter.setAttribute('cy', cySmall);
-    smallOuter.setAttribute('r', BASE_LAYOUT.circles.small.outerRadius); // Absolute outer radius
+    smallOuter.setAttribute('r', rSmall + strokeW/2); // Slightly larger for background
 
     smallInner.setAttribute('cx', cx);
     smallInner.setAttribute('cy', cySmall);
-    smallInner.setAttribute('r', BASE_LAYOUT.circles.small.innerRadius); // Absolute inner radius
+    smallInner.setAttribute('r', rSmall - strokeW * 2); // Inner circle radius - made smaller for thicker gear border
 
     // Update the orange circle label position
     const smallLabel = document.getElementById('small-label');
@@ -205,9 +144,15 @@ function initializeDiagramAbsolute() {
     // Update gear paths
     // Create gear-shaped border (layer 2)
     if (bigGearBorder) {
-      const border = BASE_LAYOUT.circles.big.gearBorder;
-      let path = createGearPath(border.outerRadius - border.toothHeight, border.teeth, border.toothHeight, 0.25);
-      path += ` M ${border.innerRadius} 0 A ${border.innerRadius} ${border.innerRadius} 0 1 0 ${-border.innerRadius} 0 A ${border.innerRadius} ${border.innerRadius} 0 1 0 ${border.innerRadius} 0`;
+      const outerRadius = rBig - strokeW * 0.75;
+      const innerRadius = rBig - strokeW * 2.5;
+      const teeth = 20;
+      const toothHeight = 6;
+
+      // Create gear shape that fills between outer circle and inner circle
+      let path = createGearPath(outerRadius - toothHeight, teeth, toothHeight, 0.25);
+      // Add inner cutout
+      path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       bigGearBorder.setAttribute('d', path);
       bigGearBorder.setAttribute('transform', `translate(${cx}, ${cyBig})`);
@@ -216,15 +161,24 @@ function initializeDiagramAbsolute() {
 
     const bigGear = document.getElementById('big-gear');
     if (bigGear) {
-      const gear = BASE_LAYOUT.circles.big.gear;
-      bigGear.setAttribute('d', createGearPath(gear.radius, gear.teeth, gear.toothHeight, 0.25));
+      const bigInnerRadius = rBig - strokeW * 2.5;
+      const bigGearRadius = bigInnerRadius - 12; // Leave 12px border (was 15)
+      const bigToothHeight = 8;
+      bigGear.setAttribute('d', createGearPath(bigGearRadius - bigToothHeight, 16, bigToothHeight, 0.25));
       bigGear.setAttribute('transform', `translate(${cx}, ${cyBig})`);
     }
 
+    // Create gear-shaped border for orange circle (layer 2)
     if (smallGearBorder) {
-      const border = BASE_LAYOUT.circles.small.gearBorder;
-      let path = createGearPath(border.outerRadius - border.toothHeight, border.teeth, border.toothHeight, 0.25);
-      path += ` M ${border.innerRadius} 0 A ${border.innerRadius} ${border.innerRadius} 0 1 0 ${-border.innerRadius} 0 A ${border.innerRadius} ${border.innerRadius} 0 1 0 ${border.innerRadius} 0`;
+      const outerRadius = rSmall - strokeW * 0.3;
+      const innerRadius = rSmall - strokeW * 2;
+      const teeth = 12;
+      const toothHeight = 4;
+
+      // Create gear shape that fills between outer circle and inner circle
+      let path = createGearPath(outerRadius - toothHeight, teeth, toothHeight, 0.25);
+      // Add inner cutout
+      path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       smallGearBorder.setAttribute('d', path);
       smallGearBorder.setAttribute('transform', `translate(${cx}, ${cySmall})`);
@@ -233,33 +187,74 @@ function initializeDiagramAbsolute() {
 
     const smallGear = document.getElementById('small-gear');
     if (smallGear) {
-      const gear = BASE_LAYOUT.circles.small.gear;
-      smallGear.setAttribute('d', createGearPath(gear.radius, gear.teeth, gear.toothHeight, 0.25));
+      const smallGearRadius = (rSmall - strokeW * 2) - 8; // Leave 8px border
+      const smallToothHeight = 4;
+      smallGear.setAttribute('d', createGearPath(smallGearRadius - smallToothHeight, 10, smallToothHeight, 0.25));
       smallGear.setAttribute('transform', `translate(${cx}, ${cySmall})`);
     }
 
+    // Build the arc so it starts above the small circle and ends below the big circle.
+    // The arc should curve around the RIGHT side of the circles.
     const arc = document.getElementById('enclosing-arc');
 
-    const startX = BASE_LAYOUT.arc.startX;
-    const startY = BASE_LAYOUT.arc.startY;
-    const endX = BASE_LAYOUT.arc.endX;
-    const endY = BASE_LAYOUT.arc.endY;
-    const arcRadius = BASE_LAYOUT.arc.radius;
-    const arcRadiusX = BASE_LAYOUT.arc.radiusX;
-    const arcRadiusY = BASE_LAYOUT.arc.radiusY;
-    const verticalStretch = BASE_LAYOUT.arc.verticalStretch;
-    const arcCenterX = BASE_LAYOUT.arc.centerX;
-    const arcCenterY = BASE_LAYOUT.arc.centerY;
-    const startAngle = BASE_LAYOUT.arc.startAngle;
-    const endAngle = BASE_LAYOUT.arc.endAngle;
-    const numCircles = BASE_LAYOUT.dots.count;
-    const smallCircleRadius = BASE_LAYOUT.dots.radius;
+    // Calculate how much we need to extend the arc based on increased spacing
+    const baseSpacing = 1; // Original spacing
+    const newSpacing = 5.0; // New dot spacing (matches dotSpacing below)
+    const gapMultiplier = 2; // Gaps are double the dot spacing
+    const totalCircles = 100; // Total number of circles
+    const spacingRatio = (newSpacing + (10 * newSpacing * gapMultiplier) / totalCircles) / baseSpacing; // Updated to 10 gaps
 
-    if (arc) {
-      arc.setAttribute('d', BASE_LAYOUT.arc.path);
-      arc.setAttribute('stroke-width', 3);
-      arc.style.display = 'none';
-    }
+    // Extend the arc vertically to accommodate the increased spacing
+    const arcExtension = 120 * (spacingRatio - 1); // Further increased extension
+
+    // Move arc further right to create more space
+    const arcOffset = 60; // Increased offset to push arc right
+
+    // Simple approach: draw arc from top point to bottom point
+    // Start point: closer to orange circle
+    const startX = cx + rBig + strokeW + 20 + arcOffset;
+    const startY = cySmall - rSmall - 15 - arcExtension; // closer to orange circle
+
+    // End point: closer to blue circle
+    const endX = cx + rBig + strokeW + 20 + arcOffset;
+    const endY = cyBig + rBig + 15 + arcExtension; // closer to blue circle
+
+    // Control how much the arc bulges to the right
+    // Increase radius for gentler curve with more horizontal space
+    const arcRadius = (arcR + arcExtension) * 0.3; // Increased from 0.3 to 0.5
+
+    // Create the arc path using SVG arc command
+    // A rx ry x-axis-rotation large-arc-flag sweep-flag x y
+    const largeArc = 0; // small arc
+    const sweep = 1; // clockwise
+
+    const d = `M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX} ${endY}`;
+    arc.setAttribute('d', d);
+    arc.setAttribute('stroke-width', 3);
+    arc.style.display = 'none'; // Hide the black arc line
+
+    // Add 100 small blue circles along the arc
+    const numCircles = 100;
+    const smallCircleRadius = 3 * (4/5); // Reduced to 4/5 of original size (2.4)
+
+    // Calculate arc center from the endpoints and radius
+    // For a circular arc with vertical endpoints, center is to the left
+    const halfHeight = (endY - startY) / 2;
+    const sqrtTerm = arcRadius * arcRadius - halfHeight * halfHeight;
+
+    // Elliptical parameters - stretch vertically
+    const verticalStretch = 1.05; // Increase this to stretch more vertically
+
+    // Check if the arc radius is large enough
+    const arcCenterX = sqrtTerm > 0 ? startX - Math.sqrt(sqrtTerm) : startX - arcRadius;
+    const arcCenterY = (startY + endY) / 2;
+
+    const arcRadiusX = arcRadius;
+    const arcRadiusY = arcRadius * verticalStretch;
+
+    // Calculate start and end angles (adjusted for ellipse)
+    const startAngle = Math.atan2((startY - arcCenterY) / verticalStretch, startX - arcCenterX);
+    const endAngle = Math.atan2((endY - arcCenterY) / verticalStretch, endX - arcCenterX);
 
     // Get the pre-existing lines groups
     const blueLinesGroup = document.getElementById('blue-connecting-lines');
@@ -357,8 +352,10 @@ function initializeDiagramAbsolute() {
       const maxInside = sourceTopY + sourceHeight - strokeHalf - 1;
       // Removed minInside constraint to allow line to go higher
       startY = Math.min(maxInside, requestedY);
-      const adiTop = window.adiBoxData.y;
-      const endY = adiTop - strokeHalf;
+
+      // Calculate exact endpoint on ADI box top edge
+      const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
+      const endY = adiEdge.y;
       const endX = extendPastNonAdi + 15;
 
       const verticalDistance = endY - startY;
@@ -376,7 +373,7 @@ function initializeDiagramAbsolute() {
       let path = document.getElementById('npp-to-adi-line');
       if (!path) {
         path = createStyledPath(pathData, {
-          stroke: '#3da88a',
+          stroke: '#5dd9b8',
           strokeWidth: '6',
           fill: 'none',
           strokeLinecap: 'round',
@@ -411,8 +408,8 @@ function initializeDiagramAbsolute() {
       if (typeof window.updateDirectEntryToAdiLine === 'function') {
         window.updateDirectEntryToAdiLine();
       }
-      if (typeof window.updateAdiToOskoLine === 'function') {
-        window.updateAdiToOskoLine();
+      if (typeof window.updateOskoToAdiLine === 'function') {
+        window.updateOskoToAdiLine();
       }
     };
 
@@ -453,13 +450,11 @@ function initializeDiagramAbsolute() {
         blackCenterY -= blackCircleRadius * 2; // Move up by 2x radius (full diameter)
 
         // Create large black circle at extended position
-        const blackCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        blackCircle.setAttribute('cx', blackCenterX.toFixed(2));
-        blackCircle.setAttribute('cy', blackCenterY.toFixed(2));
-        blackCircle.setAttribute('r', blackCircleRadius); // Large enough to enclose both
-        blackCircle.setAttribute('fill', '#000000'); // solid black
-        blackCircle.setAttribute('stroke', '#ff0000'); // bright red outline
-        blackCircle.setAttribute('stroke-width', '2');
+        const blackCircle = createStyledCircle(blackCenterX, blackCenterY, blackCircleRadius, {
+          fill: '#000000',
+          stroke: '#ff0000',
+          strokeWidth: '2'
+        });
         circlesGroup.appendChild(blackCircle);
       }
 
@@ -528,9 +523,8 @@ function initializeDiagramAbsolute() {
       const skipBlueLines = (i >= 34 && i <= 44) || (i >= 68 && i <= 83) || i === 91 || i === 95;
 
       // Create straight line from small blue dot to center of big blue circle
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-
-      // Line drawing will be done after position calculations
+      // (will be configured after position calculations)
+      let line = null;
 
       // Determine if this dot should have an orange companion based on group rules
       let showOrange = false;
@@ -557,39 +551,23 @@ function initializeDiagramAbsolute() {
         blueRadius = blueRadius * 1.5;
       }
 
-      // Determine color for dots
-      let fillColor = '#3b82f6'; // default blue
-      let strokeColor = '#1e3a8a'; // default dark blue
+      // Determine color for dots based on which box they're in
+      let fillColor = '#04d9ff'; // light blue matching RITS outer circle
+      let strokeColor = '#ffffff'; // default white border
 
-      // Make first dot blue (inside black circle)
-      if (i === 0) {
-        fillColor = '#3b82f6'; // blue
-        strokeColor = '#1e3a8a'; // keep dark blue border
-      }
+      // All dots now have white borders except CLS
+      strokeColor = '#ffffff'; // white border for all ESA dots
 
-      // Make first 4 dots of last group (indices 92-95) blue with red border
-      else if (i >= 92 && i < 96) {
-        fillColor = '#3b82f6'; // blue fill
-        strokeColor = '#ef4444'; // red border
-      }
-
-      // Make dots 5-7 in last group (indices 96-98) double size
-      else if (i >= 96 && i <= 98) {
+      // Adjust radius for specific dots
+      if (i >= 96 && i <= 98) {
+        // CS box (dots 96-98)
         blueRadius = smallCircleRadius * 2;
       }
-
-      // Make dots 5, 6, 7 (indices 96-98) blue with green border
-      if (i >= 96 && i <= 98) {
-        fillColor = '#3b82f6'; // blue fill
-        strokeColor = '#4CAF50'; // green border
-      }
-
-      // Make last dot (index 99) blue with grey outline and much larger
-      if (i === 99) {
+      else if (i === 99) {
+        // CLS dot - Non-ADIs box
         console.log('Processing CLS dot (i=99)');
-        fillColor = '#3b82f6'; // blue fill
-        strokeColor = '#7FFF00'; // neon lime green border
-        blueRadius = smallCircleRadius * 12; // 12x size for text (restored to original)
+        strokeColor = '#00FF33'; // Neon green border for CLS
+        blueRadius = smallCircleRadius * 12;
       }
 
       // For first and last dots, position them at the end of the extended line
@@ -611,11 +589,11 @@ function initializeDiagramAbsolute() {
           actualCircleY -= blackCircleRadius * 2; // Move up by 2x radius (full diameter)
         }
         // For CLS dot, lower it by 1.7x the amount
-      if (i === 99) {
-        const blackCircleRadius = smallCircleRadius * 6;
-        actualCircleY += blackCircleRadius * 1.8; // Move down by 1.8x radius
-      }
-    } else if (i >= 96 && i <= 98) {
+        if (i === 99) {
+          const blackCircleRadius = smallCircleRadius * 6;
+          actualCircleY += blackCircleRadius * 1.8; // Move down by 1.8x radius
+        }
+      } else if (i >= 96 && i <= 98) {
         // For green dots, position at the end of their slightly extended lines
         const blueCircleX = cx;
         const dx = circleX - blueCircleX;
@@ -637,79 +615,41 @@ function initializeDiagramAbsolute() {
       // All lines start from the center of the blue circle
       const blueCircleX = cx;
 
-      if (i === 0 || i === 99) {
-        line.setAttribute('x1', blueCircleX);
-        line.setAttribute('y1', cyBig);
-        line.setAttribute('x2', actualCircleX);
-        line.setAttribute('y2', actualCircleY);
-      } else if (i >= 96 && i <= 98) {
-        // For green dots, line extends to their actual position
-        line.setAttribute('x1', blueCircleX);
-        line.setAttribute('y1', cyBig);
-        line.setAttribute('x2', actualCircleX);
-        line.setAttribute('y2', actualCircleY);
-      } else if (i >= 92 && i < 96) {
-        // For red dots, draw line to their lowered position
-        line.setAttribute('x1', blueCircleX);
-        line.setAttribute('y1', cyBig);
-        line.setAttribute('x2', actualCircleX);
-        line.setAttribute('y2', actualCircleY);
-      } else {
-        // For all other dots
-        line.setAttribute('x1', blueCircleX);
-        line.setAttribute('y1', cyBig);
-        line.setAttribute('x2', actualCircleX);
-        line.setAttribute('y2', actualCircleY);
-      }
-
-      line.setAttribute('stroke', '#3b82f6'); // same blue as circles
-      line.setAttribute('stroke-width', '1.5'); // thicker blue spokes
-      line.setAttribute('opacity', '0.9'); // more visible
+      // Create blue connecting line
+      line = createStyledLine(blueCircleX, cyBig, actualCircleX, actualCircleY, {
+        stroke: '#04d9ff',
+        strokeWidth: '1.5',
+        opacity: '0.9'
+      });
 
       if (!skipBlueLines) {
         blueLinesGroup.appendChild(line);
       }
 
-      if (!absoluteLayout.arcDots) {
-        absoluteLayout.arcDots = [];
-      }
-      absoluteLayout.arcDots.push({
-        index: i,
-        x: Number(actualCircleX.toFixed(2)),
-        y: Number(actualCircleY.toFixed(2))
-      });
-
       // Create small circle
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', actualCircleX.toFixed(2));
-      circle.setAttribute('cy', actualCircleY.toFixed(2));
-      circle.setAttribute('r', blueRadius);
-      circle.setAttribute('fill', fillColor);
-      circle.setAttribute('stroke', strokeColor);
       // Make border thicker for colored border dots
-      let borderWidth = '1';
-      if (i >= 92 && i <= 99) {
-        borderWidth = '2'; // Thicker border for red, green, and grey bordered dots
+      let borderWidth = '0.75'; // Thin white border for all dots
+      if (i >= 92 && i <= 98) {
+        borderWidth = '0.75'; // Same thin white border for PSPs (red) and CS (green) dots
       }
       if (i === 99) {
         borderWidth = '6'; // Much thicker grey border for CLS
       }
-      circle.setAttribute('stroke-width', borderWidth);
 
+      const circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
+        fill: fillColor,
+        stroke: strokeColor,
+        strokeWidth: borderWidth
+      });
       circlesGroup.appendChild(circle);
 
       // Add "CLS" text to last dot
       if (i === 99) {
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', actualCircleX.toFixed(2));
-        text.setAttribute('y', actualCircleY.toFixed(2));
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', 'white');
-        text.setAttribute('font-family', 'Arial, sans-serif');
-        text.setAttribute('font-size', '16'); // Larger font for larger circle
-        text.setAttribute('font-weight', 'bold');
-        text.textContent = 'CLS';
+        const text = createStyledText(actualCircleX, actualCircleY, 'CLS', {
+          fill: '#013844',
+          fontSize: '16',
+          fontWeight: 'bold'
+        });
         circlesGroup.appendChild(text);
 
         // REMOVED: Straight line coming from CLS dot
@@ -750,70 +690,77 @@ function initializeDiagramAbsolute() {
 
       // Add "RBA" text next to first dot
       if (i === 0) {
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         // Position text to the right of the black circle
         const blackCircleRadius = smallCircleRadius * 6;
-        text.setAttribute('x', (actualCircleX + blackCircleRadius + 5).toFixed(2));
-        text.setAttribute('y', actualCircleY.toFixed(2));
-        text.setAttribute('text-anchor', 'start');
-        text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', '#991b1b'); // dark red color
-        text.setAttribute('font-family', 'Arial, sans-serif');
-        text.setAttribute('font-size', '16'); // Same size as CLS text
-        text.setAttribute('font-weight', 'bold');
-        text.textContent = 'RBA';
+        const text = createStyledText(
+          actualCircleX + blackCircleRadius + 5, actualCircleY, 'RBA',
+          {
+            textAnchor: 'start',
+            fill: '#ffffff', // White
+            fontSize: '16',
+            fontWeight: 'bold'
+          }
+        );
         labelsGroup.appendChild(text);
 
         // Add SWIFT PDS rectangle
 
-        const swiftLayout = absoluteLayout.swiftCluster;
-        if (!swiftLayout || !swiftLayout.swift || !swiftLayout.austraclear) {
-          console.error('Missing SWIFT layout data; aborting absolute placement.');
-          return;
-        }
+        // Calculate SW point (225 degrees) on the black circle
+        const angle225 = 225 * Math.PI / 180; // Convert to radians
+        const swPointX = actualCircleX + blackCircleRadius * Math.cos(angle225);
+        const swPointY = actualCircleY + blackCircleRadius * Math.sin(angle225);
 
-        const { swift: swiftBox, clsAud, austraclear, pacs: pacsData = [], bounding: boundingLayout, hvcsLabel: hvcsLabelPos, metadata = {} } = swiftLayout;
-        const {
-          hvcsX = 0,
-          smallRectHeight = (swiftBox.height - 2 * 5) / 3,
-          verticalGap = 5,
-          horizontalGap = 30
-        } = metadata;
+        // Rectangle dimensions
+        const rectWidth = 144 * 0.9; // Reduced by 10% (for non-SWIFT boxes)
+        window.dvpRectWidth = rectWidth; // Store for later use in alignment
+        const rectHeight = 100 * 0.9 * 0.9; // Reduced by 10% twice
+        const swiftRectWidth = rectHeight; // Make SWIFT boxes square (same as height)
 
-        const rectWidth = austraclear.width;
-        const rectHeight = swiftBox.height;
-        const swiftRectWidth = swiftBox.width;
-        const baseX = austraclear.x;
-        const austraclearY = austraclear.y;
-        const austraclearHeight = austraclear.height;
-        const rectX = swiftBox.x;
-        const rectY = swiftBox.y;
-        const clsAudY = clsAud.y;
-
-        // Store dimensions globally for later adjustments
-        window.dvpRectWidth = rectWidth;
+        // Store dimensions globally for NPP box creation
         window.rectDimensions = {
-          rectHeight,
-          swiftRectWidth,
-          rectX
+          rectHeight: rectHeight,
+          swiftRectWidth: swiftRectWidth
         };
-        window.rectDimensions.rectX = rectX;
+
+        // Define ALL measurements FIRST before using them
+        const verticalGap = 5; // Gap between rectangles vertically
+        const horizontalGap = 30; // Gap between SWIFT box and side rectangles
+        const smallRectHeight = (rectHeight - 2 * verticalGap) / 3; // Each is 1/3 height minus gaps
         window.smallRectHeight = smallRectHeight;
+        const austraclearHeight = rectHeight * (2/3); // Reduced by one third
+
+        // Calculate base positions - Austraclear at top, SWIFT at bottom
+        const baseX = swPointX - rectWidth - 130 - 40; // Extended left by additional 40px for 50% width increase
+
+        // Austraclear will be at the top
+        // Adjust for height reduction to maintain gaps
+        const heightReduction = 100 * 0.1; // 10% of original height
+        const verticalShift = 50; // Lower all boxes by 30 pixels
+        const austraclearYBase = 450 - smallRectHeight + heightReduction + rectHeight + verticalShift; // Move down by SWIFT PDS height plus shift
+        const austraclearSpecificShift = 20; // Additional shift just for Austraclear-related boxes
+        const austraclearY = austraclearYBase + 20 + austraclearSpecificShift; // Move Austraclear boxes down more
+
+        // SWIFT will be at the bottom (use original position)
+        // Calculate SWIFT box X position to align right edge with Austraclear
+        const austraclearRightEdge = baseX + rectWidth;
+        const swiftRightShift = austraclearRightEdge - swiftRectWidth - baseX;
+        const rectX = baseX + swiftRightShift; // Adjusted X to keep right edge aligned
+        const swiftSectionDownShift = 25; // Move SWIFT section down by 25 pixels
+        const rectY = austraclearYBase + austraclearHeight + verticalGap + smallRectHeight + austraclearHeight - 15 + swiftSectionDownShift; // Moved down
+
+        // Store rectX globally for NPP box
+        window.rectDimensions.rectX = rectX;
+
+        // Store original rectY and height for later adjustment
         window.swiftGroupOriginalY = rectY;
         window.swiftPdsHeight = rectHeight;
-        window.swiftPdsWidth = swiftRectWidth;
-        if (absoluteLayout.swiftCluster) {
-          absoluteLayout.swiftCluster.swift = { x: rectX, y: rectY, width: swiftRectWidth, height: rectHeight };
-          absoluteLayout.swiftCluster.clsAud = { x: rectX, y: clsAudY, width: swiftRectWidth, height: smallRectHeight };
-          absoluteLayout.swiftCluster.austraclear = { x: baseX, y: austraclearY, width: rectWidth, height: austraclearHeight };
-          absoluteLayout.swiftCluster.metadata = { hvcsX, smallRectHeight, verticalGap, horizontalGap };
-        }
+        window.swiftPdsWidth = swiftRectWidth; // Store width for later use
 
         // Create and configure rectangle using helper function
         const swiftRect = createStyledRect(rectX, rectY, swiftRectWidth, rectHeight, {
-          fill: '#bdf7e9', // Light mint green (rgb(189, 247, 233))
-          stroke: '#0f766e', // Dark gray matching text color
-          strokeWidth: '2'
+          fill: '#063d38', // Dark gray (swapped with border)
+          stroke: '#00ffdf', // Light mint green (swapped with fill)
+          strokeWidth: '2.5'
           // No rx attribute = square corners
         });
         swiftRect.setAttribute('id', 'swift-pds-rect'); // Add ID for easy reference
@@ -829,7 +776,7 @@ function initializeDiagramAbsolute() {
         swiftRectText.setAttribute('y', swiftCenterY.toFixed(2));
         swiftRectText.setAttribute('text-anchor', 'middle');
         swiftRectText.setAttribute('dominant-baseline', 'middle');
-        swiftRectText.setAttribute('fill', '#0f766e');
+        swiftRectText.setAttribute('fill', '#ffffff');
         swiftRectText.setAttribute('font-family', 'Arial, sans-serif');
         swiftRectText.setAttribute('font-size', '18');
         swiftRectText.setAttribute('font-weight', 'bold');
@@ -854,10 +801,21 @@ function initializeDiagramAbsolute() {
           centerY: swiftCenterY
         };
 
+        // Calculate CLS AUD Y position early (needed for pacs.009 extension)
+        // Place CLS AUD above SWIFT PDS instead of below
+        const clsAudY = rectY - smallRectHeight - verticalGap;
+
         // Create smaller rectangles around SWIFT PDS box
 
+        // Calculate hvcsX position (needed for left rectangles)
+        const hvcsX = rectX - swiftRectWidth - horizontalGap - swiftRectWidth - horizontalGap;
+
         // Three rectangles to the left
-        const pacsBoxWidth = pacsData[0]?.width ?? (swiftRectWidth * 1.5);
+        const pacsBoxWidth = swiftRectWidth * 1.5; // 50% wider than SWIFT PDS box
+        // Calculate shift to make horizontal gap equal to verticalGap
+        // Current position: rectX - horizontalGap - pacsBoxWidth
+        // Desired position: rectX - verticalGap - pacsBoxWidth
+        const hvcsShift = horizontalGap - verticalGap; // Shift right by difference (30 - 5 = 25)
         const boundingBoxPaddingH = 10; // Horizontal padding - restored to 10
 
         // Store elements to update position later when dvpRtgsX is available
@@ -868,42 +826,46 @@ function initializeDiagramAbsolute() {
           window.swiftHvcsElements = {};
         }
 
-        const defaultPacsLabels = ['pacs.009', 'pacs.008', 'pacs.004'];
-        const pacsList = pacsData.length === defaultPacsLabels.length ? pacsData : defaultPacsLabels.map((label, idx) => {
-          const originalPacsWidth = swiftRectWidth;
-          const rightmostPacsRightEdge = rectX - verticalGap;
-          const originalBoxRightEdge = rectX - verticalGap - (2 - idx) * (originalPacsWidth + verticalGap);
-          const tempSmallRectX = originalBoxRightEdge - pacsBoxWidth;
-          const positions = [1/6, 0.5, 5/6];
-          const lineCenterY = rectY + rectHeight * positions[idx];
-          const smallRectY = lineCenterY - smallRectHeight / 2;
-          return {
-            x: tempSmallRectX,
-            y: smallRectY,
-            width: pacsBoxWidth,
-            height: smallRectHeight,
-            label
-          };
-        });
+        for (let j = 0; j < 3; j++) {
+          // Position pacs boxes with gap equal to verticalGap
+          // Rightmost box should be at: rectX - verticalGap - pacsBoxWidth
+          // This box is at index 0, so it's the leftmost, need to account for 2 more boxes
+          // Keep right edge at original position (with original width)
+          const originalPacsWidth = swiftRectWidth; // Original width before 50% increase
+          const rightmostPacsRightEdge = rectX - verticalGap; // Original right edge position
+          const rightmostPacsX = rightmostPacsRightEdge - pacsBoxWidth; // New left edge for wider box
 
-        pacsList.forEach((pacsBox, j) => {
-          const smallRect = createStyledRect(pacsBox.x, pacsBox.y, pacsBox.width, pacsBox.height, {
-            fill: '#0f766e', // Dark gray fill (same as SWIFT HVCS)
-            stroke: 'none', // No border (same as SWIFT HVCS)
-            strokeWidth: '1',
+          // Calculate position for this box keeping right edges aligned
+          const originalBoxRightEdge = rectX - verticalGap - (2 - j) * (originalPacsWidth + verticalGap);
+          const tempSmallRectX = originalBoxRightEdge - pacsBoxWidth;
+          // Position pacs boxes to align with lines going into SWIFT PDS
+          // Lines enter SWIFT PDS at 1/6, 1/2, and 5/6 of its height
+          const swiftBoxTop = rectY;
+          const swiftBoxHeight = rectHeight;
+          const positions = [1/6, 0.5, 5/6];
+          const lineCenterY = swiftBoxTop + swiftBoxHeight * positions[j];
+          const smallRectY = lineCenterY - smallRectHeight / 2;
+
+          const smallRect = createStyledRect(tempSmallRectX, smallRectY, pacsBoxWidth, smallRectHeight, {
+            fill: '#5dd9b8', // Green SWIFT line color
+            stroke: '#ffffff', // Very thin white border
+            strokeWidth: '0.5',
             rx: '12', // More rounded corners
             ry: '12' // More rounded corners
           });
 
           labelsGroup.appendChild(smallRect);
 
-          const textY = pacsBox.y + pacsBox.height / 2;
+          // Add label to each left rectangle
+          const pacsLabels = ['pacs.009', 'pacs.008', 'pacs.004'];
+          const textPadding = 10;
+          const textY = smallRectY + smallRectHeight / 2;
           const pacsText = createStyledText(
-            pacsBox.x + pacsBox.width / 2,
+            tempSmallRectX + pacsBoxWidth / 2,
             textY,
-            pacsBox.label ?? defaultPacsLabels[j],
+            pacsLabels[j],
             {
-              fill: '#ffffff', // White text (to contrast with dark background)
+              fill: '#063d38', // Dark text (swapped)
               fontSize: '11' // Match trade-by-trade font size
             }
           );
@@ -911,48 +873,37 @@ function initializeDiagramAbsolute() {
 
           // Store elements to update later
           pacsElements.push({rect: smallRect, text: pacsText});
-        });
-
-        if (absoluteLayout.swiftCluster) {
-          absoluteLayout.swiftCluster.pacs = pacsList.map((p, idx) => ({
-            label: p.label ?? defaultPacsLabels[idx] ?? '',
-            x: p.x,
-            y: p.y,
-            width: p.width,
-            height: p.height
-          }));
         }
 
-        const pacsLeftEdges = pacsList.map(p => p.x);
-        const pacsRightEdges = pacsList.map(p => p.x + p.width);
-        const smallRectX = pacsLeftEdges.length ? Math.min(...pacsLeftEdges) : rectX - horizontalGap - pacsBoxWidth * 3;
-        const rightmostPacsRightEdge = pacsRightEdges.length ? Math.max(...pacsRightEdges) : rectX - verticalGap;
-        const pacs004 = pacsList[2] || pacsList[pacsList.length - 1] || { x: rectX, y: rectY, height: smallRectHeight };
+        // Create bounding box around PACS boxes
+        // Calculate leftmost pacs box position keeping right edges fixed
+        const originalPacsWidth = swiftRectWidth; // Original width before 50% increase
+        const rightmostPacsRightEdge = rectX - verticalGap; // Original right edge position
+        const rightmostPacsX = rightmostPacsRightEdge - pacsBoxWidth; // New left edge for wider box
 
+        // Calculate leftmost box position based on original right edge positions
+        const leftmostOriginalRightEdge = rectX - verticalGap - 2 * (originalPacsWidth + verticalGap);
+        const smallRectX = leftmostOriginalRightEdge - pacsBoxWidth; // Leftmost box position
         const boundingBoxPaddingV = 5; // Vertical padding - reduced from 10
         const labelSpace = 45; // Increased for more bottom padding
 
-        const boundingBoxX = boundingLayout?.x ?? (smallRectX - boundingBoxPaddingH);
-        const boundingBoxY = boundingLayout?.y ?? (rectY - boundingBoxPaddingV);
-        const boundingBoxWidth = boundingLayout?.width ?? ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2);
-        const boundingBoxHeight = boundingLayout?.height ?? ((smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace);
-
         console.log('SWIFT HVCS box calculation:', {
           leftmost_pacs_x: smallRectX,
-          rightmost_pacs_x: rightmostPacsRightEdge,
-          bounding_box_left: boundingBoxX,
-          bounding_box_right: boundingBoxX + boundingBoxWidth,
-          gap_to_swift: rectX - (boundingBoxX + boundingBoxWidth)
+          rightmost_pacs_x: rightmostPacsX,
+          bounding_box_left: smallRectX - boundingBoxPaddingH,
+          bounding_box_right: (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2),
+          gap_to_swift: rectX - ((smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2))
         });
 
         const boundingBox = createStyledRect(
-          boundingBoxX,
-          boundingBoxY,
-          boundingBoxWidth,
-          boundingBoxHeight,
+          smallRectX - boundingBoxPaddingH,
+          rectY - boundingBoxPaddingV,
+          // Width from leftmost left edge to rightmost right edge plus padding
+          (rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2, // Total span + padding
+          (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace,
           {
-            fill: '#bdf7e9', // Same as SWIFT PDS - Light mint green
-            stroke: '#0f766e', // Dark gray (same as SWIFT PDS)
+            fill: '#063d38', // Dark gray (swapped with stroke)
+            stroke: '#00ffdf', // Light mint green (swapped with fill)
             strokeWidth: '2',
             rx: '8', // Rounded corners
             ry: '8' // Rounded corners
@@ -965,28 +916,23 @@ function initializeDiagramAbsolute() {
           backgroundGroup.appendChild(boundingBox);
         }
 
-        if (absoluteLayout.swiftCluster) {
-          absoluteLayout.swiftCluster.bounding = {
-            x: boundingBoxX,
-            y: boundingBoxY,
-            width: boundingBoxWidth,
-            height: boundingBoxHeight
-          };
-        }
-
         // Add SWIFT HVCS label halfway between bottom of box and bottom of pacs.004
-        const boundingBoxCenterX = boundingBoxX + boundingBoxWidth / 2;
-        const pacs004Bottom = (pacs004?.y ?? (rectY + (smallRectHeight + verticalGap) * 2)) + (pacs004?.height ?? smallRectHeight);
-        const boundingBoxBottom = boundingBoxY + boundingBoxHeight;
+        const boundingBoxWidth = rightmostPacsRightEdge - smallRectX;
+        // Get pacs.004 (index 2) bottom position
+        const pacs004Index = 2;
+        const pacs004Y = rectY + (smallRectHeight + verticalGap) * pacs004Index;
+        const pacs004Bottom = pacs004Y + smallRectHeight;
+        // Calculate bottom of bounding box
+        const boundingBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
         // Position label halfway between pacs.004 bottom and box bottom
         const labelY = pacs004Bottom + (boundingBoxBottom - pacs004Bottom) / 2;
 
         const hvcsLabel = createStyledText(
-          boundingBoxCenterX, // Center in bounding box
+          smallRectX + boundingBoxWidth / 2, // Center in bounding box
           labelY,
           'SWIFT HVCS', // Single line text
           {
-            fill: '#0f766e', // Dark gray text
+            fill: '#ffffff', // White text
             fontSize: '16', // Slightly bigger than CLS AUD (14)
             fontWeight: 'bold'
           }
@@ -998,35 +944,28 @@ function initializeDiagramAbsolute() {
         window.swiftHvcsElements.pacsElements = pacsElements;
         window.swiftHvcsElements.hvcsLabel = hvcsLabel;
 
-        if (absoluteLayout.swiftCluster) {
-          absoluteLayout.swiftCluster.hvcsLabel = {
-            x: boundingBoxCenterX,
-            y: labelY
-          };
-        }
-
         // Debug logging to calculate actual coordinates
         console.log('=== INITIAL COORDINATE DEBUGGING ===');
         console.log('SWIFT HVCS initial position:', {
-          x: boundingBoxX,
-          width: boundingBoxWidth,
-          rightEdge: boundingBoxX + boundingBoxWidth
+          x: smallRectX - boundingBoxPaddingH,
+          width: (rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2,
+          rightEdge: (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2)
         });
 
         // Add path from SWIFT HVCS box going below ESAs to non-ADIs edge and up to ADIs
         // Start from right edge of SWIFT HVCS bounding box, low enough to go under ESAs
-        const hvcsBoxRight = boundingBoxX + boundingBoxWidth;
+        const hvcsBoxRight = (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2);
         // Position line between ESAs bottom and SWIFT HVCS bottom
-        const hvcsBoxBottom = boundingBoxBottom;
+        const hvcsBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
         const hvcsLineY = hvcsBoxBottom - 25 - 15 + 8; // Was raised by 15, now lowered by 8 (net raise of 7)
 
         // Create initial path (will be updated when we know box positions)
         const initialPath = `M ${hvcsBoxRight} ${hvcsLineY} L ${hvcsBoxRight + 50} ${hvcsLineY}`;
         const hvcsLine = createStyledPath(initialPath, {
-          stroke: '#3da88a', // Same color as PACS to SWIFT PDS lines
+          stroke: '#5dd9b8', // Same color as PACS to SWIFT PDS lines
           strokeWidth: '6', // Same thickness as neon lines
           fill: 'none',
-          strokeLinecap: 'round',
+          strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
           id: 'hvcs-horizontal-line'
         });
 
@@ -1061,14 +1000,13 @@ function initializeDiagramAbsolute() {
         const largerGap = pacs002Top - austraclearBottom;
 
 
-        // Add narrow rectangle above Austraclear (CHESS-RTGS)
-        const chessBoxPaddingReduction = 8; // Reduce padding by 8 pixels total (4 on each side)
-        const chessBoxWidth = rectWidth - chessBoxPaddingReduction;
-        const chessBoxX = baseX + (chessBoxPaddingReduction / 2); // Shift right to center the narrower box
+        // Add rectangle above Austraclear (CHESS-RTGS)
+        const chessBoxWidth = rectWidth; // Same width as Austraclear
+        const chessBoxX = baseX; // Same X position as Austraclear
         const narrowRect = createStyledRect(chessBoxX, chessY, chessBoxWidth, smallRectHeight, {
-          fill: '#e8ecf7', // Same as Austraclear
-          stroke: '#071f6a', // Same as Austraclear
-          strokeWidth: '2'
+          fill: '#071f6a', // Original dark blue
+          stroke: '#e8ecf7', // Swapped with fill
+          strokeWidth: '2.5'
           // No rx attribute = square corners
         });
         labelsGroup.appendChild(narrowRect);
@@ -1079,9 +1017,9 @@ function initializeDiagramAbsolute() {
           chessY + smallRectHeight / 2,
           'CHESS-RTGS',
           {
-            fill: '#071f6a', // Dark blue text
+            fill: '#ffffff', // White text
             fontSize: '11', // Slightly smaller to fit better
-            dominantBaseline: 'central', // Use 'central' for better vertical centering
+            dominantBaseline: 'middle', // Use 'middle' for better vertical centering
             textAnchor: 'middle'
           }
         );
@@ -1089,20 +1027,20 @@ function initializeDiagramAbsolute() {
 
         // Add Austraclear box below CHESS-RTGS
         const austraclearRect = createStyledRect(baseX, austraclearY, rectWidth, austraclearHeight, {
-          fill: '#e8ecf7', // Light blue-grey interior
-          stroke: '#071f6a', // Dark blue border RGB(7,31,106)
-          strokeWidth: '2'
+          fill: '#071f6a', // Swapped with stroke
+          stroke: '#e8ecf7', // Swapped with fill
+          strokeWidth: '2.5'
           // No rx attribute = square corners like SWIFT box
         });
         labelsGroup.appendChild(austraclearRect);
 
         // Add Austraclear label
         const austraclearText = createStyledText(
-          baseX + rectWidth / 2, 
-          austraclearY + austraclearHeight / 2, 
+          baseX + rectWidth / 2,
+          austraclearY + austraclearHeight / 2,
           'Austraclear',
           {
-            fill: '#071f6a', // Dark blue text matching border
+            fill: '#e8ecf7', // Swapped text color
             fontSize: '18' // Same size as SWIFT PDS
           }
         );
@@ -1115,11 +1053,11 @@ function initializeDiagramAbsolute() {
         let dvpRtgsX = baseX - rectWidth - horizontalGap; // Initial position
         const dvpRtgsY = chessY; // Align top with CHESS-RTGS
         const dvpRtgsRect = createStyledRect(dvpRtgsX, dvpRtgsY, rectWidth / 2, austraclearHeight, {
-          fill: '#4a5a8a', // Match CHESS equities shade
+          fill: '#009fff', // Same as ASX lines
           stroke: 'none',
-          opacity: '0.7',
-          rx: '4',
-          ry: '4'
+          opacity: '0.5',
+          rx: '10',
+          ry: '10'
         });
         labelsGroup.appendChild(dvpRtgsRect);
 
@@ -1134,10 +1072,10 @@ function initializeDiagramAbsolute() {
         dvpRtgsText.setAttribute('y', (dvpRtgsY + austraclearHeight / 2).toFixed(2));
         dvpRtgsText.setAttribute('text-anchor', 'middle');
         dvpRtgsText.setAttribute('dominant-baseline', 'middle');
-        dvpRtgsText.setAttribute('fill', '#ffffff'); // White text for contrast
+        dvpRtgsText.setAttribute('fill', '#ffffff'); // White text
         dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
         dvpRtgsText.setAttribute('font-size', '11'); // Slightly bigger font
-        dvpRtgsText.setAttribute('font-weight', 'bold');
+        dvpRtgsText.setAttribute('font-weight', 'normal');
         // Split into two lines: "DvP" over "RTGS"
         const dvpTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
         dvpTspan.setAttribute('x', (dvpRtgsX + rectWidth / 4).toFixed(2));
@@ -1155,7 +1093,7 @@ function initializeDiagramAbsolute() {
 
         // Add ASX Settlement as elongated hexagon
         let dvpRtgsCenterX = dvpRtgsX + rectWidth / 4; // Center of reduced-width DvP RTGS (will be updated)
-        const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS (adjusted for padding reduction)
+        const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS
         const bridgeX = dvpRtgsCenterX; // Left edge at DvP RTGS center
         const bridgeWidth = chessRtgsCenterX - dvpRtgsCenterX; // Width to reach CHESS-RTGS center
         const hexHeight = smallRectHeight * 1.5 * 0.8 * 0.9; // 50% taller, reduced by 20%, then by 10%
@@ -1164,9 +1102,9 @@ function initializeDiagramAbsolute() {
 
         // Create rounded rectangle for ASX Settlement
         const bridgeBox = createStyledRect(bridgeX, bridgeY, bridgeWidth, hexHeight, {
-          fill: '#e8ecf7', // Same as CHESS-RTGS
-          stroke: '#071f6a', // Same as CHESS-RTGS
-          strokeWidth: '2'
+          fill: '#071f6a', // Swapped with stroke
+          stroke: '#e8ecf7', // Same as text color
+          strokeWidth: '2.5'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(bridgeBox);
@@ -1176,7 +1114,10 @@ function initializeDiagramAbsolute() {
           bridgeX + bridgeWidth / 2,
           bridgeY + hexHeight / 2,
           'ASXB',
-          { fontSize: '12' }
+          {
+            fontSize: '12',
+            fill: '#ffffff' // Swapped text color
+          }
         );
         labelsGroup.appendChild(asxSettlementText);
 
@@ -1185,9 +1126,9 @@ function initializeDiagramAbsolute() {
         let asxfY = bridgeY - (hexHeight * 2) - verticalGap;
 
         const asxfBox = createStyledRect(bridgeX, asxfY, bridgeWidth, hexHeight, {
-          fill: '#e8ecf7', // Same as ASX Settlement
-          stroke: '#071f6a', // Same as ASX Settlement
-          strokeWidth: '2'
+          fill: '#071f6a', // Swapped with stroke
+          stroke: '#e8ecf7', // Same as text color
+          strokeWidth: '2.5'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(asxfBox);
@@ -1197,18 +1138,21 @@ function initializeDiagramAbsolute() {
           bridgeX + bridgeWidth / 2,
           asxfY + hexHeight * 2 / 2,  // Adjusted for taller box
           'ASXF',
-          { fontSize: '12' }
+          {
+            fontSize: '12',
+            fill: '#ffffff' // Swapped text color
+          }
         );
         labelsGroup.appendChild(asxfText);
 
         // Bottom box: RTGS / DvP RTGS
         const rtgsY = dvpRtgsY + austraclearHeight + verticalGap;
         const rtgsRect = createStyledRect(dvpRtgsX, rtgsY, rectWidth / 2, smallRectHeight, {
-          fill: '#4a5a8a', // Match CHESS equities shade
+          fill: '#009fff', // Same as ASX lines
           stroke: 'none',
-          opacity: '0.7',
-          rx: '4',
-          ry: '4'
+          opacity: '0.5',
+          rx: '10',
+          ry: '10'
         });
         labelsGroup.appendChild(rtgsRect);
 
@@ -1221,37 +1165,10 @@ function initializeDiagramAbsolute() {
           dvpRtgsX + rectWidth / 4,
           rtgsY + smallRectHeight / 2,
           'RTGS',
-          { fontSize: '10', fill: '#ffffff' }  // Smaller font, white text
+          { fontSize: '10', fill: '#ffffff', fontWeight: 'normal' }  // Smaller font, white text, normal weight
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
-
-        absoluteLayout.asxCluster = {
-          chessRtgs: {
-            x: chessBoxX,
-            y: chessY,
-            width: chessBoxWidth,
-            height: smallRectHeight
-          },
-          austraclear: {
-            x: baseX,
-            y: austraclearY,
-            width: rectWidth,
-            height: austraclearHeight
-          },
-          dvpRtgs: {
-            x: dvpRtgsX,
-            y: dvpRtgsY,
-            width: rectWidth / 2,
-            height: austraclearHeight
-          },
-          rtgs: {
-            x: dvpRtgsX,
-            y: rtgsY,
-            width: rectWidth / 2,
-            height: smallRectHeight
-          }
-        };
 
         // Money Market / Repo box - to the left of RTGS/DvP RTGS, above SWIFT HVCS
         let moneyMarketRect; // Will be created later after position calculations
@@ -1275,7 +1192,7 @@ function initializeDiagramAbsolute() {
         rtgsText.setAttribute('x', (dvpRtgsX + rectWidth / 4).toFixed(2));
 
         // Add connecting lines between DvP/RTGS boxes and CHESS/Austraclear
-        const austraclearLineColor = '#0a4f8f'; // Match ASX bottom lines color
+        const austraclearLineColor = '#009fff'; // Match ASX bottom lines color
         const austraclearLineWidth = '4'; // Match ASX bottom lines thickness
 
         // Add three lines with same spacing as SWIFT lines
@@ -1284,7 +1201,7 @@ function initializeDiagramAbsolute() {
           const lineY = chessY + (smallRectHeight + verticalGap) * j + smallRectHeight / 2;
           const x1 = dvpRtgsX + rectWidth / 2; // Right edge of DvP RTGS (half width)
           const y1 = lineY;
-          const x2 = chessBoxX; // Left edge of CHESS-RTGS (adjusted for padding reduction)
+          const x2 = chessBoxX; // Left edge of CHESS-RTGS
           const y2 = lineY;
 
           const austLine = createStyledLine(x1, y1, x2, y2, {
@@ -1471,9 +1388,9 @@ function initializeDiagramAbsolute() {
         bridgeY = bridgeY_original + verticalOffset_pexa;
 
         const pexaBox = createStyledRect(widerAdminBoxX, pexaY, widerAdminBoxWidth, hexHeight, {
-          fill: '#FDE2F9',
-          stroke: 'rgb(179,46,161)',
-          strokeWidth: '2'
+          fill: 'rgb(110,28,100)', // Darker pink (similar darkness to ASXF)
+          stroke: '#FDE2F9', // Same as text color
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(pexaBox);
 
@@ -1482,7 +1399,7 @@ function initializeDiagramAbsolute() {
           pexaY + hexHeight / 2,
           'PEXA',
           {
-            fill: 'rgb(179,46,161)',
+            fill: '#ffffff', // Swapped with stroke
             fontSize: '12'
           }
         );
@@ -1491,9 +1408,9 @@ function initializeDiagramAbsolute() {
         // Create eftpos box above PEXA with same gap (apply same offset)
         const eftposY = pexaY - adminBatchGap - hexHeight;
         const eftposBox = createStyledRect(widerAdminBoxX, eftposY, widerAdminBoxWidth, hexHeight, {
-          fill: '#D8D0F0',
-          stroke: 'rgb(100,80,180)',
-          strokeWidth: '2'
+          fill: 'rgb(60,45,110)', // Darker purple (similar darkness to ASXF)
+          stroke: '#D8D0F0', // Same as text color
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(eftposBox);
 
@@ -1502,7 +1419,7 @@ function initializeDiagramAbsolute() {
           eftposY + hexHeight / 2,
           'ESSB',
           {
-            fill: 'rgb(80,60,150)',
+            fill: '#ffffff', // Swapped with stroke
             fontSize: '12'
           }
         );
@@ -1511,9 +1428,9 @@ function initializeDiagramAbsolute() {
         // Create Mastercard box above eftpos with same gap
         const mastercardY = eftposY - adminBatchGap - hexHeight;
         const mastercardBox = createStyledRect(widerAdminBoxX, mastercardY, widerAdminBoxWidth, hexHeight, {
-          fill: 'rgb(255,230,230)',
-          stroke: 'rgb(216,46,43)',
-          strokeWidth: '2'
+          fill: 'rgb(150,30,28)', // Darker red (similar darkness to ASXF)
+          stroke: 'rgb(255,230,230)', // Same as text color
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(mastercardBox);
 
@@ -1522,7 +1439,7 @@ function initializeDiagramAbsolute() {
           mastercardY + hexHeight / 2,
           'MCAU',
           {
-            fill: 'rgb(216,46,43)',
+            fill: '#ffffff',
             fontSize: '12'
           }
         );
@@ -1594,30 +1511,30 @@ function initializeDiagramAbsolute() {
         const groupShift = -boxHeight / 4; // Move entire group up by quarter box height
         const cshdY = realAdminBoxY - reducedBoxHeight * 1.5 - boxHeight - squareRectGap * 2 - 20 + groupShift + 5; // Position CSHD - moved down by half box height + 5 pixels
 
-        // CECS (IAC) - position below CSHD with same gap as CSHD-BECS
+        // CECS - position below CSHD with same gap as CSHD-BECS
         const cecsY = cshdY + boxHeight + squareRectGap; // Same gap as between CSHD and BECS
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f1ffcc', // Light yellow-green (from CECS)
-          stroke: '#2d5016', // Dark forest green (from CECS)
-          strokeWidth: '2',
+          fill: '#2d5016', // Dark green fill (swapped from border)
+          stroke: '#f1ffcc', // Light yellow-green border (swapped from fill)
+          strokeWidth: '3',
           rx: '8',
           ry: '8'
         });
         labelsGroup.appendChild(cshdBox);
 
-        // CSHD label
+        // CECS label
         const cshdText = createStyledText(
           reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
           cshdY + boxHeight / 2,
-          'IAC (CECS)',
+          'CECS',
           {
-            fill: '#2d5016' // Dark forest green (from CECS)
+            fill: '#ffffff' // Light yellow-green text (matching CECS border)
           }
         );
         labelsGroup.appendChild(cshdText);
 
-        // Store IAC (CECS) position for direct entry bounding line updates
+        // Store CECS position for direct entry bounding line updates
         window.cecsBoxData = {
           x: reducedNarrowBoxX,
           y: cshdY,
@@ -1627,7 +1544,7 @@ function initializeDiagramAbsolute() {
         const cecsBox = createStyledRect(reducedNarrowBoxX, cecsY, reducedNarrowBoxWidth, boxHeight, {
           fill: '#000000', // Black fill (from GABS)
           stroke: '#ff0000', // Bright red border (from GABS)
-          strokeWidth: '2',
+          strokeWidth: '3',
           rx: '8',
           ry: '8'
         });
@@ -1655,9 +1572,9 @@ function initializeDiagramAbsolute() {
         // BECS (third from bottom)
         const becsY = cshdY - boxHeight - squareRectGap; // Above CSHD (automatically shifted with CSHD)
         const becsBox = createStyledRect(reducedNarrowBoxX, becsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#f5efea', // Light tan (from CSHD)
-          stroke: '#9b7a5f', // Brownish tan border (from CSHD)
-          strokeWidth: '2',
+          fill: '#4a3024', // Shade darker brown interior
+          stroke: '#f5efea', // Light tan border (swapped)
+          strokeWidth: '3',
           rx: '8',
           ry: '8'
         });
@@ -1677,7 +1594,7 @@ function initializeDiagramAbsolute() {
           becsY + boxHeight / 2,
           'CSHD',
           {
-            fill: '#9b7a5f', // Brownish tan (from CSHD)
+            fill: '#ffffff', // Same as BECN interior color
             fontSize: '12'
           }
         );
@@ -1686,13 +1603,21 @@ function initializeDiagramAbsolute() {
         // APCS (fourth from bottom)
         const apcsY = becsY - boxHeight - squareRectGap;
         const apcsBox = createStyledRect(reducedNarrowBoxX, apcsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#ffc0cb', // Pink fill (from BECS)
-          stroke: '#8B0000', // Dark red border (from BECS)
-          strokeWidth: '2',
+          fill: '#8b2020', // Darker and redder fill
+          stroke: '#ffe0e0', // Light pink border (matching text)
+          strokeWidth: '3',
           rx: '8',
           ry: '8'
         });
         labelsGroup.appendChild(apcsBox);
+
+        // Store APCS box data (which has BECS label) for connecting lines
+        window.apcsBoxData = {
+          x: reducedNarrowBoxX,
+          y: apcsY,
+          width: reducedNarrowBoxWidth,
+          height: boxHeight
+        };
 
         // APCS label
         const apcsText = createStyledText(
@@ -1700,7 +1625,7 @@ function initializeDiagramAbsolute() {
           apcsY + boxHeight / 2,
           'BECS',
           {
-            fill: '#8b0000', // Dark red text (from BECS)
+            fill: '#ffffff', // Light pink (matching BECN interior)
             fontSize: '12'
           }
         );
@@ -1728,9 +1653,9 @@ function initializeDiagramAbsolute() {
         const gabsBottomY = apcsY - squareRectGap; // Bottom edge position
         const gabsY = gabsBottomY - boxHeight; // Top edge raised to accommodate full height
         const gabsBox = createStyledRect(reducedNarrowBoxX, gabsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#e5e7eb', // Light grey (from APCS)
-          stroke: '#6b7280', // Grey border (from APCS)
-          strokeWidth: '2',
+          fill: '#4b5563', // Darker grey fill
+          stroke: '#e5e7eb', // Light grey border (swapped)
+          strokeWidth: '2.5',
           rx: '8',
           ry: '8'
         });
@@ -1742,7 +1667,7 @@ function initializeDiagramAbsolute() {
           gabsY + boxHeight / 2,
           'APCS',
           {
-            fill: '#0a0e27', // Very dark blue (from APCS)
+            fill: '#e5e7eb', // Light grey text (swapped)
             fontSize: '12'
           }
         );
@@ -1756,136 +1681,164 @@ function initializeDiagramAbsolute() {
         const newSmallBoxWidth = newAvailableWidth / 3; // Each box gets 1/3 of available width
         const newSmallBoxesY = gabsY - newSmallBoxHeight - boxHeight; // Gap equal to APCS box height
 
+        // REMOVED: APCE, APCR, ACPT boxes
         // New APCE box (leftmost)
-        const newApceX = reducedNarrowBoxX; // Left edge aligns with APCS left edge
-        const newApceBox = createStyledRect(newApceX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
-          fill: '#e5e7eb', // Light grey
-          stroke: '#6b7280', // Grey border
-          strokeWidth: '1',
-          rx: '4',
-          ry: '4'
-        });
-        labelsGroup.appendChild(newApceBox);
+        // const newApceX = reducedNarrowBoxX; // Left edge aligns with APCS left edge
+        // const newApceBox = createStyledRect(newApceX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+        //   fill: '#e5e7eb', // Light grey
+        //   stroke: '#6b7280', // Grey border
+        //   strokeWidth: '1',
+        //   rx: '4',
+        //   ry: '4'
+        // });
+        // labelsGroup.appendChild(newApceBox);
 
-        const newApceText = createStyledText(
-          newApceX + newSmallBoxWidth / 2,
-          newSmallBoxesY + newSmallBoxHeight / 2,
-          'APCE',
-          {
-            fill: '#0a0e27', // Dark blue
-            fontSize: '8'
-          }
-        );
-        labelsGroup.appendChild(newApceText);
+        // const newApceText = createStyledText(
+        //   newApceX + newSmallBoxWidth / 2,
+        //   newSmallBoxesY + newSmallBoxHeight / 2,
+        //   'APCE',
+        //   {
+        //     fill: '#0a0e27', // Dark blue
+        //     fontSize: '8'
+        //   }
+        // );
+        // labelsGroup.appendChild(newApceText);
 
         // New APCR box (middle)
-        const newApcrX = newApceX + newSmallBoxWidth + newSmallBoxGap;
-        const newApcrBox = createStyledRect(newApcrX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
-          fill: '#e5e7eb', // Light grey
-          stroke: '#6b7280', // Grey border
-          strokeWidth: '1',
-          rx: '4',
-          ry: '4'
-        });
-        labelsGroup.appendChild(newApcrBox);
+        // const newApcrX = newApceX + newSmallBoxWidth + newSmallBoxGap;
+        // const newApcrBox = createStyledRect(newApcrX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+        //   fill: '#e5e7eb', // Light grey
+        //   stroke: '#6b7280', // Grey border
+        //   strokeWidth: '1',
+        //   rx: '4',
+        //   ry: '4'
+        // });
+        // labelsGroup.appendChild(newApcrBox);
 
-        const newApcrText = createStyledText(
-          newApcrX + newSmallBoxWidth / 2,
-          newSmallBoxesY + newSmallBoxHeight / 2,
-          'APCR',
-          {
-            fill: '#0a0e27', // Dark blue
-            fontSize: '8'
-          }
-        );
-        labelsGroup.appendChild(newApcrText);
+        // const newApcrText = createStyledText(
+        //   newApcrX + newSmallBoxWidth / 2,
+        //   newSmallBoxesY + newSmallBoxHeight / 2,
+        //   'APCR',
+        //   {
+        //     fill: '#0a0e27', // Dark blue
+        //     fontSize: '8'
+        //   }
+        // );
+        // labelsGroup.appendChild(newApcrText);
 
         // New ACPT box (rightmost)
-        const newAcptX = newApcrX + newSmallBoxWidth + newSmallBoxGap;
-        const newAcptBox = createStyledRect(newAcptX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
-          fill: '#e5e7eb', // Light grey
-          stroke: '#6b7280', // Grey border
-          strokeWidth: '1',
-          rx: '4',
-          ry: '4'
-        });
-        labelsGroup.appendChild(newAcptBox);
+        // const newAcptX = newApcrX + newSmallBoxWidth + newSmallBoxGap;
+        // const newAcptBox = createStyledRect(newAcptX, newSmallBoxesY, newSmallBoxWidth, newSmallBoxHeight, {
+        //   fill: '#e5e7eb', // Light grey
+        //   stroke: '#6b7280', // Grey border
+        //   strokeWidth: '1',
+        //   rx: '4',
+        //   ry: '4'
+        // });
+        // labelsGroup.appendChild(newAcptBox);
 
-        const newAcptText = createStyledText(
-          newAcptX + newSmallBoxWidth / 2,
-          newSmallBoxesY + newSmallBoxHeight / 2,
-          'APCT',
-          {
-            fill: '#0a0e27', // Dark blue
-            fontSize: '8'
-          }
-        );
-        labelsGroup.appendChild(newAcptText);
+        // const newAcptText = createStyledText(
+        //   newAcptX + newSmallBoxWidth / 2,
+        //   newSmallBoxesY + newSmallBoxHeight / 2,
+        //   'APCT',
+        //   {
+        //     fill: '#0a0e27', // Dark blue
+        //     fontSize: '8'
+        //   }
+        // );
+        // labelsGroup.appendChild(newAcptText);
 
         // Add Cheques box above the three small boxes
         const newChequesBoxHeight = boxHeight * 0.8; // Same as original Cheques box
-        const newChequesBoxY = newSmallBoxesY - newChequesBoxHeight - 3; // Position above small boxes with reduced gap
-        const newChequesBox = createStyledRect(reducedNarrowBoxX, newChequesBoxY, reducedNarrowBoxWidth, newChequesBoxHeight, {
-          fill: '#4b5563', // Dark grey (same as original Cheques box)
-          stroke: 'none',
+        const newChequesBoxY = newSmallBoxesY - newChequesBoxHeight - 3 - 2; // Position above small boxes with reduced gap, raised by 2px
+        const chequesBoxPadding = 10; // Reduced padding for narrower box
+        const chequesBoxWidth = reducedNarrowBoxWidth - (chequesBoxPadding * 2);
+        const chequesBoxX = reducedNarrowBoxX + chequesBoxPadding;
+        const newChequesBox = createStyledRect(chequesBoxX, newChequesBoxY, chequesBoxWidth, newChequesBoxHeight, {
+          fill: '#e5e7eb', // Light grey matching APCS border
+          stroke: '#e5e7eb', // Light grey border matching APCS
+          strokeWidth: '0.5',
           rx: '5',
           ry: '5'
         });
         labelsGroup.appendChild(newChequesBox);
 
+        // Store Cheques box data for line connections
+        window.chequesBoxData = {
+          x: chequesBoxX,
+          y: newChequesBoxY,
+          width: chequesBoxWidth,
+          height: newChequesBoxHeight
+        };
+
         const newChequesText = createStyledText(
-          reducedNarrowBoxX + reducedNarrowBoxWidth / 2,
+          chequesBoxX + chequesBoxWidth / 2,
           newChequesBoxY + newChequesBoxHeight / 2,
           'Cheques',
           {
-            fill: '#ffffff', // White text (same as original)
+            fill: '#000000', // Black text
             fontSize: '11'
           }
         );
         labelsGroup.appendChild(newChequesText);
 
-        // Add vertical connecting lines from new boxes to APCS
+        // Add single vertical line from Cheques to APCS (BECS label)
         const apcsTopY = gabsY; // Top of APCS box
-        const newBoxesBottomY = newSmallBoxesY + newSmallBoxHeight; // Bottom of new boxes
+        const chequesBottomY = newChequesBoxY + newChequesBoxHeight; // Bottom of Cheques box
+        const chequesCenterX = chequesBoxX + chequesBoxWidth / 2; // Updated to use new Cheques box center
 
-        // Vertical line from new APCE to APCS
-        const newApceLine = createStyledLine(
-          newApceX + newSmallBoxWidth / 2, // Center of APCE
-          newBoxesBottomY,
-          newApceX + newSmallBoxWidth / 2, // Same X (vertical line)
+        // Single vertical line from Cheques to APCS
+        const chequesToApcsLine = createStyledLine(
+          chequesCenterX, // Center of Cheques
+          chequesBottomY,
+          chequesCenterX, // Same X (vertical line)
           apcsTopY,
           {
-            stroke: '#6B5D54',
-            strokeWidth: '1'
+            stroke: '#e5e7eb', // Match APCS border color
+            strokeWidth: '2'
           }
         );
-        labelsGroup.insertBefore(newApceLine, newApceBox);
+        labelsGroup.insertBefore(chequesToApcsLine, newChequesBox);
 
-        // Vertical line from new APCR to APCS
-        const newApcrLine = createStyledLine(
-          newApcrX + newSmallBoxWidth / 2, // Center of APCR
-          newBoxesBottomY,
-          newApcrX + newSmallBoxWidth / 2, // Same X (vertical line)
-          apcsTopY,
-          {
-            stroke: '#6B5D54',
-            strokeWidth: '1'
-          }
-        );
-        labelsGroup.insertBefore(newApcrLine, newApcrBox);
+        // REMOVED: Old connecting lines from APCE/APCR/APCT to APCS
+        // // Vertical line from new APCE to APCS
+        // const newApceLine = createStyledLine(
+        //   newApceX + newSmallBoxWidth / 2, // Center of APCE
+        //   newBoxesBottomY,
+        //   newApceX + newSmallBoxWidth / 2, // Same X (vertical line)
+        //   apcsTopY,
+        //   {
+        //     stroke: '#6B5D54',
+        //     strokeWidth: '1'
+        //   }
+        // );
+        // labelsGroup.insertBefore(newApceLine, newApceBox);
 
-        // Vertical line from new ACPT to APCS
-        const newAcptLine = createStyledLine(
-          newAcptX + newSmallBoxWidth / 2, // Center of ACPT
-          newBoxesBottomY,
-          newAcptX + newSmallBoxWidth / 2, // Same X (vertical line)
-          apcsTopY,
-          {
-            stroke: '#6B5D54',
-            strokeWidth: '1'
-          }
-        );
-        labelsGroup.insertBefore(newAcptLine, newAcptBox);
+        // // Vertical line from new APCR to APCS
+        // const newApcrLine = createStyledLine(
+        //   newApcrX + newSmallBoxWidth / 2, // Center of APCR
+        //   newBoxesBottomY,
+        //   newApcrX + newSmallBoxWidth / 2, // Same X (vertical line)
+        //   apcsTopY,
+        //   {
+        //     stroke: '#6B5D54',
+        //     strokeWidth: '1'
+        //   }
+        // );
+        // labelsGroup.insertBefore(newApcrLine, newApcrBox);
+
+        // // Vertical line from new ACPT to APCS
+        // const newAcptLine = createStyledLine(
+        //   newAcptX + newSmallBoxWidth / 2, // Center of ACPT
+        //   newBoxesBottomY,
+        //   newAcptX + newSmallBoxWidth / 2, // Same X (vertical line)
+        //   apcsTopY,
+        //   {
+        //     stroke: '#6B5D54',
+        //     strokeWidth: '1'
+        //   }
+        // );
+        // labelsGroup.insertBefore(newAcptLine, newAcptBox);
 
         // Add NPP box aligned with RBA dot at top
         // Position NPP much higher to align with RBA area
@@ -1913,9 +1866,9 @@ function initializeDiagramAbsolute() {
           nppBoxCreated = true;
         console.log('NPP position:', { rectX: nppRectX, nppY, swiftRectWidth: nppSwiftRectWidth, rectHeight: nppRectHeight });
         const nppBox = createStyledRect(nppRectX, nppY, nppSwiftRectWidth, nppRectHeight + 5, {
-          fill: '#bdf7e9', // Light mint green (swapped from NPP bounding box)
-          stroke: '#0f766e', // Dark gray (swapped from NPP bounding box)
-          strokeWidth: '2'
+          fill: '#063d38', // Dark gray
+          stroke: '#00ffdf', // Light mint green
+          strokeWidth: '2.5'
         });
         nppBox.setAttribute('id', 'npp-box'); // Add ID for later reference
         console.log('NPP box created:', nppBox);
@@ -1944,7 +1897,7 @@ function initializeDiagramAbsolute() {
         const nppLineOffset = 10;
 
         const nppTopText = createStyledText(nppCenterX, nppCenterY - nppLineOffset, 'NPP BI', {
-          fill: '#0f766e',
+          fill: '#ffffff',
           fontSize: '18',
           fontWeight: 'bold'
         });
@@ -1952,7 +1905,7 @@ function initializeDiagramAbsolute() {
         labelsGroup.appendChild(nppTopText);
 
         const nppBottomText = createStyledText(nppCenterX, nppCenterY + nppLineOffset, '(SWIFT)', {
-          fill: '#0f766e',
+          fill: '#ffffff',
           fontSize: '14',
           fontWeight: 'bold'
         });
@@ -1965,7 +1918,6 @@ function initializeDiagramAbsolute() {
         };
 
         // Add sigmoid curve from NPP to FSS circle
-        const nppToFssPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         // NPP right edge and center Y
         const nppRightX = nppRectX + nppSwiftRectWidth;
         // Store original center Y for later use
@@ -1988,7 +1940,7 @@ function initializeDiagramAbsolute() {
                               ${fssLeftEdgeX} ${fssConnectionY}`;
 
         const nppToFssPathStyled = createStyledPath(sigmoidData, {
-          stroke: '#3da88a',
+          stroke: '#5dd9b8',
           strokeWidth: '6',
           fill: 'none'
         });
@@ -2204,10 +2156,10 @@ function initializeDiagramAbsolute() {
         // Height to encompass all boxes plus space for label
         const adminBoxHeight = (bridgeY + hexHeight) - mastercardY + 2 * 10 + 20; // Slightly more bottom padding
 
-        const adminBatchesBox = createStyledRect(window.hexagonPositions.mastercardX - 10, adminBoxY, window.hexagonPositions.mastercardWidth + 2 * 10, adminBoxHeight, {
+        const adminBatchesBox = createStyledRect(window.hexagonPositions.mastercardX - 10 - 5, adminBoxY, window.hexagonPositions.mastercardWidth + 2 * 10 + 10, adminBoxHeight, {
           fill: '#3B3B3B', // Darker grey
-          stroke: '#1B1B1B', // Very dark grey border
-          strokeWidth: '2',
+          stroke: '#D0D0D0', // Light grey border
+          strokeWidth: '1',
           rx: '10',
           ry: '10'
         });
@@ -2240,12 +2192,12 @@ function initializeDiagramAbsolute() {
 
           // Add "Administered Batches" label (moved inside scope where adminBoxY is defined)
           const adminBatchesText = createStyledText(
-            (window.hexagonPositions.mastercardX - 10) + (window.hexagonPositions.mastercardWidth + 2 * 10) / 2,
+            (window.hexagonPositions.mastercardX - 10 - 5) + (window.hexagonPositions.mastercardWidth + 2 * 10 + 10) / 2,
             adminBoxY + adminBoxHeight - 14,  // Nudged up from bottom edge
             'Administered Batches',
             {
-              fill: '#FFFFFF', // White text
-              fontSize: '12' // Smaller font
+              fill: '#E8E8E8', // Lighter grey text
+              fontSize: '13' // One font size bigger
             }
           );
           labelsGroup.appendChild(adminBatchesText);
@@ -2327,7 +2279,7 @@ function initializeDiagramAbsolute() {
         }
 
         // Use stored alignment if available and apply shift
-        const alignedMoneyMarketWidth = rectWidth * 1.1;
+        const alignedMoneyMarketWidth = rectWidth * 0.95;
         let alignedMoneyMarketX = window.asxBoxesAlignment ? window.asxBoxesAlignment.center - (alignedMoneyMarketWidth / 2) : moneyMarketX;
 
         // Apply shift if DvP RTGS was aligned to SWIFT HVCS
@@ -2356,35 +2308,21 @@ function initializeDiagramAbsolute() {
         );
         labelsGroup.appendChild(moneyMarketText);
 
-        if (!absoluteLayout.asxCluster) absoluteLayout.asxCluster = {};
-        absoluteLayout.asxCluster.moneyMarket = {
-          x: alignedMoneyMarketX,
-          y: moneyMarketY,
-          width: alignedMoneyMarketWidth,
-          height: smallRectHeight * 0.9
-        };
-
         // Sympli line extension moved to after ADI box creation
 
         // Add horizontal line connecting RTGS / DvP RTGS to Money Market / Repo
-        const rtgsToMoneyMarketLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const moneyMarketLineY = moneyMarketY + smallRectHeight * 0.9 / 2; // Middle of Money Market box
         const moneyMarketRightEdge = alignedMoneyMarketX + alignedMoneyMarketWidth;
-        rtgsToMoneyMarketLine.setAttribute('x1', moneyMarketRightEdge.toFixed(2)); // Right edge of Money Market
-        rtgsToMoneyMarketLine.setAttribute('y1', moneyMarketLineY.toFixed(2));
-        rtgsToMoneyMarketLine.setAttribute('x2', dvpRtgsX.toFixed(2)); // Left edge of RTGS/DvP RTGS
-        rtgsToMoneyMarketLine.setAttribute('y2', moneyMarketLineY.toFixed(2));
-        rtgsToMoneyMarketLine.setAttribute('stroke', austraclearLineColor);
-        rtgsToMoneyMarketLine.setAttribute('stroke-width', austraclearLineWidth);
-        rtgsToMoneyMarketLine.setAttribute('stroke-linecap', 'round');
+        const rtgsToMoneyMarketLine = createStyledLine(
+          moneyMarketRightEdge, moneyMarketLineY,
+          dvpRtgsX, moneyMarketLineY,
+          {
+            stroke: austraclearLineColor,
+            strokeWidth: austraclearLineWidth,
+            strokeLinecap: 'round'
+          }
+        );
         svg.insertBefore(rtgsToMoneyMarketLine, labelsGroup);
-
-        absoluteLayout.asxCluster.rtgsToMoneyMarket = {
-          x1: moneyMarketRightEdge,
-          y1: moneyMarketLineY,
-          x2: dvpRtgsX,
-          y2: moneyMarketLineY
-        };
 
         // Calculate CHESS equities position first
         const sssCcpY = moneyMarketY - smallRectHeight * 0.9 - verticalGap;
@@ -2615,7 +2553,7 @@ function initializeDiagramAbsolute() {
           const swiftPdsYForLines = parseFloat(swiftPdsRect.getAttribute('y'));
           const swiftPdsHeightForLines = parseFloat(swiftPdsRect.getAttribute('height'));
 
-          const lineColor = '#3da88a'; // Brighter shade
+          const lineColor = '#5dd9b8'; // Brighter shade
           const lineWidth = '6'; // Thick lines matching other thick lines
 
           // Store connecting lines for updates
@@ -2671,7 +2609,7 @@ function initializeDiagramAbsolute() {
         const interiorBoxX = moneyMarketX; // Same X as other aligned boxes
         const chessEquitiesX = interiorBoxX - 10; // Add small padding around interior boxes
         // Position already calculated above
-        const chessEquitiesWidth = rectWidth + 20; // Width to encompass interior boxes with padding
+        const chessEquitiesWidth = rectWidth + 5; // Width to encompass interior boxes with padding
         // Height to encompass clearing/netting and trade-by-trade with padding
         const extraChessHeight = 6; // Slightly taller interior box
         const chessEquitiesHeight = (tradeByTradeYCalc + smallRectHeight * 0.9) - clearingYCalc + 27 + 1 + extraChessHeight;
@@ -2695,9 +2633,9 @@ function initializeDiagramAbsolute() {
         const chessEquitiesAdjustedHeight = chessEquitiesHeight + chessTopPadding;
 
         const chessEquitiesRect = createStyledRect(alignedChessEquitiesX, chessEquitiesY, alignedChessEquitiesWidth, chessEquitiesAdjustedHeight, {
-          fill: '#071f6a', // Solid blue fill
-          stroke: '#071f6a', // Blue border
-          strokeWidth: '2',
+          fill: '#009fff', // Deeper blue (RTGS box color)
+          stroke: 'white', // Thin white border
+          strokeWidth: '0.5',
           rx: '8',
           ry: '8'
         });
@@ -2711,7 +2649,7 @@ function initializeDiagramAbsolute() {
           'CHESS',
           {
             fill: '#ffffff', // White text
-            fontSize: '14'
+            fontSize: '18' // Bigger font size
           }
         );
         labelsGroup.appendChild(chessEquitiesText);
@@ -2742,9 +2680,9 @@ function initializeDiagramAbsolute() {
 
         const sympliHeight = smallRectHeight * 0.9 * 1.2 * 0.95;
         const sympliBox = createStyledRect(sympliX, sympliY, sympliWidth, sympliHeight, {
-          fill: 'rgb(239,136,51)', // Sympli new color
-          stroke: 'rgb(239,136,51)', // Sympli new color
-          strokeWidth: '2'
+          fill: 'rgb(239,136,51)', // Sympli original color
+          stroke: '#ffffff', // Very thin white border
+          strokeWidth: '0.5'
         });
         sympliBox.setAttribute('rx', '8'); // Rounded corners
         sympliBox.setAttribute('ry', '8'); // Rounded corners
@@ -2771,7 +2709,7 @@ function initializeDiagramAbsolute() {
         };
 
         const sympliLineGap = 2.5;
-        const sympliLineColor = '#B91199';
+        const sympliLineColor = '#FF0090';
         const sympliLineOffsets = [-sympliLineGap, 0, sympliLineGap]; // Triple lines
         const sympliConnectorStartX = sympliX + sympliWidth;
         let sympliConnectorEndX = sympliConnectorStartX;
@@ -2799,7 +2737,7 @@ function initializeDiagramAbsolute() {
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
           } else {
-            labelsGroup.appendChild(line);
+            labelsGroup.insertBefore(line, labelsGroup.firstChild);
           }
           return line;
         });
@@ -2827,8 +2765,8 @@ function initializeDiagramAbsolute() {
         const pexaConveyHeight = smallRectHeight * 0.9 * 1.2 * 0.95;
         const pexaConveyBox = createStyledRect(pexaConveyX, pexaConveyY, pexaConveyWidth, pexaConveyHeight, {
           fill: 'rgb(179,46,161)', // Same as PEXA border (solid fill)
-          stroke: 'rgb(179,46,161)',
-          strokeWidth: '2',
+          stroke: '#ffffff', // Very thin white border
+          strokeWidth: '0.5',
           rx: '8', // Rounded corners
           ry: '8' // Rounded corners
         });
@@ -2905,9 +2843,10 @@ function initializeDiagramAbsolute() {
             }
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
-              stroke: 'none',
-              rx: '14',
-              ry: '14'
+              stroke: (isNarrowBox || label === 'Mastercard' || label === 'eftpos') ? '#ffffff' : 'none', // Thin white border for narrow boxes, Mastercard, and eftpos
+              strokeWidth: (isNarrowBox || label === 'Mastercard' || label === 'eftpos') ? '0.5' : '0',
+              rx: '8',
+              ry: '8'
             });
             labelsGroup.appendChild(rect);
 
@@ -2931,14 +2870,14 @@ function initializeDiagramAbsolute() {
             return offsets.map((offset, idx) => {
               const line = createStyledLine(startX, startY + offset, endX, startY + offset, {
                 stroke: color,
-                strokeWidth: '2.25',
+                strokeWidth: '2.5',
                 strokeLinecap: 'round'
               });
               line.classList.add('admin-double-line');
               if (targetGroup) {
                 targetGroup.appendChild(line);
               } else {
-                labelsGroup.appendChild(line);
+                labelsGroup.insertBefore(line, labelsGroup.firstChild);
               }
               return line;
             });
@@ -2953,7 +2892,7 @@ function initializeDiagramAbsolute() {
             return createStackedRect(y, fillColor, label, eftposActualX);
           };
 
-          const reducedHeight = stackedHeight * 0.9;
+          const reducedHeight = stackedHeight * 0.81; // 10% less tall (was 0.9)
           const reducedFont = 11;
 
           const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
@@ -2964,14 +2903,15 @@ function initializeDiagramAbsolute() {
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
           const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
           const medicareY = visaY - gapHalf - reducedHeight;
-          const medicare = createStackedRect(medicareY, '#008000', 'Claims', eftposActualX, reducedHeight, reducedFont);
+          const medicare = createStackedRect(medicareY, '#88e788', 'Claims', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
-          const atms = createStackedRect(atmsY, '#412e29', 'ATMs', eftposActualX, reducedHeight, reducedFont);
+          const atms = createStackedRect(atmsY, '#ffcc99', 'ATMs', eftposActualX, reducedHeight, reducedFont);
 
           const boundingPadX = 9;
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
+          const topMarginHeight = reducedHeight - 3; // Reserve space equal to one internal box minus 3px
 
           // Use the full width for the green bounding box to match the Mastercard box
           const stackBoxWidth = boxWidth; // Full width to match Mastercard
@@ -2984,15 +2924,17 @@ function initializeDiagramAbsolute() {
           const innerBoxWidth = boxWidth * 0.8;
           const containerX = atmsActualX - (stackBoxWidth - innerBoxWidth) / 2 - boundingPadX;
           const containerWidth = stackBoxWidth + boundingPadX * 2;
+          const stackBoundingTop = stackTopY - boundingPadY - topMarginHeight;
+          const stackBoundingHeight = (stackBottomY - stackTopY) + boundingPadY * 2 + topMarginHeight;
           const stackBoundingRect = createStyledRect(
             containerX,
-            stackTopY - boundingPadY,
+            stackBoundingTop,
             containerWidth,
-            (stackBottomY - stackTopY) + boundingPadY * 2,
+            stackBoundingHeight,
             {
-              fill: '#f1ffcc',
-              stroke: '#2d5016',
-              strokeWidth: '2',
+              fill: '#2d5016', // Dark green fill (matching CECS)
+              stroke: '#f1ffcc', // Light yellow-green border (matching CECS)
+              strokeWidth: '3',
               rx: '18',
               ry: '18'
             }
@@ -3002,6 +2944,7 @@ function initializeDiagramAbsolute() {
           stackBoundingRect.setAttribute('id', 'direct-entry-stack-bounding-box');
           stackBoundingRect.setAttribute('data-left-edge', stackBoundingLeftEdge.toFixed(2));
           stackBoundingRect.setAttribute('data-right-edge', stackBoundingRightEdge.toFixed(2));
+          stackBoundingRect.setAttribute('data-top-margin', topMarginHeight.toFixed(2));
           if (typeof cacheRectEdges === 'function') {
             cacheRectEdges(stackBoundingRect, 'directEntryStackBounding');
           }
@@ -3009,17 +2952,101 @@ function initializeDiagramAbsolute() {
           window.directEntryBoundingBoxEdges = {
             left: stackBoundingLeftEdge,
             right: stackBoundingRightEdge,
-            top: stackTopY - boundingPadY,
+            top: stackBoundingTop,
             bottom: stackBottomY + boundingPadY
           };
+          window.directEntryBoundingTopMargin = topMarginHeight;
+
+          const stackBoundingLabel = createStyledText(0, 0, 'IAC', {
+            fill: '#ffffff', // Light yellow-green text (matching border)
+            fontSize: '14',
+            fontWeight: 'bold'
+          });
+          stackBoundingLabel.setAttribute('id', 'direct-entry-stack-label');
+          window.directEntryBoundingLabel = stackBoundingLabel;
+
+          const positionDirectEntryLabel = () => {
+            const label = window.directEntryBoundingLabel;
+            if (!label) return;
+
+            // Prefer live geometry from the rendered rectangle
+            const boundingRectEl = document.getElementById('direct-entry-stack-bounding-box');
+            let rectLeft = NaN;
+            let rectRight = NaN;
+            let rectTop = NaN;
+            let rectBottom = NaN;
+
+            if (boundingRectEl) {
+              const attrLeft = parseFloat(boundingRectEl.getAttribute('x'));
+              const attrWidth = parseFloat(boundingRectEl.getAttribute('width'));
+              const attrTop = parseFloat(boundingRectEl.getAttribute('y'));
+              const attrHeight = parseFloat(boundingRectEl.getAttribute('height'));
+
+              if (Number.isFinite(attrLeft) && Number.isFinite(attrWidth)) {
+                rectLeft = attrLeft;
+                rectRight = attrLeft + attrWidth;
+              }
+              if (Number.isFinite(attrTop)) {
+                rectTop = attrTop;
+              }
+              if (Number.isFinite(attrTop) && Number.isFinite(attrHeight)) {
+                rectBottom = attrTop + attrHeight;
+              }
+
+              const attrTopMargin = parseFloat(boundingRectEl.getAttribute('data-top-margin'));
+              if (Number.isFinite(attrTopMargin)) {
+                window.directEntryBoundingTopMargin = attrTopMargin;
+              }
+            }
+
+            const edges = window.directEntryBoundingBoxEdges || {};
+            if (!Number.isFinite(rectLeft)) rectLeft = edges.left;
+            if (!Number.isFinite(rectRight)) rectRight = edges.right;
+            if (!Number.isFinite(rectTop)) rectTop = edges.top;
+            if (!Number.isFinite(rectBottom)) rectBottom = edges.bottom;
+
+            if (!Number.isFinite(rectLeft) || !Number.isFinite(rectRight) || !Number.isFinite(rectTop)) {
+              return;
+            }
+
+            const topMarginValue = Number.isFinite(window.directEntryBoundingTopMargin)
+              ? window.directEntryBoundingTopMargin
+              : topMarginHeight;
+            const centerX = rectLeft + (rectRight - rectLeft) / 2;
+            const labelVerticalFactor = 0.75;
+            const labelPixelOffset = 3; // Shift label down by 3 pixels
+            const labelY = rectTop + topMarginValue * labelVerticalFactor + labelPixelOffset;
+
+            label.setAttribute('x', centerX.toFixed(2));
+            label.setAttribute('y', labelY.toFixed(2));
+
+            window.directEntryBoundingBoxEdges = {
+              left: rectLeft,
+              right: rectRight,
+              top: rectTop,
+              bottom: Number.isFinite(rectBottom) ? rectBottom : rectTop + topMarginValue
+            };
+
+            console.log('DirectEntry label positioned', {
+              centerX,
+              labelY,
+              rectLeft,
+              rectRight,
+              rectTop,
+              rectBottom,
+              topMargin: topMarginValue
+            });
+          };
+          positionDirectEntryLabel();
+          window.positionDirectEntryLabel = positionDirectEntryLabel;
 
           const stackLineConfigs = [
             {
               id: 'direct-entry-stack-line-blue',
-              color: '#27AEE3',
+              color: '#5AC8FA',
               fraction: 0.2,
               offset: 9,
-              strokeWidth: 1,
+              strokeWidth: 1.5,
               doubleLine: true,
               doubleOffset: 3,
               horizontalAdjust: -2.5,
@@ -3028,30 +3055,30 @@ function initializeDiagramAbsolute() {
             },
             {
               id: 'direct-entry-stack-line-yellow',
-              color: '#FFA500',
+              color: '#C67A35',
               fraction: 0.4,
               offset: 16,
-              strokeWidth: 2,
+              strokeWidth: 1.5,
               horizontalAdjust: -9,
               filletMultiplier: 1.1,
               cornerAdjustment: 5
             },
             {
               id: 'direct-entry-stack-line-green',
-              color: '#008000',
+              color: '#228835',
               fraction: 0.6,
               offset: 16,
-              strokeWidth: 1.2,
+              strokeWidth: 1.5,
               horizontalAdjust: -8,
               filletMultiplier: 1.1,
               cornerAdjustment: 2
             },
             {
               id: 'direct-entry-stack-line-brown',
-              color: '#412e29',
+              color: '#9B7653',
               fraction: 0.8,
               offset: 18,
-              strokeWidth: 1.2,
+              strokeWidth: 1.5,
               horizontalAdjust: -10,
               filletMultiplier: 1.1,
               cornerAdjustment: 2
@@ -3063,16 +3090,18 @@ function initializeDiagramAbsolute() {
             const path = createStyledPath('', {
               stroke: config.color,
               strokeWidth: config.strokeWidth,
-              strokeLinecap: 'round',
+              strokeLinecap: 'butt', // Square cap at non-ADIs box edge
               strokeLinejoin: 'round',
               fill: 'none',
               id: config.id
             });
 
             if (backgroundGroup) {
-              backgroundGroup.appendChild(path);
+              // Insert at beginning of backgroundGroup to ensure lines go under boxes
+              backgroundGroup.insertBefore(path, backgroundGroup.firstChild);
             } else {
-              labelsGroup.appendChild(path);
+              // Insert at beginning of labelsGroup as fallback
+              labelsGroup.insertBefore(path, labelsGroup.firstChild);
             }
 
             const lineEntry = { ...config, path };
@@ -3091,7 +3120,8 @@ function initializeDiagramAbsolute() {
                 secondary.classList.add('direct-entry-stack-line-secondary');
 
                 const parentGroup = backgroundGroup || labelsGroup;
-                parentGroup.appendChild(secondary);
+                // Insert at beginning to ensure secondary lines also go under boxes
+                parentGroup.insertBefore(secondary, parentGroup.firstChild);
 
                 secondary.dataset.parallelOffset = offsetValue.toString();
                 return secondary;
@@ -3121,7 +3151,7 @@ function initializeDiagramAbsolute() {
               return;
             }
 
-            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0) => {
+            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0, color, strokeWidth = 0) => {
               if (!metrics || !Number.isFinite(fraction) || !Number.isFinite(insideOffset)) return null;
 
               const clampedFraction = Math.min(Math.max(fraction, 0), 1);
@@ -3169,7 +3199,9 @@ function initializeDiagramAbsolute() {
                 let extendPastReference = referenceRightEdge + 60;
                 let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
                 let endX = extendPastReference + 10;
-                let endY = adiData.y;
+                // Calculate exact endpoint accounting for line stroke width
+                const adiEdge = getBoxEdgePoint(adiData, 'top', strokeWidth);
+                let endY = adiEdge.y;
                 let control1X = curveStartX + 60;
                 const control1Y = horizontalY;
                 let control2X = extendPastReference + 15;
@@ -3187,10 +3219,22 @@ function initializeDiagramAbsolute() {
                     control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
                   }
                   if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
-                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference);
+                    // Adjust control point based on color to match endpoint offset (shifted left by 1.5px)
+                    let controlOffset = 3.5; // Default
+                    if (color === '#9B7653') controlOffset = 3.5; // Brown
+                    else if (color === '#228835') controlOffset = 4.5; // Green
+                    else if (color === '#C67A35') controlOffset = 5.5; // Yellow
+                    else if (color === '#5AC8FA') controlOffset = 6.5; // Blue
+                    control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
                   }
                   if (Number.isFinite(geometry.endX)) {
-                    endX = geometry.endX;
+                    // Spread out endpoints based on color (shifted left by 3px)
+                    let endpointOffset = 7; // Default (was 10, now 10-3=7)
+                    if (color === '#9B7653') endpointOffset = 7; // Brown - leftmost (was 10, now 7)
+                    else if (color === '#228835') endpointOffset = 9; // Green - 2px right of brown (was 12, now 9)
+                    else if (color === '#C67A35') endpointOffset = 11; // Yellow - 2px right of green (was 14, now 11)
+                    else if (color === '#5AC8FA') endpointOffset = 13; // Blue - 2px right of yellow (was 16, now 13)
+                    endX = geometry.endX + endpointOffset;
                   }
                   if (Number.isFinite(geometry.endY)) {
                     endY = geometry.endY;
@@ -3210,7 +3254,7 @@ function initializeDiagramAbsolute() {
             const metricsForYellow = data.eftposMetrics || data.mastercardMetrics;
 
             lines.forEach((entry) => {
-              const baseMetrics = entry.color === '#FFA500' ? metricsForYellow : data.mastercardMetrics;
+              const baseMetrics = entry.color === '#C67A35' ? metricsForYellow : data.mastercardMetrics;
               const filletMultiplier = Number.isFinite(entry.filletMultiplier) ? entry.filletMultiplier : 1;
               const cornerAdjustment = Number.isFinite(entry.cornerAdjustment) ? entry.cornerAdjustment : 0;
               const metrics = {
@@ -3223,7 +3267,7 @@ function initializeDiagramAbsolute() {
                   : undefined
               };
 
-              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0);
+              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0, entry.color, entry.strokeWidth || 0);
               if (pathData && entry.path) {
                 entry.path.setAttribute('d', pathData);
               }
@@ -3231,16 +3275,119 @@ function initializeDiagramAbsolute() {
                 entry.secondaryPath.forEach((secondary) => {
                   if (!secondary) return;
                   const offsetDelta = Number.parseFloat(secondary.dataset.parallelOffset || '0');
-                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0);
+                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0, entry.color, entry.strokeWidth || 0);
                   if (secondaryData) {
                     secondary.setAttribute('d', secondaryData);
                   }
                 });
               }
+
+              // Create horizontal continuation branch
+              if (!entry.horizontalBranch) {
+                const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizontalBranch.setAttribute('stroke', entry.color);
+                horizontalBranch.setAttribute('stroke-width', (entry.strokeWidth / 2).toString());
+                horizontalBranch.setAttribute('stroke-linecap', 'round');
+                horizontalBranch.setAttribute('fill', 'none');
+                horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
+                // Insert at beginning to ensure horizontal branches also go under boxes
+                labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
+                entry.horizontalBranch = horizontalBranch;
+              }
+
+              // Build horizontal path that continues from where the curve would start
+              const buildHorizontalPath = () => {
+                const clampedFraction = Math.min(Math.max(entry.fraction, 0), 1);
+                const startX = baseLeft + entry.offset;
+                const startY = baseTop + baseHeight * (1 - clampedFraction);
+                const baseFillet = metrics.filletRadiusUsed ?? 150;
+                const filletRadius = Math.max(20, baseFillet - entry.offset);
+                const firstLegX = startX - Math.max(15, entry.offset + 5);
+                const baseTurnX = metrics.turnX ?? (firstLegX - filletRadius - 20);
+                const turnX = baseTurnX + entry.offset;
+                const verticalShift = Math.max(2, (metrics.verticalShift ?? 9) - 4);
+                const baseVerticalX = metrics.verticalX ?? baseTurnX;
+                const verticalX = baseVerticalX + entry.offset - verticalShift;
+                const verticalY = startY - filletRadius;
+                const baseCorner = metrics.topCornerRadius ?? 20;
+                const topCornerRadius = Math.max(6, baseCorner - 8);
+                const baseHorizontalY = Number.isFinite(metrics.horizontalY)
+                  ? metrics.horizontalY
+                  : (verticalY - 40);
+                const horizontalY = baseHorizontalY - (entry.horizontalAdjust || 0);
+                const geometry = window.directEntryToAdiGeometry;
+                let horizontalEndX = Number.isFinite(metrics.horizontalEndX)
+                  ? metrics.horizontalEndX + entry.offset
+                  : (verticalX + 140);
+                if (geometry && Number.isFinite(geometry.curveStartX)) {
+                  horizontalEndX = Math.max(horizontalEndX, geometry.curveStartX);
+                }
+
+                // Create path that continues horizontally instead of curving down
+                if (window.adiBoxData && Number.isFinite(window.adiBoxData.y)) {
+                  const adiData = window.adiBoxData;
+                  const referenceRightEdge = window.nonAdiBoxData
+                    ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
+                    : horizontalEndX + 300;
+                  let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
+                  if (geometry && Number.isFinite(geometry.curveStartX)) {
+                    curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
+                  }
+
+                  // Continue horizontally then curve down along ADI box
+                  const adiRightEdge = adiData.x + adiData.width;
+                  // Offset each line based on its color to prevent overlap
+                  let xOffset = 25; // Default offset
+                  if (entry.color === '#9B7653') xOffset = 20; // Brown
+                  else if (entry.color === '#228835') xOffset = 22; // Green
+                  else if (entry.color === '#C67A35') xOffset = 25; // Yellow
+                  else if (entry.color === '#5AC8FA') xOffset = 28; // Blue
+
+                  const horizontalExtendX = adiRightEdge + xOffset;
+                  const curveRadius = 100; // THIS CONTROLS THE ROUNDEDNESS - try values from 10 (sharp) to 50 (smooth)
+                  const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
+
+                  // Calculate non-ADIs box entry point (10% above bottom right corner)
+                  let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
+                  let nonAdiEntryY = verticalDropY + 100; // Default position
+                  if (window.nonAdiBoxData) {
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
+
+                    // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
+                    if (entry.color === '#9B7653') nonAdiEntryY += 1; // Brown - 2nd from top
+                    else if (entry.color === '#228835') nonAdiEntryY += 2; // Green - 3rd from top
+                    else if (entry.color === '#C67A35') nonAdiEntryY += 3; // Yellow - 4th from top
+                    else if (entry.color === '#5AC8FA') nonAdiEntryY += 4; // Blue - 5th from top
+                  }
+                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+
+                  const horizontalPath = [
+                    `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
+                    `L ${firstLegX.toFixed(2)} ${startY.toFixed(2)}`,
+                    `Q ${turnX.toFixed(2)} ${startY.toFixed(2)}, ${verticalX.toFixed(2)} ${verticalY.toFixed(2)}`,
+                    `L ${verticalX.toFixed(2)} ${(horizontalY + topCornerRadius).toFixed(2)}`,
+                    `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
+                    `L ${(horizontalExtendX - curveRadius).toFixed(2)} ${horizontalY.toFixed(2)}`, // Horizontal to curve start
+                    `Q ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(horizontalY + curveRadius).toFixed(2)}`, // Curve down
+                    `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}`, // Vertical down to curve start
+                    `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`, // Curve left
+                    `L ${(nonAdiEntryX - entry.strokeWidth).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` // Horizontal into non-ADIs box, extend past edge to hide round cap
+                  ].join(' ');
+
+                  return horizontalPath;
+                }
+                return '';
+              };
+
+              const horizontalPathData = buildHorizontalPath();
+              if (horizontalPathData && entry.horizontalBranch) {
+                entry.horizontalBranch.setAttribute('d', horizontalPathData);
+              }
             });
           };
 
-          window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackTopY - boundingPadY, (stackBottomY - stackTopY) + boundingPadY * 2);
+          window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackBoundingTop, stackBoundingHeight);
 
           const stackHeaderHeight = stackedHeight;
           const stackHeaderGap = gapHalf;
@@ -3256,9 +3403,9 @@ function initializeDiagramAbsolute() {
             containerWidth,
             stackHeaderHeight,
             {
-              fill: '#8B0000',
-              stroke: 'none',
-              strokeWidth: '2',
+              fill: '#ff073a',
+              stroke: '#ffffff', // Very thin white edge
+              strokeWidth: '0.5',
               rx: '6',
               ry: '6'
             }
@@ -3291,7 +3438,7 @@ function initializeDiagramAbsolute() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#968F7F'; // Updated color for LVSS lines
+            const lineColor = '#f1ffcc'; // Light yellow-green (matching CECS and IAC box borders)
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -3322,13 +3469,16 @@ function initializeDiagramAbsolute() {
 
           if (visa && visa.rect && visa.rect.parentNode === labelsGroup) {
             labelsGroup.insertBefore(stackBoundingRect, visa.rect);
+            labelsGroup.insertBefore(stackBoundingLabel, visa.rect);
             labelsGroup.insertBefore(stackHeaderRect, visa.rect);
             labelsGroup.insertBefore(stackHeaderText, visa.rect);
           } else {
             const firstChild = labelsGroup.firstChild;
             labelsGroup.insertBefore(stackBoundingRect, firstChild);
             const rectNextSibling = stackBoundingRect.nextSibling;
-            labelsGroup.insertBefore(stackHeaderRect, rectNextSibling);
+            labelsGroup.insertBefore(stackBoundingLabel, rectNextSibling);
+            const labelNextSibling = stackBoundingLabel.nextSibling;
+            labelsGroup.insertBefore(stackHeaderRect, labelNextSibling);
             const headerRectNextSibling = stackHeaderRect.nextSibling;
             labelsGroup.insertBefore(stackHeaderText, headerRectNextSibling);
           }
@@ -3480,16 +3630,16 @@ function initializeDiagramAbsolute() {
                   const bpay = window.bpayBoxData;
                   const bpayLeft = bpay.x - 5; // 5px gap from BPay left edge
                   const bpayRight = bpay.x + bpay.width + 5; // 5px gap from BPay right edge
-                  const topCornerRadius = 20; // Much sharper corner at the top
+                  const topCornerRadius = 180; // Much sharper corner at the top
 
                   // Set different horizontal Y positions for each line
                   let horizontalY;
                   let verticalShift;
                   if (isEftpos) {
-                    horizontalY = bpay.y - 15 - 3 - 3 - 2; // eftpos line: 15px above BPay top, shifted up 8px total
+                    horizontalY = bpay.y - 15 - 3 - 3 - 2 - GLOBAL_HORIZONTAL_LINES_OFFSET; // eftpos line: 15px above BPay top, shifted up 8px total plus global offset
                     verticalShift = 3 + 3 + 2; // eftpos vertical: shift 8px left
                   } else {
-                    horizontalY = bpay.y - 10 - 4 - 3 - 2; // Mastercard line: 10px above BPay top, shifted up 9px total
+                    horizontalY = bpay.y - 10 - 4 - 3 - 2 - GLOBAL_HORIZONTAL_LINES_OFFSET; // Mastercard line: 10px above BPay top, shifted up 9px total plus global offset
                     verticalShift = 4 + 3 + 2; // Mastercard vertical: shift 9px left
                   }
 
@@ -3523,54 +3673,100 @@ function initializeDiagramAbsolute() {
                   verticalXValue = turnX;
                 }
 
-                // If ADI geometry exists, extend the path to follow the same down-curve
+                // Extend the horizontal run and curve gently down into the ADIs box from the left
                 if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
-                  const geometry = window.directEntryToAdiGeometry;
+                  const adiData = window.adiBoxData;
+                  const adiTopY = adiData.y;
+                  const adiLeft = adiData.x;
+                  const geometry = window.directEntryToAdiGeometry || window.nppToAdiGeometry || null;
 
-                  if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
-                    const curveStartX = Math.max(horizontalEndX, geometry.curveStartX);
-                    const endX = geometry.endX;
-                    const endY = geometry.endY ?? window.adiBoxData.y;
-                    const control1X = geometry.control1X ?? (curveStartX + 60);
-                    const control1Y = horizontalYValue;
-                    const control2X = geometry.control2X ?? (geometry.extendPastReference ?? (curveStartX + 80));
-                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
-
-                    if (curveStartX > horizontalEndX) {
-                      pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
-                    }
-                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-                    horizontalEndX = Math.max(horizontalEndX, curveStartX);
-                    curveStartXValue = curveStartX;
-                    extendPastReferenceValue = geometry.extendPastReference ?? (curveStartX + 120);
-                    control1XValue = control1X;
-                    control2XValue = control2X;
-                    control2YValue = control2Y;
-                    endXValue = endX;
-                  } else {
-                    const referenceRightEdge = window.nonAdiBoxData
-                      ? window.nonAdiBoxData.x + window.nonAdiBoxData.width
-                      : horizontalEndX + 300;
-                    const extendPastReference = referenceRightEdge + 60;
-                    const curveStartX = Math.max(horizontalEndX + 120, referenceRightEdge - 80);
-                    const endX = extendPastReference + 10;
-                    const endY = window.adiBoxData.y;
-                    const control1X = curveStartX + 60;
-                    const control1Y = horizontalYValue;
-                    const control2X = extendPastReference + 15;
-                    const control2Y = horizontalYValue + (endY - horizontalYValue) * 0.15;
-
-                    pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
-                    pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-                    curveStartXValue = curveStartX;
-                    extendPastReferenceValue = extendPastReference;
-                    control1XValue = control1X;
-                    control2XValue = control2X;
-                    control2YValue = control2Y;
-                    endXValue = endX;
+                  // Place entries to the right of the maroon line using stored geometry when available
+                  let baselineEndX = geometry && Number.isFinite(geometry.endX)
+                    ? geometry.endX
+                    : (adiLeft + adiData.width / 2);
+                  if (!Number.isFinite(baselineEndX)) {
+                    baselineEndX = adiLeft + adiData.width / 2;
                   }
+
+                  const entryOffset = isEftpos ? 25 : 18; // eftpos slightly farther than maroon, Mastercard 2px left of original
+                  const endX = baselineEndX + entryOffset;
+                  // Calculate exact endpoint accounting for line stroke width
+                  const adiEdge = getBoxEdgePoint(adiData, 'top', 2); // strokeWidth is 2
+                  const endY = adiEdge.y;
+
+                  let curveStartX;
+                  if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
+                    // Start the drop where the maroon/green lines do, adjusted for the new end point
+                    const baseCurveStart = geometry.curveStartX;
+                    const baseEndX = geometry.endX;
+                    const deltaEnd = endX - baseEndX;
+                    curveStartX = baseCurveStart + deltaEnd;
+                    if (!Number.isFinite(curveStartX)) {
+                      curveStartX = baseCurveStart;
+                    }
+                    curveStartX = Math.max(horizontalEndX + 60, curveStartX);
+                  } else {
+                    curveStartX = horizontalEndX + 120;
+                  }
+
+                  // Ensure the horizontal run stays to the left of the ADIs entry point
+                  if (curveStartX > endX - 20) {
+                    curveStartX = endX - 20;
+                  }
+                  if (curveStartX < horizontalEndX) {
+                    curveStartX = horizontalEndX;
+                  }
+
+                  const horizontalExtension = Math.max(0, curveStartX - horizontalEndX);
+                  if (horizontalExtension > 0.01) {
+                    pathString += ` L ${curveStartX.toFixed(2)} ${horizontalYValue.toFixed(2)}`;
+                  }
+
+                  const verticalSpan = endY - horizontalYValue;
+
+                  let control1X;
+                  let control2X;
+                  if (geometry && Number.isFinite(geometry.control1X) && Number.isFinite(geometry.control2X) && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
+                    // Shift control points to maintain the same curvature as the maroon line
+                    const baseCurveStart = geometry.curveStartX;
+                    const baseEndX = geometry.endX;
+                    const ctrl1Offset = geometry.control1X - baseCurveStart;
+                    const ctrl2Offset = geometry.control2X - baseCurveStart;
+                    const deltaEnd = endX - baseEndX;
+
+                    control1X = curveStartX + ctrl1Offset + deltaEnd;
+                    control2X = curveStartX + ctrl2Offset + deltaEnd;
+                  } else {
+                    control1X = curveStartX + Math.max(40, horizontalExtension * 0.6);
+                    control2X = endX - Math.max(28, horizontalExtension * 0.45);
+                  }
+
+                  const control1Y = horizontalYValue;
+                  const control2Y = horizontalYValue + verticalSpan * 0.15;
+
+                  // Clamp controls to maintain smoothness
+                  if (control1X > endX - 10) {
+                    control1X = endX - 10;
+                  }
+                  if (control1X <= curveStartX + 12) {
+                    control1X = curveStartX + Math.max(16, horizontalExtension * 0.45 + 16);
+                  }
+                  if (control2X <= curveStartX + 18) {
+                    control2X = curveStartX + Math.max(26, horizontalExtension * 0.55 + 22);
+                  }
+                  if (control2X >= endX - 6) {
+                    control2X = endX - 6;
+                  }
+
+                  pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+                  horizontalEndX = Math.max(horizontalEndX, curveStartX);
+                  curveStartXValue = curveStartX;
+                  extendPastReferenceValue = endX;
+                  control1XValue = control1X;
+                  control2XValue = control2X;
+                  control2YValue = control2Y;
+                  endXValue = endX;
                 }
                 return {
                   pathString,
@@ -3620,7 +3816,8 @@ function initializeDiagramAbsolute() {
                 strokeLinecap: 'round',
                 id: 'eftpos-left-line'
               });
-              labelsGroup.appendChild(eftposUpturnPath);
+              // Insert at beginning so lines go under ADI box
+              labelsGroup.insertBefore(eftposUpturnPath, labelsGroup.firstChild);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
                 stroke: 'rgb(216,46,43)', // Mastercard red border color
@@ -3629,11 +3826,79 @@ function initializeDiagramAbsolute() {
                 strokeLinecap: 'round',
                 id: 'mastercard-left-line'
               });
-              labelsGroup.appendChild(mastercardUpturnPath);
+              // Insert at beginning so lines go under ADI box
+              labelsGroup.insertBefore(mastercardUpturnPath, labelsGroup.firstChild);
+
+              // Create horizontal branches for Eftpos and Mastercard
+              const createHorizontalBranch = (segments, color, id) => {
+                const horizontalPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizontalPath.setAttribute('stroke', color);
+                horizontalPath.setAttribute('stroke-width', '1');
+                horizontalPath.setAttribute('stroke-linecap', 'butt'); // Square cap at non-ADIs box edge
+                horizontalPath.setAttribute('fill', 'none');
+                horizontalPath.setAttribute('id', `${id}-horizontal`);
+
+                // Build horizontal continuation path with downward curve
+                if (segments.horizontalY && segments.curveStartX && segments.pathString && window.adiBoxData) {
+                  const adiData = window.adiBoxData;
+                  const adiRightEdge = adiData.x + adiData.width;
+                  // Offset Eftpos and Mastercard differently
+                  const xOffset = id.includes('eftpos') ? 34 : 31; // Purple (Eftpos) at 34px, Red (Mastercard) at 31px
+                  const horizontalExtendX = adiRightEdge + xOffset;
+                  const curveRadius = 50; // SEEMS TO DO NOTHING Radius for the turn down - THIS CONTROLS THE ROUNDEDNESS
+                  const verticalDropY = adiData.y + adiData.height + 100; // Drop below ADI box
+
+                  // Calculate non-ADIs box entry point (10% above bottom right corner)
+                  let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
+                  let nonAdiEntryY = verticalDropY + 100; // Default position
+                  if (window.nonAdiBoxData) {
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
+
+                    // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
+                    if (id.includes('mastercard')) nonAdiEntryY += 5; // Red (Mastercard) - 6th from top
+                    else if (id.includes('eftpos')) nonAdiEntryY += 6; // Purple (Eftpos) - 7th from top
+                  }
+                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+
+                  // Find the last 'L' command before the curve 'C' command
+                  const lastCIndex = segments.pathString.lastIndexOf(' C ');
+                  if (lastCIndex > -1) {
+                    // Get everything before the curve command
+                    const pathBeforeCurve = segments.pathString.substring(0, lastCIndex);
+                    // Add horizontal extension with downward curve, then left curve into non-ADIs
+                    const horizontalPathData = pathBeforeCurve +
+                                             ` L ${(horizontalExtendX - curveRadius).toFixed(2)} ${segments.horizontalY.toFixed(2)}` + // Horizontal to curve start
+                                             ` Q ${horizontalExtendX.toFixed(2)} ${segments.horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(segments.horizontalY + curveRadius).toFixed(2)}` + // Curve down
+                                             ` L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                             ` Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` + // Curve left
+                                             ` L ${(nonAdiEntryX - 2).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap (stroke width 2)
+                    horizontalPath.setAttribute('d', horizontalPathData);
+                  }
+                }
+
+                // Insert at beginning so lines go under boxes
+                labelsGroup.insertBefore(horizontalPath, labelsGroup.firstChild);
+                return horizontalPath;
+              };
+
+              const eftposHorizontalPath = createHorizontalBranch(
+                eftposSegments,
+                'rgb(100,80,180)',
+                'eftpos-left-line'
+              );
+
+              const mastercardHorizontalPath = createHorizontalBranch(
+                mastercardSegments,
+                'rgb(216,46,43)',
+                'mastercard-left-line'
+              );
 
           window.cardLeftLineData = {
             eftposPath: eftposUpturnPath,
             mastercardPath: mastercardUpturnPath,
+            eftposHorizontalPath,
+            mastercardHorizontalPath,
             eftposRect,
             mastercardRect,
             baseVerticalDistance,
@@ -3693,6 +3958,58 @@ function initializeDiagramAbsolute() {
 
                 data.eftposPath.setAttribute('d', updatedEftposSegments.pathString);
                 data.mastercardPath.setAttribute('d', updatedMastercardSegments.pathString);
+
+                // Update horizontal branches with downward curve
+                if (window.adiBoxData) {
+                  const adiData = window.adiBoxData;
+                  const adiRightEdge = adiData.x + adiData.width;
+                  const eftposXOffset = 34; // Purple (Eftpos) offset
+                  const mastercardXOffset = 31; // Red (Mastercard) offset
+                  const curveRadius = 100;
+                  const verticalDropY = adiData.y + adiData.height + 100;
+
+                  // Calculate non-ADIs box entry point (10% above bottom right corner)
+                  let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
+                  let nonAdiEntryY = verticalDropY + 100; // Default position
+                  if (window.nonAdiBoxData) {
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
+                  }
+                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+
+                  if (data.eftposHorizontalPath && updatedEftposSegments.horizontalY && updatedEftposSegments.curveStartX) {
+                    const eftposExtendX = adiRightEdge + eftposXOffset;
+                    let eftposEntryY = nonAdiEntryY + 6; // Purple (Eftpos) - 7th from top (last)
+                    const lastCIndex = updatedEftposSegments.pathString.lastIndexOf(' C ');
+                    if (lastCIndex > -1) {
+                      const pathBeforeCurve = updatedEftposSegments.pathString.substring(0, lastCIndex);
+                      const horizontalPathData = pathBeforeCurve +
+                                               ` L ${(eftposExtendX - curveRadius).toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}` +
+                                               ` Q ${eftposExtendX.toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}, ${eftposExtendX.toFixed(2)} ${(updatedEftposSegments.horizontalY + curveRadius).toFixed(2)}` +
+                                               ` L ${eftposExtendX.toFixed(2)} ${(eftposEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${eftposExtendX.toFixed(2)} ${eftposEntryY.toFixed(2)}, ${(eftposExtendX - leftCurveRadius).toFixed(2)} ${eftposEntryY.toFixed(2)}` + // Curve left
+                                               ` L ${(nonAdiEntryX - 2).toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap
+                      data.eftposHorizontalPath.setAttribute('d', horizontalPathData);
+                    }
+                  }
+
+                  if (data.mastercardHorizontalPath && updatedMastercardSegments.horizontalY && updatedMastercardSegments.curveStartX) {
+                    const mastercardExtendX = adiRightEdge + mastercardXOffset;
+                    let mastercardEntryY = nonAdiEntryY + 5; // Red (Mastercard) - 6th from top
+                    const lastCIndex = updatedMastercardSegments.pathString.lastIndexOf(' C ');
+                    if (lastCIndex > -1) {
+                      const pathBeforeCurve = updatedMastercardSegments.pathString.substring(0, lastCIndex);
+                      const horizontalPathData = pathBeforeCurve +
+                                               ` L ${(mastercardExtendX - curveRadius).toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}` +
+                                               ` Q ${mastercardExtendX.toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}, ${mastercardExtendX.toFixed(2)} ${(updatedMastercardSegments.horizontalY + curveRadius).toFixed(2)}` +
+                                               ` L ${mastercardExtendX.toFixed(2)} ${(mastercardEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${mastercardExtendX.toFixed(2)} ${mastercardEntryY.toFixed(2)}, ${(mastercardExtendX - leftCurveRadius).toFixed(2)} ${mastercardEntryY.toFixed(2)}` + // Curve left
+                                               ` L ${(nonAdiEntryX - 2).toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap
+                      data.mastercardHorizontalPath.setAttribute('d', horizontalPathData);
+                    }
+                  }
+                }
+
                 data.eftposTurnX = updatedEftposSegments.turnX;
                 data.mastercardTurnX = updatedMastercardSegments.turnX;
                 data.eftposMetrics = updatedEftposSegments;
@@ -3783,22 +4100,46 @@ function initializeDiagramAbsolute() {
           // window.xxxToAdiLine = chequesToAdiLine;
           // window.updateXXXToAdiLine = updateXXXToAdiLine;
 
-          // Create double red lines from Direct Entry to ADIs (matching BECN/BECG line style)
-          const deToAdiLineGap = 2.5; // Gap between double lines
-          const deToAdiLineOffsets = [-deToAdiLineGap/2, deToAdiLineGap/2];
+          // Create maroon lines from Direct Entry to ADIs
           const directEntryToAdiLines = [];
+          const maroonLineDuplicates = [];
 
-          // Create two parallel lines for double line effect
-          deToAdiLineOffsets.forEach((offset, index) => {
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            line.setAttribute('id', `directentry-to-adi-line-${index}`);
-            line.setAttribute('stroke', '#800000'); // Maroon
-            line.setAttribute('stroke-width', '1.5'); // Thinner for double line effect
-            line.setAttribute('stroke-linecap', 'round');
-            line.setAttribute('fill', 'none');
-            labelsGroup.appendChild(line);
-            directEntryToAdiLines.push(line);
-          });
+          // Single thick red line from DE to ADIs
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          line.setAttribute('id', 'directentry-to-adi-line');
+          line.setAttribute('stroke', '#ff073a'); // Red
+          line.setAttribute('stroke-width', '4');
+          line.setAttribute('stroke-linecap', 'round');
+          line.setAttribute('fill', 'none');
+          // Insert at beginning so line goes under ADI box
+          labelsGroup.insertBefore(line, labelsGroup.firstChild);
+          directEntryToAdiLines.push(line);
+
+          // Single visible duplicate that will mirror the invisible original
+          const duplicate = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          duplicate.setAttribute('id', 'maroon-line-duplicate');
+          duplicate.setAttribute('stroke', '#ff073a'); // Red
+          duplicate.setAttribute('stroke-width', '4');
+          duplicate.setAttribute('stroke-linecap', 'round');
+          duplicate.setAttribute('fill', 'none');
+          // Insert at the beginning so it goes under other elements
+          labelsGroup.insertBefore(duplicate, labelsGroup.firstChild);
+          maroonLineDuplicates.push(duplicate);
+
+          window.maroonLineDuplicates = maroonLineDuplicates;
+
+          // Create horizontal branch for red line
+          const maroonHorizontalBranches = [];
+          const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          horizontalBranch.setAttribute('id', 'maroon-horizontal-branch');
+          horizontalBranch.setAttribute('stroke', '#ff073a'); // Red
+          horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
+          horizontalBranch.setAttribute('stroke-linecap', 'round'); // Round cap since stopping at edge
+          horizontalBranch.setAttribute('fill', 'none');
+          // Insert at beginning to ensure it goes under boxes
+          labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
+          maroonHorizontalBranches.push(horizontalBranch);
+          window.maroonHorizontalBranches = maroonHorizontalBranches;
 
           const updateDirectEntryToAdiLine = () => {
             if (directEntryToAdiLines.length === 0 || !window.adiBoxData) return;
@@ -3828,9 +4169,29 @@ function initializeDiagramAbsolute() {
 
             if (!deX) return;
 
-            // Start from right edge of Direct Entry box, middle height
-            const startX = deX + deWidth;
-            const startY = deY + deHeight / 2;
+            // Start from above the grey line instead of from DE box
+            // Get OSKO box position to calculate grey line height
+            let greyLineY = deY - 30; // Default position above DE
+            if (window.oskoElements && window.oskoElements.box) {
+              const oskoBox = window.oskoElements.box;
+              const oskoY = parseFloat(oskoBox.getAttribute('y'));
+              if (Number.isFinite(oskoY)) {
+                // Grey line is at this height
+                greyLineY = (oskoY + deY) / 2 -100;
+                // Position maroon line above the grey line
+                greyLineY = greyLineY - 15; // 15px above grey line
+              }
+            }
+            // Start from where grey line's horizontal section begins (after C-curve, at OSKO left edge)
+            let startX = deX + deWidth; // Default to DE right edge
+            if (window.oskoElements && window.oskoElements.box) {
+              const oskoBox = window.oskoElements.box;
+              const oskoX = parseFloat(oskoBox.getAttribute('x'));
+              if (Number.isFinite(oskoX)) {
+                startX = oskoX; // Start from OSKO left edge (where grey line's horizontal section begins)
+              }
+            }
+            const startY = greyLineY;
 
             // Get ADIs box position
             const adiX = window.adiBoxData.x;
@@ -3848,7 +4209,11 @@ function initializeDiagramAbsolute() {
             // End point - enters ADI box from top, slightly right of grey line
             const greyEndX = extendPastReference + 25; // Where grey line enters
             const endX = greyEndX + 10; // 30px to the right of grey line
-           const endY = adiY;
+
+            // Calculate exact endpoint on ADI box top edge
+            const strokeWidth = 1.5; // Line stroke width
+            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
+            const endY = adiEdge.y;
 
             // Control points for smooth downward curve
             const verticalDistance = endY - startY;
@@ -3857,37 +4222,111 @@ function initializeDiagramAbsolute() {
             const control2X = extendPastReference + 15;
             const control2Y = startY + verticalDistance * 0.15;
 
-            // Update each line in the double line pair with offset
-            deToAdiLineOffsets.forEach((offset, index) => {
-              const offsetStartY = startY + offset;
-              const offsetEndX = endX + offset;
-              const offsetControl1Y = control1Y + offset;
+            // Create single thick red path
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
+                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
+                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
-              // Create path data with horizontal segment then Bézier curve down
-              const pathData = `M ${startX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
-                             `L ${curveStartX.toFixed(2)} ${offsetStartY.toFixed(2)} ` +
-                             `C ${control1X.toFixed(2)} ${offsetControl1Y.toFixed(2)}, ` +
-                             `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                             `${offsetEndX.toFixed(2)} ${endY.toFixed(2)}`;
+            directEntryToAdiLines[0].setAttribute('d', pathData);
+            // Make line invisible (duplicate will be visible)
+            directEntryToAdiLines[0].setAttribute('opacity', '0');
 
-              directEntryToAdiLines[index].setAttribute('d', pathData);
-            });
+            // Step 2: Update the duplicate with C-CURVE path instead
+            if (window.maroonLineDuplicates && window.maroonLineDuplicates.length > 0) {
+                // Start point (bottom of C) - CENTER of DE box instead of top
+                const cStartX = deX + deWidth / 2;
+                const cStartY = deY + deHeight / 2; // Center Y of DE box
+
+                // Connection point (top of C) - OSKO left edge at red line height
+                const cConnectionX = startX; // OSKO left edge
+                const cConnectionY = startY;
+
+                // Get NPP box position for control points
+                const nppBoxEl = document.getElementById('npp-box');
+                let cCtrlX = cStartX - 50; // Default
+                if (nppBoxEl) {
+                  const nppX = parseFloat(nppBoxEl.getAttribute('x'));
+                  const nppWidth = parseFloat(nppBoxEl.getAttribute('width'));
+                  if (Number.isFinite(nppX) && Number.isFinite(nppWidth)) {
+                    const nppRightEdge = nppX + nppWidth;
+                    const clearanceGap = 30;
+                    // Position control points LEFT of grey line's control points
+                    cCtrlX = nppRightEdge + clearanceGap - 325 - 10;
+                  }
+                }
+
+                // Control points Y positions (same X for C-curve)
+                const cCtrl1Y = cStartY - 80;
+                const cCtrl2Y = cConnectionY + 10;
+
+                // Create C-curve path that continues to ADI
+                const cCurvePathData = `M ${cStartX.toFixed(2)} ${cStartY.toFixed(2)} ` + // Start at DE top
+                                       `C ${cCtrlX.toFixed(2)} ${cCtrl1Y.toFixed(2)}, ` + // First control point
+                                       `${cCtrlX.toFixed(2)} ${cCtrl2Y.toFixed(2)}, ` + // Second control point
+                                       `${cConnectionX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // End of C-curve at OSKO
+                                       `L ${curveStartX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // Horizontal segment
+                                       `C ${control1X.toFixed(2)} ${cConnectionY.toFixed(2)}, ` + // Continue to ADI
+                                       `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
+                                       `${endX.toFixed(2)} ${endY.toFixed(2)}`;
+
+                window.maroonLineDuplicates[0].setAttribute('d', cCurvePathData);
+
+                // Update horizontal branch for red line
+                if (window.maroonHorizontalBranches && window.maroonHorizontalBranches[0] && window.adiBoxData) {
+                  const adiRightEdge = window.adiBoxData.x + window.adiBoxData.width;
+                  const horizontalExtendX = adiRightEdge + 17; // Offset of 17 for maroon
+                  const curveRadius = 90; // Same roundedness as other lines
+                  const verticalDropY = window.adiBoxData.y + window.adiBoxData.height + 100;
+
+                  // Calculate non-ADIs box entry point (10% above bottom right corner)
+                  let nonAdiEntryX = window.adiBoxData.x + window.adiBoxData.width; // Default to ADI right edge if non-ADI not available
+                  let nonAdiEntryY = verticalDropY + 100; // Default position
+                  if (window.nonAdiBoxData) {
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
+                    // Maroon is first (topmost) - no offset needed (offset = 0)
+                  }
+                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+
+                  // Build horizontal branch path that continues from where the curve would normally go down
+                  const horizontalBranchPath = `M ${cStartX.toFixed(2)} ${cStartY.toFixed(2)} ` + // Start at DE center
+                                              `C ${cCtrlX.toFixed(2)} ${cCtrl1Y.toFixed(2)}, ` + // First control point
+                                              `${cCtrlX.toFixed(2)} ${cCtrl2Y.toFixed(2)}, ` + // Second control point
+                                              `${cConnectionX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // End of C-curve at OSKO
+                                              `L ${(horizontalExtendX - curveRadius).toFixed(2)} ${cConnectionY.toFixed(2)} ` + // Horizontal to curve start
+                                              `Q ${horizontalExtendX.toFixed(2)} ${cConnectionY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(cConnectionY + curveRadius).toFixed(2)} ` + // Curve down
+                                              `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)} ` + // Vertical down to curve start
+                                              `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)} ` + // Curve left
+                                              `L ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge, stop at edge with round cap
+
+                  window.maroonHorizontalBranches[0].setAttribute('d', horizontalBranchPath);
+                }
+            }
 
             window.directEntryToAdiGeometry = {
-              curveStartX,
-              extendPastReference,
-              control1X,
-              control1Y,
-              control2X,
-              control2Y,
-              endX,
-              endY
-            };
+            startX,
+            startY,
+            curveStartX,
+            extendPastReference,
+            control1X,
+            control1Y,
+            control2X,
+            control2Y,
+            endX,
+            endY
+          };
 
-            if (typeof window.updateDirectEntryBoundingLine === 'function') {
-              const edges = window.directEntryBoundingBoxEdges;
-              if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
-                window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
+          if (typeof window.updateCardLeftLines === 'function') {
+            // Rebuild eftpos/Mastercard connectors so they mirror the latest ADI geometry
+            window.updateCardLeftLines();
+          }
+
+          if (typeof window.updateDirectEntryBoundingLine === 'function') {
+            const edges = window.directEntryBoundingBoxEdges;
+            if (edges && Number.isFinite(edges.left) && Number.isFinite(edges.top) && Number.isFinite(edges.bottom)) {
+              window.updateDirectEntryBoundingLine(edges.left, edges.top, edges.bottom - edges.top);
               } else {
                 window.updateDirectEntryBoundingLine();
               }
@@ -3899,50 +4338,122 @@ function initializeDiagramAbsolute() {
           window.updateDirectEntryToAdiLine = updateDirectEntryToAdiLine;
           updateDirectEntryToAdiLine(); // Initial update
 
-          // Create simple curved line from ADIs top, parallel to red DE line, to OSKO edge
-          const adiToOskoLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          adiToOskoLine.setAttribute('id', 'adi-to-osko-line');
-          adiToOskoLine.setAttribute('stroke', '#4b5563');
-          adiToOskoLine.setAttribute('stroke-width', '1.5');
-          adiToOskoLine.setAttribute('stroke-linecap', 'round');
-          adiToOskoLine.setAttribute('fill', 'none');
-          labelsGroup.appendChild(adiToOskoLine);
+          // Create grey curve from OSKO to ADI with same shape as green/maroon curves
+          const oskoToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          oskoToAdiLine.setAttribute('id', 'osko-to-adi-line');
+          oskoToAdiLine.setAttribute('stroke', '#e5e7eb'); // Match APCS to Cheques line color
+          oskoToAdiLine.setAttribute('stroke-width', '2');
+          oskoToAdiLine.setAttribute('stroke-linecap', 'round');
+          oskoToAdiLine.setAttribute('fill', 'none');
+          labelsGroup.insertBefore(oskoToAdiLine, labelsGroup.firstChild);
 
-          const updateAdiToOskoLine = () => {
-            if (!window.adiBoxData || !window.oskoElements || !window.oskoElements.box) return;
+          const updateOskoToAdiLine = () => {
+            if (!window.chequesBoxData || !window.adiBoxData) return;
 
-            const adiX = window.adiBoxData.x;
-            const adiY = window.adiBoxData.y;
-            const adiWidth = window.adiBoxData.width;
+            // Get Cheques box position
+            const chequesX = window.chequesBoxData.x;
+            const chequesY = window.chequesBoxData.y;
+            const chequesHeight = window.chequesBoxData.height;
 
-            const startX = adiX + adiWidth / 2 + 185;
-            const startY = adiY;
+            // Get NPP box position to curve around it
+            const nppBoxEl = document.getElementById('npp-box');
+            if (!nppBoxEl) return;
+            const nppX = parseFloat(nppBoxEl.getAttribute('x'));
+            const nppY = parseFloat(nppBoxEl.getAttribute('y'));
+            const nppWidth = parseFloat(nppBoxEl.getAttribute('width'));
+            const nppHeight = parseFloat(nppBoxEl.getAttribute('height'));
 
+            if (!Number.isFinite(nppX) || !Number.isFinite(nppY) ||
+                !Number.isFinite(nppWidth) || !Number.isFinite(nppHeight)) return;
+
+            // Get OSKO box position - this is where our horizontal section joins
+            if (!window.oskoElements || !window.oskoElements.box) return;
             const oskoBox = window.oskoElements.box;
             const oskoX = parseFloat(oskoBox.getAttribute('x'));
+            const oskoY = parseFloat(oskoBox.getAttribute('y'));
             const oskoWidth = parseFloat(oskoBox.getAttribute('width'));
-            const targetX = oskoX + oskoWidth;
 
-            const riseHeight = 135;
-            const curveEndY = startY - riseHeight;
-            const horizontalStartX = startX - 35;
+            // Get Direct Entry position for height reference
+            let deY = oskoY - 100;
+            if (window.directEntryBox) {
+              deY = window.directEntryBox.y + window.directEntryBox.height / 2;
+            } else if (window.pexaExtensions && window.pexaExtensions.stackHeader && window.pexaExtensions.stackHeader.rect) {
+              const rect = window.pexaExtensions.stackHeader.rect;
+              const rectY = parseFloat(rect.getAttribute('y'));
+              const rectHeight = parseFloat(rect.getAttribute('height'));
+              if (Number.isFinite(rectY) && Number.isFinite(rectHeight)) {
+                deY = rectY + rectHeight / 2;
+              }
+            }
 
-            const control1X = startX;
-            const control1Y = startY - riseHeight * 0.85;
-            const control2X = horizontalStartX + 24;
-            const control2Y = curveEndY + riseHeight * 0.05;
-            const adjustedTargetX = targetX - 25;
+            // The horizontal section height (halfway between OSKO and Direct Entry)
+            const horizontalY = (oskoY + deY) / 2 - 48;
 
-            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-              `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${horizontalStartX.toFixed(2)} ${curveEndY.toFixed(2)} ` +
-              `L ${adjustedTargetX.toFixed(2)} ${curveEndY.toFixed(2)}`;
+            // Connection point at LEFT edge of OSKO box
+            const connectionX = oskoX;
+            const connectionY = horizontalY;
 
-            adiToOskoLine.setAttribute('d', pathData);
+            // Start from LEFT edge of Cheques box, middle height
+            const startX = chequesX;
+            const startY = chequesY + chequesHeight / 2;
+
+            // Create C-curve that goes around the RIGHT side of NPP box
+            const clearanceGap = 30;
+            const nppRightEdge = nppX + nppWidth;
+
+            // Two control points for C-curve around NPP - both with same X coordinate
+            const ctrlX = nppRightEdge + clearanceGap - 325; // Same X for both control points
+            const ctrl1Y = startY //- (startY - connectionY) + 150//* 0.3; // First control point Y
+            const ctrl2Y = connectionY //+ (startY - connectionY) - 100 //* 0.3; // Second control point Y
+
+            // Get stored geometry from maroon and green lines for final approach to ADI
+            const maroonGeom = window.directEntryToAdiGeometry;
+            const greenGeom = window.nppToAdiGeometry;
+
+            // Calculate end point between green and maroon lines at ADI
+            let endX;
+            if (maroonGeom && greenGeom && Number.isFinite(maroonGeom.endX) && Number.isFinite(greenGeom.endX)) {
+              endX = (maroonGeom.endX + greenGeom.endX) / 2;
+            } else if (maroonGeom && Number.isFinite(maroonGeom.endX)) {
+              endX = maroonGeom.endX - 15;
+            } else {
+              endX = window.adiBoxData.x + window.adiBoxData.width / 2 + 200;
+            }
+
+            // Calculate exact endpoint on ADI box top edge
+            const strokeWidth = 2; // Grey line stroke width
+            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
+            const endY = adiEdge.y;
+
+            // Calculate curve start for descent to ADI
+            const referenceRightEdge = window.nonAdiBoxData ?
+              window.nonAdiBoxData.x + window.nonAdiBoxData.width :
+              oskoX + oskoWidth + 300;
+            const extendPastReference = referenceRightEdge + 60;
+            const curveStartX = Math.max(oskoX + oskoWidth + 120, referenceRightEdge - 80);
+
+            // Create path: horizontal from Cheques, then C-curve up to OSKO, then horizontal, then down to ADI
+            const horizontalEndX = startX + (connectionX - startX) / 6; // One third the distance to connection point
+            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` + // Start at Cheques left edge
+                           `L ${horizontalEndX.toFixed(2)} ${startY.toFixed(2)} ` + // Horizontal line (half length)
+                           `C ${ctrlX.toFixed(2)} ${ctrl1Y.toFixed(2)}, ` + // First control point
+                           `${ctrlX.toFixed(2)} ${ctrl2Y.toFixed(2)}, ` + // Second control point (same X)
+                           `${connectionX.toFixed(2)} ${connectionY.toFixed(2)} ` + // End at OSKO left edge (up at connection height)
+                           `L ${curveStartX.toFixed(2)} ${connectionY.toFixed(2)} ` + // Horizontal to curve start
+                           `C ${curveStartX + 60} ${connectionY.toFixed(2)}, ` + // Control point for down curve
+                           `${extendPastReference.toFixed(2)} ${connectionY + (endY - connectionY) * 0.15}, ` + // Control point 2
+                           `${endX.toFixed(2)} ${endY.toFixed(2)}`; // End at ADI
+
+            oskoToAdiLine.setAttribute('d', pathData);
+
+            // Remove any existing control point dots
+            const existingDots = document.querySelectorAll('.control-point-dot');
+            existingDots.forEach(dot => dot.remove());
           };
 
-          window.adiToOskoLine = adiToOskoLine;
-          window.updateAdiToOskoLine = updateAdiToOskoLine;
-          updateAdiToOskoLine();
+          window.oskoToAdiLine = oskoToAdiLine;
+          window.updateOskoToAdiLine = updateOskoToAdiLine;
+          updateOskoToAdiLine();
 
           window.otherCardsHierarchy = {
             parent: null,
@@ -3981,7 +4492,7 @@ function initializeDiagramAbsolute() {
             baseX + boxWidth,
             mastercardY + stackedHeight / 2,
             window.hexagonPositions.mastercardX,
-            '#FFA500',
+            '#ab20fd',
             yellowLinesGroup
           );
 
@@ -4006,6 +4517,8 @@ function initializeDiagramAbsolute() {
               rect: stackBoundingRect,
               padX: boundingPadX,
               padY: boundingPadY,
+              topMargin: topMarginHeight,
+              label: stackBoundingLabel,
               leftEdge: stackBoundingLeftEdge,
               rightEdge: stackBoundingRightEdge
             },
@@ -4068,16 +4581,20 @@ function initializeDiagramAbsolute() {
             if (boundingInfo && boundingInfo.rect) {
               const bPadX = Number.isFinite(boundingInfo.padX) ? boundingInfo.padX : 6;
               const bPadY = Number.isFinite(boundingInfo.padY) ? boundingInfo.padY : 6;
+              const topMargin = Number.isFinite(boundingInfo.topMargin)
+                ? boundingInfo.topMargin
+                : (Number.isFinite(window.directEntryBoundingTopMargin) ? window.directEntryBoundingTopMargin : 0);
               const visaRectCurrent = visa?.rect;
               const visaBottom = visaRectCurrent
                 ? parseFloat(visaRectCurrent.getAttribute('y')) + parseFloat(visaRectCurrent.getAttribute('height'))
                 : visaY + childHeight;
               const topY = atmsYCurrent;
               const boundingLeftEdge = stackBaseX - bPadX;
-              const boundingTop = topY - bPadY;
+              const boundingTop = topY - bPadY - topMargin;
               const boundingWidth = stackWidth + bPadX * 2;
-              const boundingHeight = visaBottom - topY + bPadY * 2;
+              const boundingHeight = visaBottom - topY + bPadY * 2 + topMargin;
               const boundingRightEdge = boundingLeftEdge + boundingWidth;
+              const boundingBottom = visaBottom + bPadY;
 
               boundingInfo.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
               boundingInfo.rect.setAttribute('y', boundingTop.toFixed(2));
@@ -4085,12 +4602,12 @@ function initializeDiagramAbsolute() {
               boundingInfo.rect.setAttribute('height', boundingHeight.toFixed(2));
               boundingInfo.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
               boundingInfo.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+              boundingInfo.rect.setAttribute('data-top-margin', topMargin.toFixed(2));
 
               if (typeof cacheRectEdges === 'function') {
                 cacheRectEdges(boundingInfo.rect, 'directEntryStackBounding');
               }
 
-              const boundingBottom = visaBottom + bPadY;
               window.directEntryBoundingBoxLeftEdge = boundingLeftEdge;
               window.directEntryBoundingBoxEdges = {
                 left: boundingLeftEdge,
@@ -4098,8 +4615,18 @@ function initializeDiagramAbsolute() {
                 top: boundingTop,
                 bottom: boundingBottom
               };
+              window.directEntryBoundingTopMargin = topMargin;
               boundingInfo.leftEdge = boundingLeftEdge;
               boundingInfo.rightEdge = boundingRightEdge;
+              boundingInfo.topMargin = topMargin;
+              const labelElement = boundingInfo.label || window.directEntryBoundingLabel;
+              if (labelElement) {
+                boundingInfo.label = labelElement;
+                window.directEntryBoundingLabel = labelElement;
+              }
+              if (typeof window.positionDirectEntryLabel === 'function') {
+                window.positionDirectEntryLabel();
+              }
               if (window.pexaExtensions) {
                 window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
                 window.pexaExtensions.boundingRightEdge = boundingRightEdge;
@@ -4178,8 +4705,8 @@ function initializeDiagramAbsolute() {
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
-            if (typeof window.updateAdiToOskoLine === 'function') {
-              window.updateAdiToOskoLine();
+            if (typeof window.updateOskoToAdiLine === 'function') {
+              window.updateOskoToAdiLine();
             }
 
             hierarchy.childWidth = childWidthUpdated;
@@ -4199,7 +4726,7 @@ function initializeDiagramAbsolute() {
           }
         }
 
-        const pexaLineColor = '#B91199';
+        const pexaLineColor = '#FF0090';
         const pexaConnectorStartX = pexaConveyX + pexaConveyWidth;
         let pexaConnectorEndX = pexaConnectorStartX;
         if (window.hexagonPositions) {
@@ -4223,7 +4750,7 @@ function initializeDiagramAbsolute() {
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
           } else {
-            labelsGroup.appendChild(line);
+            labelsGroup.insertBefore(line, labelsGroup.firstChild);
           }
           return line;
         });
@@ -4299,7 +4826,7 @@ function initializeDiagramAbsolute() {
         const sssCcpX = moneyMarketX;
         // sssCcpY already defined above for positioning the enclosing box
 
-        const alignedSssCcpWidth = rectWidth * 1.1;
+        const alignedSssCcpWidth = rectWidth * 0.95;
         let alignedSssCcpX = window.asxBoxesAlignment ? window.asxBoxesAlignment.center - (alignedSssCcpWidth / 2) : sssCcpX;
         if (window.asxGroupShiftAmount) {
           alignedSssCcpX += window.asxGroupShiftAmount;
@@ -4358,9 +4885,9 @@ function initializeDiagramAbsolute() {
         });
 
         const asxBoundingBox = createStyledRect(asxBoxX, asxBoxY, asxBoxWidth, asxBoxHeight, {
-          fill: '#e8ecf7', // Light blue-grey like CHESS equities box
-          stroke: '#071f6a', // Dark blue matching internal boxes
-          strokeWidth: '2', // Thicker border
+          fill: '#071f6a', // Swapped with stroke
+          stroke: '#e8ecf7', // Swapped with fill
+          strokeWidth: '2.5', // Thicker border
           rx: '8',
           ry: '8'
         });
@@ -4478,7 +5005,7 @@ function initializeDiagramAbsolute() {
             const mastercardY = eftposY - gapSympli - stackedHeight;
             const reducedHeight = Number.isFinite(storedReducedHeight)
               ? storedReducedHeight
-              : stackedHeight * 0.9;
+              : stackedHeight * 0.81; // 10% less tall (was 0.9)
             const visaGap = gapSympli * 2;
             const visaY = mastercardY - visaGap - reducedHeight;
             const gapHalf = gapSympli / 2;
@@ -4529,6 +5056,11 @@ function initializeDiagramAbsolute() {
             if (stackBounding && stackBounding.rect) {
               const padX = Number.isFinite(stackBounding.padX) ? stackBounding.padX : 6;
               const padY = Number.isFinite(stackBounding.padY) ? stackBounding.padY : 6;
+              const topMargin = Number.isFinite(stackBounding.topMargin)
+                ? stackBounding.topMargin
+                : (Number.isFinite(window.directEntryBoundingTopMargin)
+                    ? window.directEntryBoundingTopMargin
+                    : (Number.isFinite(reducedHeight) ? reducedHeight : stackedHeight * 0.9));
               const topY = atmsY;
               const bottomY = visaY + reducedHeight;
 
@@ -4538,14 +5070,16 @@ function initializeDiagramAbsolute() {
               const boundingLeftEdge = boundingX - padX;
               const boundingTotalWidth = boundingWidth + padX * 2;
               const boundingRightEdge = boundingLeftEdge + boundingTotalWidth;
-              const boundingHeight = (bottomY - topY + padY * 2);
+              const boundingTop = topY - padY - topMargin;
+              const boundingHeight = (bottomY - topY + padY * 2 + topMargin);
 
               stackBounding.rect.setAttribute('x', boundingLeftEdge.toFixed(2));
-              stackBounding.rect.setAttribute('y', (topY - padY).toFixed(2));
+              stackBounding.rect.setAttribute('y', boundingTop.toFixed(2));
               stackBounding.rect.setAttribute('width', boundingTotalWidth.toFixed(2));
-              stackBounding.rect.setAttribute('height', (bottomY - topY + padY * 2).toFixed(2));
+              stackBounding.rect.setAttribute('height', boundingHeight.toFixed(2));
               stackBounding.rect.setAttribute('data-left-edge', boundingLeftEdge.toFixed(2));
               stackBounding.rect.setAttribute('data-right-edge', boundingRightEdge.toFixed(2));
+              stackBounding.rect.setAttribute('data-top-margin', topMargin.toFixed(2));
 
               if (typeof cacheRectEdges === 'function') {
                 cacheRectEdges(stackBounding.rect, 'directEntryStackBounding');
@@ -4555,16 +5089,18 @@ function initializeDiagramAbsolute() {
               window.directEntryBoundingBoxEdges = {
                 left: boundingLeftEdge,
                 right: boundingRightEdge,
-                top: topY - padY,
+                top: boundingTop,
                 bottom: bottomY + padY
               };
+              window.directEntryBoundingTopMargin = topMargin;
               if (typeof window.updateDirectEntryBoundingLine === 'function') {
-                window.updateDirectEntryBoundingLine(boundingLeftEdge, topY - padY, boundingHeight);
+                window.updateDirectEntryBoundingLine(boundingLeftEdge, boundingTop, boundingHeight);
               }
               window.pexaExtensions.boundingLeftEdge = boundingLeftEdge;
               window.pexaExtensions.boundingRightEdge = boundingRightEdge;
               stackBounding.leftEdge = boundingLeftEdge;
               stackBounding.rightEdge = boundingRightEdge;
+              stackBounding.topMargin = topMargin;
               if (window.otherCardsHierarchy && window.otherCardsHierarchy.bounding) {
                 window.otherCardsHierarchy.bounding.leftEdge = boundingLeftEdge;
                 window.otherCardsHierarchy.bounding.rightEdge = boundingRightEdge;
@@ -4597,6 +5133,9 @@ function initializeDiagramAbsolute() {
                 window.cecsToAtmsBoundingLine.setAttribute('x1', newLineEndX.toFixed(2));
                 window.cecsToAtmsBoundingLine.setAttribute('x2', cecsLeftX.toFixed(2));
               }
+              if (typeof window.positionDirectEntryLabel === 'function') {
+                window.positionDirectEntryLabel();
+              }
             }
             if (headerInfo && headerInfo.rect) {
               const padX = Number.isFinite(stackBounding?.padX) ? stackBounding.padX : 6;
@@ -4610,10 +5149,28 @@ function initializeDiagramAbsolute() {
               const headerWidth = stackWidth * 0.8;
               const headerX = baseX + (stackWidth - headerWidth) / 2 - padX;
 
-              const nppTopValue = window.nppBoxData && Number.isFinite(window.nppBoxData.y) ? window.nppBoxData.y : NaN;
-              const headerY = Number.isFinite(nppTopValue)
-                ? (nppTopValue - headerGapNpp - headerHeight - headerLift)
-                : (atmsY - padY) - headerGap - headerHeight - headerLift;
+              // Define child box dimensions first (needed for positioning calculation)
+              const gap = 4; // Small gap between Direct Entry and its child boxes
+              const boxHeight = headerHeight * 0.9;
+
+              // Position to have same gap from IAC as IAC has from Mastercard
+              // Get the IAC bounding box info
+              const boundingPadY = 7 + 2; // Same as defined for IAC bounding box
+              const iacBottom = visaY + reducedHeight + boundingPadY;
+              const iacToMastercardGap = mastercardY - iacBottom;
+
+              // Position BECN with same gap above IAC
+              // Calculate where IAC top is
+              const topMarginHeight = reducedHeight - 3; // Same as IAC box calculation (reduced by 3px)
+              const stackTopY = atmsY;
+              const stackBoundingTop = stackTopY - boundingPadY - topMarginHeight;
+
+              // BECN+BECG are under Direct Entry, so we need to position Direct Entry appropriately
+              // boxY = headerY + headerHeight + gap (where child boxes are)
+              // We want: boxY + boxHeight = iacTop - iacToMastercardGap
+              const iacTop = stackBoundingTop;
+              const targetBecnBottom = iacTop - iacToMastercardGap;
+              const headerY = targetBecnBottom - boxHeight - headerHeight - gap - 15; // Shifted up by 15px (removed the +3 adjustment)
               headerInfo.rect.setAttribute('x', headerX.toFixed(2));
               headerInfo.rect.setAttribute('y', headerY.toFixed(2));
               headerInfo.rect.setAttribute('width', (headerWidth + padX * 2).toFixed(2));
@@ -4626,9 +5183,8 @@ function initializeDiagramAbsolute() {
               window.pexaExtensions.stackHeader = headerInfo;
 
               // Now create the child boxes under Direct Entry with the updated position
-              const gap = 4; // Small gap between Direct Entry and its child boxes
+              // gap and boxHeight already defined above for positioning calculation
               const spacing = 5;
-              const boxHeight = headerHeight * 0.9;
               const boxY = headerY + headerHeight + gap;
               // Use reduced width for BECN and BECG boxes to match Direct Entry width
               const boxWidth = ((headerWidth + padX * 2) - spacing) / 2;
@@ -4639,12 +5195,21 @@ function initializeDiagramAbsolute() {
               const bpayWidth = boxWidth; // Same width as BECN box
               const bpayGap = 4; // Gap between BPAY and Direct Entry
 
-              // Calculate new position for DE/BECN/BECG
-              // BPAY's left edge stays at original position
-              const originalBpayX = headerX - originalBpayWidth - bpayGap;
-              const bpayX = originalBpayX; // Keep left edge fixed
-              // DE should start after BPAY with a gap
-              const newHeaderX = bpayX + bpayWidth + bpayGap;
+              // Center the BPAY/DE/BECN/BECG group above ASX stack
+              // Get ASX center position
+              const asxCenter = window.asxBoxesAlignment ? window.asxBoxesAlignment.center :
+                (window.asxGroupShiftAmount ? moneyMarketX + window.asxGroupShiftAmount : moneyMarketX);
+
+              // Since BECN is in the middle of the group and has same width as BPAY and BECG,
+              // we want BECN's center to align with ASX center
+              // BECN is positioned at newHeaderX, so:
+              // BECN center = newHeaderX + boxWidth/2 = asxCenter
+              // Therefore: newHeaderX = asxCenter - boxWidth/2
+              // Then shift right by BECN width (boxWidth)
+              const newHeaderX = asxCenter - boxWidth / 2 + boxWidth;
+
+              // BPAY should be to the left of Direct Entry/BECN
+              const bpayX = newHeaderX - bpayGap - bpayWidth;
 
               // Update Direct Entry position first
               headerInfo.rect.setAttribute('x', newHeaderX.toFixed(2));
@@ -4658,14 +5223,14 @@ function initializeDiagramAbsolute() {
               if (!window.directEntryChild1) {
                 window.directEntryChild1 = {
                   rect: createStyledRect(newHeaderX, boxY, boxWidth, boxHeight, {
-                    fill: '#ffc0cb',
-                    stroke: '#8B0000',
-                    strokeWidth: '2.25',
+                    fill: '#8b2020', // Match BECS box
+                    stroke: '#ffe0e0',
+                    strokeWidth: '2.5',
                     rx: '4',
                     ry: '4'
                   }),
                   text: createStyledText(newHeaderX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
-                    { fill: '#8b0000', fontSize: '12' }),
+                    { fill: '#ffffff', fontSize: '12' }),
                   x: newHeaderX,
                   y: boxY,
                   width: boxWidth,
@@ -4691,14 +5256,14 @@ function initializeDiagramAbsolute() {
               if (!window.directEntryChild2) {
                 window.directEntryChild2 = {
                   rect: createStyledRect(box2X, boxY, boxWidth, boxHeight, {
-                    fill: '#ffc0cb',
-                    stroke: '#8B0000',
-                    strokeWidth: '2.25',
+                    fill: '#000000',  // Black fill (from GABS)
+                    stroke: '#ff0000',  // Bright red border (from GABS)
+                    strokeWidth: '2.5', // Match BECN border width
                     rx: '4',
                     ry: '4'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
-                    { fill: '#8b0000', fontSize: '12' }),
+                    { fill: '#FFFFFF', fontSize: '12' }),  // White text (from GABS)
                   x: box2X,
                   y: boxY,
                   width: boxWidth,
@@ -4721,16 +5286,17 @@ function initializeDiagramAbsolute() {
               // bpayHeight, bpayWidth, bpayX, and positioning already calculated above
               const bpayY = headerY; // Aligned with top of Direct Entry
 
-              // Create BPAY box with style like Osko
+              // Create BPAY box with style matching eftpos
               const bpayBox = createStyledRect(bpayX, bpayY, bpayWidth, bpayHeight, {
-                fill: 'rgb(100,80,180)', // Same purple as Osko
-                stroke: 'none',
-                rx: '12', // Same rounded corners as Osko
+                fill: 'rgb(60,45,110)', // Dark purple (matching eftpos)
+                stroke: '#D8D0F0', // Light purple border (matching eftpos)
+                strokeWidth: '2.5',
+                rx: '12',
                 ry: '12'
               });
               labelsGroup.appendChild(bpayBox);
 
-              // Add BPAY label (white text like Osko)
+              // Add BPAY label (white text)
               const bpayText = createStyledText(
                 bpayX + bpayWidth / 2,
                 bpayY + bpayHeight / 2,
@@ -4750,99 +5316,94 @@ function initializeDiagramAbsolute() {
               // Add horizontal purple lines from Direct Entry and BECN to BPAY
               // Horizontal line from Direct Entry (left edge middle) to BPAY (right edge)
               const directEntryMidY = headerY + headerHeight / 2;
-              const bpayToDirectEntryLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              bpayToDirectEntryLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of Direct Entry
-              bpayToDirectEntryLine.setAttribute('y1', directEntryMidY.toFixed(2)); // Middle height of Direct Entry
-              bpayToDirectEntryLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
-              bpayToDirectEntryLine.setAttribute('y2', directEntryMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToDirectEntryLine.setAttribute('stroke', 'rgb(100,80,180)'); // Thick purple
-              bpayToDirectEntryLine.setAttribute('stroke-width', '6');
-              bpayToDirectEntryLine.setAttribute('stroke-linecap', 'round');
-              labelsGroup.insertBefore(bpayToDirectEntryLine, labelsGroup.firstChild); // Insert at the back of everything
+              // Create double maroon line (thicker, not quite as thick as ASX)
+              const bpayToDirectEntryLine1 = createStyledLine(
+                newHeaderX, directEntryMidY - 2.5,
+                bpayX + bpayWidth, directEntryMidY - 2.5,
+                {
+                  stroke: '#800020',
+                  strokeWidth: '4',
+                  strokeLinecap: 'round'
+                }
+              );
+              labelsGroup.insertBefore(bpayToDirectEntryLine1, labelsGroup.firstChild);
+
+              const bpayToDirectEntryLine2 = createStyledLine(
+                newHeaderX, directEntryMidY + 2.5,
+                bpayX + bpayWidth, directEntryMidY + 2.5,
+                {
+                  stroke: '#800020',
+                  strokeWidth: '4',
+                  strokeLinecap: 'round'
+                }
+              );
+              labelsGroup.insertBefore(bpayToDirectEntryLine2, labelsGroup.firstChild);
 
               // Horizontal line from BECN (left edge middle) to BPAY (right edge)
+              // Double maroon line to match DE to BPAY (thicker)
               const becnMidY = boxY + boxHeight / 2;
-              const bpayToBecnLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              bpayToBecnLine.setAttribute('x1', headerX.toFixed(2)); // Left edge of BECN
-              bpayToBecnLine.setAttribute('y1', becnMidY.toFixed(2)); // Middle height of BECN
-              bpayToBecnLine.setAttribute('x2', (bpayX + bpayWidth).toFixed(2)); // Right edge of BPAY
-              bpayToBecnLine.setAttribute('y2', becnMidY.toFixed(2)); // Same Y (horizontal)
-              bpayToBecnLine.setAttribute('stroke', 'rgb(100,80,180)'); // Thick purple
-              bpayToBecnLine.setAttribute('stroke-width', '6');
-              bpayToBecnLine.setAttribute('stroke-linecap', 'round');
-              labelsGroup.insertBefore(bpayToBecnLine, labelsGroup.firstChild); // Insert at the back of everything
+              const bpayToBecnLine1 = createStyledLine(
+                newHeaderX, becnMidY - 2.5,
+                bpayX + bpayWidth, becnMidY - 2.5,
+                {
+                  stroke: '#800020',
+                  strokeWidth: '4',
+                  strokeLinecap: 'round'
+                }
+              );
+              labelsGroup.insertBefore(bpayToBecnLine1, labelsGroup.firstChild);
 
-              // Add curved lines from BECN and BECG to APCS
-              if (window.directEntryChild1 && window.directEntryChild2) {
-                // Use APCS position (we know it's at reducedNarrowBoxX and apcsY)
-                const apcsLeftX = reducedNarrowBoxX;
-                const apcsY_local = becsY - boxHeight - squareRectGap; // BECS is above APCS
-                const apcsHeight = boxHeight;
+              const bpayToBecnLine2 = createStyledLine(
+                newHeaderX, becnMidY + 2.5,
+                bpayX + bpayWidth, becnMidY + 2.5,
+                {
+                  stroke: '#800020',
+                  strokeWidth: '4',
+                  strokeLinecap: 'round'
+                }
+              );
+              labelsGroup.insertBefore(bpayToBecnLine2, labelsGroup.firstChild);
 
-                // APCS connection points
-                const apcsTopThird = apcsY_local + apcsHeight * 0.3;
-                const apcsMiddle = apcsY_local + apcsHeight * 0.5;
-                const apcsBottomThird = apcsY_local + apcsHeight * 0.7;
+              // Curved lines from BECN and BECG to BECS (which is now labeled on APCS box)
+              if (window.directEntryChild1 && window.directEntryChild2 && window.apcsBoxData) {
+                // Common endpoint at APCS (labeled BECS) left edge midpoint
+                const becsLeftX = window.apcsBoxData.x;
+                const becsMidY = window.apcsBoxData.y + window.apcsBoxData.height / 2;
 
-                // BECN and BECG bottom centers
-                const becnCenterX = headerX + boxWidth / 2;
-                const becgCenterX = box2X + boxWidth * 0.5;
-                const childBottomY = boxY + boxHeight;
+                // BECN to BECS curved line
+                const becnBottomX = window.directEntryChild1.x + window.directEntryChild1.width / 2;
+                const becnBottomY = window.directEntryChild1.y + window.directEntryChild1.height;
 
-                // Create double curved lines from BECN to BECS
-                const lineGap = 2.5; // Gap between double lines
-                const lineOffsets = [-lineGap/2, lineGap/2];
+                // Calculate vertical midpoint between start and end for control points
+                const verticalMidpoint = (becnBottomY + becsMidY) / 2;
 
-                lineOffsets.forEach((offset, index) => {
-                  const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                  // Offset the X coordinates for double lines
-                  const offsetBecnX = becnCenterX + offset;
-                  const offsetApcsX = apcsLeftX + offset;
-                  const becnToBecsData = `M ${offsetBecnX} ${childBottomY}
-                                          Q ${offsetBecnX} ${apcsBottomThird} ${offsetApcsX} ${apcsBottomThird}`;
-                  becnToBecsPath.setAttribute('d', becnToBecsData);
-                  becnToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                  becnToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
-                  becnToBecsPath.setAttribute('fill', 'none');
-                  becnToBecsPath.setAttribute('stroke-linecap', 'round');
+                // Single thick red J-shaped curved path from BECN bottom to BECS left midpoint
+                const becnToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becnPathData = `M ${becnBottomX} ${becnBottomY} ` +
+                  `Q ${becnBottomX} ${becsMidY}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY}`; // End at BECS
+                becnToBecsPath.setAttribute('d', becnPathData);
+                becnToBecsPath.setAttribute('stroke', '#ff073a');
+                becnToBecsPath.setAttribute('stroke-width', '4');
+                becnToBecsPath.setAttribute('fill', 'none');
+                becnToBecsPath.setAttribute('stroke-linecap', 'round');
+                labelsGroup.insertBefore(becnToBecsPath, labelsGroup.firstChild);
 
-                  // Insert before BECN box so lines appear behind it
-                  if (window.directEntryChild1.rect.parentNode) {
-                    window.directEntryChild1.rect.parentNode.insertBefore(becnToBecsPath, window.directEntryChild1.rect);
-                  }
+                // BECG to BECS curved line
+                const becgBottomX = window.directEntryChild2.x + window.directEntryChild2.width / 2;
+                const becgBottomY = window.directEntryChild2.y + window.directEntryChild2.height;
 
-                  // Store reference for first line
-                  if (index === 0) {
-                    window.becnToBecsLine = becnToBecsPath;
-                  }
-                });
-
-                // Create double curved lines from BECG to BECS
-                lineOffsets.forEach((offset, index) => {
-                  const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                  // Offset the X coordinates for double lines
-                  const offsetBecgX = becgCenterX + offset;
-                  const offsetApcsX = apcsLeftX + offset;
-                  // Make the curve straighter/bend left to avoid APCR box
-                  const controlPointX = offsetBecgX - 30; // Pull control point to the left for straighter path
-                  const becgToBecsData = `M ${offsetBecgX} ${childBottomY}
-                                          Q ${controlPointX} ${apcsTopThird} ${offsetApcsX} ${apcsTopThird}`;
-                  becgToBecsPath.setAttribute('d', becgToBecsData);
-                  becgToBecsPath.setAttribute('stroke', '#800000'); // Maroon
-                  becgToBecsPath.setAttribute('stroke-width', '1.5'); // Thinner than original
-                  becgToBecsPath.setAttribute('fill', 'none');
-                  becgToBecsPath.setAttribute('stroke-linecap', 'round');
-
-                  // Insert before BECG box so lines appear behind it
-                  if (window.directEntryChild2.rect.parentNode) {
-                    window.directEntryChild2.rect.parentNode.insertBefore(becgToBecsPath, window.directEntryChild2.rect);
-                  }
-
-                  // Store reference for first line
-                  if (index === 0) {
-                    window.becgToBecsLine = becgToBecsPath;
-                  }
-                });
+                // Single thick red J-shaped curved path from BECG bottom to BECS left midpoint
+                const becgToBecsPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const becgPathData = `M ${becgBottomX} ${becgBottomY} ` +
+                  `Q ${becgBottomX} ${becsMidY}, ` + // Control point at corner
+                  `${becsLeftX} ${becsMidY}`; // End at BECS
+                becgToBecsPath.setAttribute('d', becgPathData);
+                becgToBecsPath.setAttribute('stroke', '#ff073a');
+                becgToBecsPath.setAttribute('stroke-width', '4');
+                becgToBecsPath.setAttribute('fill', 'none');
+                becgToBecsPath.setAttribute('stroke-linecap', 'round');
+                labelsGroup.insertBefore(becgToBecsPath, labelsGroup.firstChild);
               }
             }
 
@@ -4853,8 +5414,8 @@ function initializeDiagramAbsolute() {
             if (typeof window.updateDirectEntryToAdiLine === 'function') {
               window.updateDirectEntryToAdiLine();
             }
-            if (typeof window.updateAdiToOskoLine === 'function') {
-              window.updateAdiToOskoLine();
+            if (typeof window.updateOskoToAdiLine === 'function') {
+              window.updateOskoToAdiLine();
             }
 
             if (typeof window.updateCardLeftLines === 'function') {
@@ -4928,8 +5489,8 @@ function initializeDiagramAbsolute() {
           asxBoxY + asxBoxHeight - 19, // Moved down by 3 pixels (was -22, now -19)
           'ASX',
           {
-            fill: '#071f6a', // Dark blue text
-            fontSize: '22', // Slightly larger label
+            fill: '#e8ecf7', // Swapped text color
+            fontSize: '26', // Bigger font size
             fontWeight: 'normal' // Explicitly set to normal weight
           }
         );
@@ -4948,7 +5509,7 @@ function initializeDiagramAbsolute() {
           const horizontalY = hvcsLineY_update  ; // Blue line 8px below green line
 
           // Simple path: straight down then curve right
-          const cornerRadius = 30;
+          const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
           // Store line data for later use by non-ADIs curve
@@ -4967,13 +5528,13 @@ function initializeDiagramAbsolute() {
                         `L ${asxLineStartX + 150} ${asxLineStartY + goDownDistance + cornerRadius}`; // Extend right
 
           const asxToHvcsLineStyled = createStyledPath(asxPath, {
-            stroke: '#0a4f8f',
-            strokeWidth: '4',
+            stroke: '#009fff',
+            strokeWidth: '6',
             fill: 'none',
             strokeLinecap: 'round',
             id: 'asx-to-hvcs-line'
           });
-          labelsGroup.appendChild(asxToHvcsLineStyled);
+          labelsGroup.insertBefore(asxToHvcsLineStyled, labelsGroup.firstChild);
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -4993,13 +5554,13 @@ function initializeDiagramAbsolute() {
                         `L ${asxLine2StartX + 150} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius}`; // Extend right
 
           const asxToAdiLineStyled = createStyledPath(asxPath2, {
-            stroke: '#0a4f8f',
-            strokeWidth: '4',
+            stroke: '#009fff',
+            strokeWidth: '6',
             fill: 'none',
-            strokeLinecap: 'round',
+            strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
             id: 'asx-to-adi-line'
           });
-          labelsGroup.appendChild(asxToAdiLineStyled);
+          labelsGroup.insertBefore(asxToAdiLineStyled, labelsGroup.firstChild);
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -5015,7 +5576,7 @@ function initializeDiagramAbsolute() {
         }
 
         // Add blue line connecting clearing/netting to ASX Settlement
-        const blueLineColor = '#0a4f8f'; // Same as austraclear lines
+        const blueLineColor = '#009fff'; // Same as austraclear lines
 
         // Line from clearing/netting to ASX Settlement (S-shape)
         // Calculate positions - right edge to left edge
@@ -5033,8 +5594,8 @@ function initializeDiagramAbsolute() {
 
         // Create double yellow line style like other ASXB connections
         const clearingToAsxPath1 = createStyledPath(pathData, {
-          stroke: '#FFA500', // Orange-yellow matching other ASXB lines
-          strokeWidth: '2.25', // Exact same width as drawCurvedDoubleLine
+          stroke: '#ab20fd', // Purple matching ASXB right side lines
+          strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
         labelsGroup.appendChild(clearingToAsxPath1);
@@ -5046,8 +5607,8 @@ function initializeDiagramAbsolute() {
                            ${asxSettlementLeftX} ${asxSettlementCenterY + 3}`;
 
         const clearingToAsxPath2 = createStyledPath(pathData2, {
-          stroke: '#FFA500', // Orange-yellow matching other ASXB lines
-          strokeWidth: '2.25', // Exact same width as drawCurvedDoubleLine
+          stroke: '#ab20fd', // Purple matching ASXB right side lines
+          strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
         labelsGroup.appendChild(clearingToAsxPath2);
@@ -5273,7 +5834,7 @@ function initializeDiagramAbsolute() {
           // Make sure text is visible
           asxSettlementTextElement.setAttribute('opacity', '1');
           asxSettlementTextElement.setAttribute('visibility', 'visible');
-          asxSettlementTextElement.setAttribute('fill', '#071f6a'); // Ensure text color is set
+          asxSettlementTextElement.setAttribute('fill', '#0055FF'); // Ensure text color is set
           asxSettlementTextElement.setAttribute('font-size', '12'); // Ensure font size is set
           asxSettlementTextElement.style.visibility = 'visible'; // Also set CSS visibility
           asxSettlementTextElement.style.display = 'block'; // Ensure not hidden
@@ -5304,7 +5865,7 @@ function initializeDiagramAbsolute() {
 
           // Yellow/orange double lines from eftpos to ESSB
           const eftposLineGap = 3;
-          const eftposLineColor = '#FFA500'; // Orange color to match other admin lines
+          const eftposLineColor = '#ab20fd'; // Orange color to match other admin lines
           const eftposLineOffsets = [-eftposLineGap / 2, eftposLineGap / 2];
 
           // From right side of eftpos (stacked) to left side of ESSB box
@@ -5348,15 +5909,16 @@ function initializeDiagramAbsolute() {
 
         // Removed the Visa-PEXA connection line
         // Horizontal line connecting SSS/CCP to DvP RTGS
-        const sssCcpLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         const sssCcpLineY = sssCcpY + smallRectHeight * 0.9 / 2; // Middle of SSS/CCP box
-        sssCcpLine.setAttribute('x1', (alignedSssCcpX + alignedSssCcpWidth).toFixed(2)); // Right edge of aligned SSS/CCP
-        sssCcpLine.setAttribute('y1', sssCcpLineY.toFixed(2));
-        sssCcpLine.setAttribute('x2', dvpRtgsX.toFixed(2)); // Left edge of DvP RTGS
-        sssCcpLine.setAttribute('y2', sssCcpLineY.toFixed(2));
-        sssCcpLine.setAttribute('stroke', austraclearLineColor);
-        sssCcpLine.setAttribute('stroke-width', austraclearLineWidth);
-        sssCcpLine.setAttribute('stroke-linecap', 'round');
+        const sssCcpLine = createStyledLine(
+          alignedSssCcpX + alignedSssCcpWidth, sssCcpLineY,
+          dvpRtgsX, sssCcpLineY,
+          {
+            stroke: austraclearLineColor,
+            strokeWidth: austraclearLineWidth,
+            strokeLinecap: 'round'
+          }
+        );
         svg.insertBefore(sssCcpLine, labelsGroup);
 
         // Get the actual trade-by-trade width and position for the dotted line
@@ -5369,16 +5931,17 @@ function initializeDiagramAbsolute() {
         const chessRtgsCenterY = chessY + smallRectHeight / 2; // Center Y of CHESS-RTGS
         const dvpRtgsRightX = dvpRtgsX + rectWidth / 4; // Right edge of DvP RTGS (it has 1/4 width)
 
-        const dottedLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        dottedLine.setAttribute('x1', dvpRtgsRightX.toFixed(2)); // Right edge of DvP RTGS
-        dottedLine.setAttribute('y1', chessRtgsCenterY.toFixed(2)); // Same Y as CHESS-RTGS center
-        dottedLine.setAttribute('x2', actualTradeByTradeX.toFixed(2)); // Left edge of trade-by-trade
-        dottedLine.setAttribute('y2', chessRtgsCenterY.toFixed(2)); // Same Y (horizontal line)
-        dottedLine.setAttribute('stroke', austraclearLineColor); // Same blue color
-        dottedLine.setAttribute('stroke-width', austraclearLineWidth);
-        dottedLine.setAttribute('stroke-linecap', 'round');
-        dottedLine.setAttribute('stroke-dasharray', '5,5'); // Make it dotted
-        svg.insertBefore(dottedLine, labelsGroup); // Draw before boxes
+        const dottedLine = createStyledLine(
+          dvpRtgsRightX, chessRtgsCenterY,
+          actualTradeByTradeX, chessRtgsCenterY,
+          {
+            stroke: austraclearLineColor,
+            strokeWidth: austraclearLineWidth,
+            strokeLinecap: 'round',
+            strokeDasharray: '5,5'
+          }
+        );
+        svg.insertBefore(dottedLine, labelsGroup);
 
 
 
@@ -5387,11 +5950,10 @@ function initializeDiagramAbsolute() {
         // CLS AUD uses adjusted position if available
         const clsAudYFinal = window.clsAudAdjustedY || clsAudY;
         const bottomRect = createStyledRect(rectX, clsAudYFinal, swiftRectWidth, smallRectHeight, {
-          fill: '#0f766e',  // Dark teal like pacs.008
-          stroke: 'none',    // No border like pacs.008
-          strokeWidth: '0',
-          rx: '12', // Rounded corners like pacs.008
-          ry: '12'  // Rounded corners like pacs.008
+          fill: '#5dd9b8',  // Green SWIFT line color
+          stroke: '#ffffff', // Very thin white border
+          strokeWidth: '0.5'
+          // Square corners - no rx/ry
         });
         bottomRect.setAttribute('id', 'cls-aud-rect'); // Add ID for later reference
         labelsGroup.appendChild(bottomRect);
@@ -5414,8 +5976,10 @@ function initializeDiagramAbsolute() {
           clsAudYFinal + smallRectHeight / 2,
           'CLS AUD',
           {
-            fill: '#ffffff', // White text like pacs.008
-            fontSize: '14' // Smaller than SWIFT PDS (18)
+            fill: '#063d38', // Dark text (swapped)
+            fontSize: '12', // Smaller font size
+            dominantBaseline: 'middle', // Ensure vertical centering
+            textAnchor: 'middle' // Ensure horizontal centering
           }
         );
         labelsGroup.appendChild(bottomText);
@@ -5423,8 +5987,9 @@ function initializeDiagramAbsolute() {
         // CLS AUD to RITS line will be added at the end of script after all adjustments
 
         // Add connecting lines between the three left boxes and SWIFT PDS box
-        const lineColor = '#3da88a'; // Brighter shade
+        const lineColor = '#5dd9b8'; // Brighter shade
         const lineWidth = '6'; // Thick lines matching other thick lines
+        // const hvcsShift = 15; // Already declared above
 
 
         // Connecting lines will be added after SWIFT HVCS final positioning
@@ -5520,10 +6085,10 @@ function initializeDiagramAbsolute() {
           }
 
           // Use blue color for Austraclear and CHESS-RTGS lines (indices 4, 5, 6)
-          // Use neon green for CLS AUD line (index 3)
+          // Use neon yellow for CLS AUD line (index 3)
           let strokeColor;
           if (i === 3) {
-            strokeColor = '#7FFF00'; // Neon lime green for CLS AUD
+            strokeColor = '#00FF33'; // Neon green for CLS AUD
           } else if (i >= 4) {
             strokeColor = austraclearLineColor;
           } else {
@@ -5615,7 +6180,7 @@ function initializeDiagramAbsolute() {
                          `L ${pathEndX} ${turnY2}`; // Go right under SWIFT HVCS
 
           clsPath.setAttribute('d', pathData);
-          clsPath.setAttribute('stroke', '#7FFF00'); // Neon green
+          clsPath.setAttribute('stroke', '#00FF33'); // Neon green
           clsPath.setAttribute('stroke-width', '6');
           clsPath.setAttribute('fill', 'none');
           clsPath.setAttribute('stroke-linecap', 'round');
@@ -5685,26 +6250,19 @@ function initializeDiagramAbsolute() {
           innerCircleY = arcCenterY + (arcRadiusY - innerOffset) * Math.sin(angle);
         }
 
-        const orangeCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        orangeCircle.setAttribute('cx', innerCircleX.toFixed(2));
-        orangeCircle.setAttribute('cy', innerCircleY.toFixed(2));
-        orangeCircle.setAttribute('r', orangeCircleRadius);
-        orangeCircle.setAttribute('fill', '#f59e0b'); // orange fill
-        orangeCircle.setAttribute('stroke', '#9a3412'); // dark orange stroke
-        orangeCircle.setAttribute('stroke-width', '1');
-
+        const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
+          fill: '#FFFF00',
+          stroke: '#ffffff',
+          strokeWidth: '1'
+        });
         circlesGroup.appendChild(orangeCircle);
 
         // Create orange line from orange dot to center of small orange circle
-        const orangeLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        orangeLine.setAttribute('x1', cx); // Center x of small orange circle
-        orangeLine.setAttribute('y1', cySmall); // Center y of small orange circle
-        orangeLine.setAttribute('x2', innerCircleX.toFixed(2));
-        orangeLine.setAttribute('y2', innerCircleY.toFixed(2));
-        orangeLine.setAttribute('stroke', '#f59e0b'); // orange color
-        orangeLine.setAttribute('stroke-width', '2.5'); // increased thickness for emphasis
-        orangeLine.setAttribute('opacity', '1'); // fully visible
-
+        const orangeLine = createStyledLine(cx, cySmall, innerCircleX, innerCircleY, {
+          stroke: '#FFFF00',
+          strokeWidth: '2.5',
+          opacity: '1'
+        });
         orangeLinesGroup.appendChild(orangeLine);
       }
 
@@ -5850,7 +6408,7 @@ function initializeDiagramAbsolute() {
           const path = createStyledPath(
             `M ${startX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`,
             {
-              stroke: '#000000',
+              stroke: '#ffffff',
               strokeWidth: '0.5',
               fill: 'none'
             }
@@ -5858,14 +6416,15 @@ function initializeDiagramAbsolute() {
           labelsGroup.appendChild(path);
         } else {
           // Regular straight line for other labels
-          const pointerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          pointerLine.setAttribute('x1', actualCircleX + dotRadius);
-          pointerLine.setAttribute('y1', actualCircleY);
-          pointerLine.setAttribute('x2', labelX - 5);
-          pointerLine.setAttribute('y2', labelY);
-          pointerLine.setAttribute('stroke', '#000000');
-          pointerLine.setAttribute('stroke-width', '0.5');
-          labelsGroup.appendChild(pointerLine);
+          const pointerLine = createStyledLine(
+            actualCircleX + dotRadius, actualCircleY,
+            labelX - 5, labelY,
+            {
+              stroke: '#ffffff',
+              strokeWidth: '0.5'
+            }
+          );
+          labelsGroup.insertBefore(pointerLine, labelsGroup.firstChild);
         }
 
         // Add text label
@@ -5874,12 +6433,8 @@ function initializeDiagramAbsolute() {
         text.setAttribute('y', labelY);
         text.setAttribute('text-anchor', 'start');
         text.setAttribute('dominant-baseline', 'middle');
-        // Make ANZ, Commonwealth, NAB, and Westpac labels red
-        if (i >= 50 && i <= 53) {
-          text.setAttribute('fill', '#991b1b'); // dark red like BDF border
-        } else {
-          text.setAttribute('fill', '#000000'); // black for other labels
-        }
+        // All labels white
+        text.setAttribute('fill', '#ffffff'); // white for all ESA account labels
         text.setAttribute('font-family', 'Arial, sans-serif');
         text.setAttribute('font-size', '10');
         text.textContent = label;
@@ -5932,7 +6487,7 @@ function initializeDiagramAbsolute() {
       const bdfSquare = createStyledRect(bdfX - squareSize/2, bdfY - squareSize/2, squareSize, squareSize, {
         fill: '#000000', // black fill
         stroke: '#ff0000', // bright red border
-        strokeWidth: '2'
+        strokeWidth: '3.5'
         // No rx/ry = square corners
       });
       labelsGroup.appendChild(bdfSquare);
@@ -5977,7 +6532,7 @@ function initializeDiagramAbsolute() {
           {
             fill: '#000000',
             stroke: '#ff0000',
-            strokeWidth: '2',
+            strokeWidth: '3.5',
             rx: '0',
             ry: '0'
           }
@@ -6000,13 +6555,14 @@ function initializeDiagramAbsolute() {
         labelsGroup.appendChild(opaLabel);
 
         // Draw red horizontal line from OPA box to RBA dot (UNDER the black circle)
-        const opaLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        opaLine.setAttribute('x1', opaX + opaBoxSize/2);
-        opaLine.setAttribute('y1', opaY);
-        opaLine.setAttribute('x2', rbaX); // Extend to center since it will be behind the circle
-        opaLine.setAttribute('y2', rbaY);
-        opaLine.setAttribute('stroke', '#ff0000'); // Same red as border
-        opaLine.setAttribute('stroke-width', '2');
+        const opaLine = createStyledLine(
+          opaX + opaBoxSize/2, opaY,
+          rbaX, rbaY,
+          {
+            stroke: '#ff0000',
+            strokeWidth: '2'
+          }
+        );
         // Insert BEFORE the circles group so it renders UNDER the black RBA circle
         const circlesGroup = document.getElementById('arc-circles');
         svg.insertBefore(opaLine, circlesGroup);
@@ -6244,8 +6800,8 @@ function initializeDiagramAbsolute() {
       if (window.hexagonPositions && window.bridgePositions) {
         const hexHeightValue = window.hexagonPositions.hexHeight;
 
-        const redColor = '#B91199';
-      const yellowColor = '#FFA500';
+        const redColor = '#FF0090';
+      const yellowColor = '#ab20fd';
 
       const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
       const pexaStartY = window.hexagonPositions.pexaY + hexHeightValue / 2;
@@ -6305,10 +6861,10 @@ function initializeDiagramAbsolute() {
       esaRect.setAttribute('y', rectY);
       esaRect.setAttribute('width', (maxX - minX) + leftPadding + rightPadding + dotRadius * 2);
       esaRect.setAttribute('height', (maxY - minY) + topPadding + bottomPadding + dotRadius * 2);
-      esaRect.setAttribute('fill', '#e5e7eb'); // Light grey
+      esaRect.setAttribute('fill', '#4b5563'); // Darker grey fill
       esaRect.setAttribute('fill-opacity', '1'); // Fully opaque
-      esaRect.setAttribute('stroke', '#6b7280'); // Grey border
-      esaRect.setAttribute('stroke-width', '2'); // Sharp border
+      esaRect.setAttribute('stroke', '#e5e7eb'); // Light grey border
+      esaRect.setAttribute('stroke-width', '1'); // Thinner border
       // Square edges - no rx attribute
 
       // Add ESAs label to top right corner of grey rectangle
@@ -6319,7 +6875,7 @@ function initializeDiagramAbsolute() {
         'ESAs',
         {
           textAnchor: 'end',
-          fill: '#6b7280', // grey color
+          fill: '#ffffff', // White text
           fontSize: '14' // Smaller than RBA text (16)
         }
       );
@@ -6333,7 +6889,7 @@ function initializeDiagramAbsolute() {
         'ESAs',
         {
           textAnchor: 'start',
-          fill: '#6b7280', // grey color (same as top label)
+          fill: '#ffffff', // White text
           fontSize: '14' // Same as top label
         }
       );
@@ -6477,8 +7033,8 @@ function initializeDiagramAbsolute() {
                 if (index < 3) {
                   // Recalculate the entire path with new start position
                   // Get SWIFT PDS box to find its right edge
-                  const swiftPdsBox = document.querySelector('rect[fill="#bdf7e9"][id="swift-pds-rect"]') || 
-                                     document.querySelector('rect[fill="#bdf7e9"][width="' + window.swiftPdsWidth + '"]');
+                  const swiftPdsBox = document.querySelector('rect[fill="#063d38"][id="swift-pds-rect"]') ||
+                                     document.querySelector('rect[fill="#063d38"][width="' + window.swiftPdsWidth + '"]');
                   let startX = 0;
                   if (swiftPdsBox) {
                     startX = parseFloat(swiftPdsBox.getAttribute('x')) + parseFloat(swiftPdsBox.getAttribute('width'));
@@ -6644,7 +7200,7 @@ function initializeDiagramAbsolute() {
       const hexHeight_ref = window.hexagonPositions ? window.hexagonPositions.hexHeight || 20 : 20;
       const apcsY_ref = mastercardY_ref - (verticalGap_ref * 2) - hexHeight_ref - 20;
       // Calculate LVSS Y to make IAC line horizontal
-      // IAC (CECS) Y position will be cecsY + boxHeight / 2
+      // CECS Y position will be cecsY + boxHeight / 2
       // We need to match this Y position
       let redCircleY;
       if (window.needsLvssUpdate && window.needsLvssUpdate.y) {
@@ -6682,18 +7238,18 @@ function initializeDiagramAbsolute() {
       path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       const gearBorder = createStyledPath(path, {
-        fill: '#fffaf0' // Light cream like trade-by-trade
+        fill: '#E9967A' // Dark salmon (matching current LVSS lines color)
       });
       gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
       gearBorder.setAttribute('fill-rule', 'evenodd');
       lvssGroup.appendChild(gearBorder);
 
       // Layer 3: Inner circle
-      const redCircleInner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      redCircleInner.setAttribute('cx', redCircleX);
-      redCircleInner.setAttribute('cy', redCircleY);
-      redCircleInner.setAttribute('r', innerRadius); // Exact innerRadius to fill the cutout completely
-      redCircleInner.setAttribute('fill', '#800020'); // Burgundy
+      const redCircleInner = createStyledCircle(redCircleX, redCircleY, innerRadius, {
+        fill: '#5C0F1A', // Dark burgundy
+        stroke: '#E9967A', // Dark salmon (matching current LVSS lines color)
+        strokeWidth: '3'
+      });
       lvssGroup.appendChild(redCircleInner);
 
       labelsGroup.appendChild(lvssGroup);
@@ -6719,7 +7275,7 @@ function initializeDiagramAbsolute() {
 
       // Now draw magenta-rose lines from boxes to LVSS
       if (window.lvssBoxPositions) {
-        const magentaRoseColor = '#8B1538'; // Saddle brown shade
+        const magentaRoseColor = '#E94B9C'; // Saddle brown shade
         const lvssLines = [];
         const lvssX = window.lvssPosition.x;
         let lvssY = window.lvssPosition.y;
@@ -6734,10 +7290,10 @@ function initializeDiagramAbsolute() {
         const narrowBoxWidth = window.lvssBoxPositions.narrowBoxWidth;
         const boxHeight = window.lvssBoxPositions.boxHeight;
 
-        // IAC (CECS) - thick line
+        // CECS - thick line
         const iacLineY = window.lvssBoxPositions.cecsY + boxHeight / 2;
 
-        // Force LVSS to be at same Y as IAC
+        // Force LVSS to be at same Y as CECS
         const yDiff = iacLineY - lvssY;
         if (Math.abs(yDiff) > 1) { // Only adjust if difference is significant
           console.log('Adjusting LVSS Y from', lvssY, 'to', iacLineY, 'diff:', yDiff);
@@ -6838,9 +7394,9 @@ function initializeDiagramAbsolute() {
 
           // End point on blue circle - also with small vertical offset
           const angleToBlue = Math.atan2(blueCircleY - lvssCenterY, blueCircleX - lvssCenterX);
-          // Extend slightly into the circle by reducing the radius offset
-          const endX = blueCircleX - (blueCircleRadius - 5) * Math.cos(angleToBlue);
-          const endY = blueCircleY - (blueCircleRadius - 5) * Math.sin(angleToBlue) + verticalOffset;
+          // Extend far into the circle by reducing the radius offset significantly
+          const endX = blueCircleX - (blueCircleRadius - 30) * Math.cos(angleToBlue);
+          const endY = blueCircleY - (blueCircleRadius - 30) * Math.sin(angleToBlue) + verticalOffset;
 
           // Create path that goes through LVSS area with offset
           // First segment: from source to LVSS pass point
@@ -6863,7 +7419,7 @@ function initializeDiagramAbsolute() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const greyColor = '#968F7F'; // Updated color for LVSS double lines
+          const greyColor = '#fae5dc'; // Very light salmon, almost white with tint
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -6879,7 +7435,7 @@ function initializeDiagramAbsolute() {
 
             const parallelPath = createStyledPath(offsetPathData, {
               stroke: greyColor,
-              strokeWidth: '2.25', // Thin lines for double effect
+              strokeWidth: '2.5', // Thin lines for double effect
               fill: 'none',
               strokeLinecap: 'round'
             });
@@ -6923,7 +7479,7 @@ function initializeDiagramAbsolute() {
         const innerPadding = 10;
         const innerLeftPadding = 60; // Increased to move left edge left
         const innerTopPadding = 30;
-        const innerBottomPadding = 5; // Decreased to raise bottom edge
+        const innerBottomPadding = 6; // One extra pixel
         const innerRightPadding = 290;
 
         const adiRect = createStyledRect(
@@ -6932,13 +7488,13 @@ function initializeDiagramAbsolute() {
           (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
           (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
           {
-            fill: 'rgba(219, 234, 254, 1)', // Light blue fully opaque
-            stroke: '#2563eb', // Darker blue border
-            strokeWidth: '2',
+            fill: '#1e1b4b', // Much darker indigo
+            stroke: 'rgba(140, 165, 220, 1)', // Swapped: light blue border
+            strokeWidth: '1',
             rx: '8' // Slightly less rounded corners
           }
         );
-        adiRect.setAttribute('fill-opacity', '0.25'); // Less opaque
+        adiRect.setAttribute('fill-opacity', '0.9'); // More opaque
 
         // Insert after the background rectangle so it appears above it
         const esaRect = document.getElementById('blue-dots-background');
@@ -6958,8 +7514,11 @@ function initializeDiagramAbsolute() {
         if (typeof window.updateDirectEntryToAdiLine === 'function') {
           window.updateDirectEntryToAdiLine();
         }
-        if (typeof window.updateAdiToOskoLine === 'function') {
-          window.updateAdiToOskoLine();
+        if (typeof window.updateOskoToAdiLine === 'function') {
+          window.updateOskoToAdiLine();
+        }
+        if (typeof window.updateCardLeftLines === 'function') {
+          window.updateCardLeftLines();
         }
 
         // Add "ADIs" text to top right corner of inner blue box
@@ -6974,7 +7533,7 @@ function initializeDiagramAbsolute() {
          'ADIs',
          {
            textAnchor: 'end',
-           fill: '#2563eb', // Blue color
+           fill: 'rgba(140, 165, 220, 1)', // Same as border color
            fontSize: '24' // Slightly bigger
          }
        );
@@ -7014,13 +7573,13 @@ function initializeDiagramAbsolute() {
           (maxX3 - minX3) + yellowLeftPadding + yellowRightPadding + dotRadius * 2,
           (maxY3 - minY3) + yellowTopPadding + yellowBottomPadding + dotRadius * 2,
           {
-            fill: '#dde6ff', // Light blue with hint of purple
-            stroke: '#4c63d2', // Darker blue border
-            strokeWidth: '1',
+            fill: '#334155', // Lighter blue-grey
+            stroke: '#dde6ff', // Light blue (swapped with fill)
+            strokeWidth: '0.5', // Very thin border
             rx: '6' // Smaller rounded corners
           }
         );
-        yellowRect.setAttribute('fill-opacity', '0.9'); // Almost opaque
+        yellowRect.setAttribute('fill-opacity', '0.3'); // Increased opacity
 
         // Insert after the inner rectangle so it appears on top
         svg.insertBefore(yellowRect, blueLinesGroup);
@@ -7037,7 +7596,7 @@ function initializeDiagramAbsolute() {
           'International',
           {
             textAnchor: 'end',
-            fill: '#4c63d2', // Darker blue color
+            fill: '#dde6ff', // Light blue (swapped text color)
             fontSize: '14' // Same size as Domestic Banks
           }
         );
@@ -7050,7 +7609,7 @@ function initializeDiagramAbsolute() {
           'Banks',
           {
             textAnchor: 'end',
-            fill: '#4c63d2', // Darker blue color
+            fill: '#dde6ff', // Light blue (swapped text color)
             fontSize: '14' // Same size as Domestic Banks
           }
         );
@@ -7083,13 +7642,13 @@ function initializeDiagramAbsolute() {
           (maxX4 - minX4) + greenLeftPadding + greenRightPadding + dotRadius * 2,
           (maxY4 - minY4) + greenTopPadding + greenBottomPadding + dotRadius * 2,
           {
-            fill: '#e4d4f4', // Light Excel purple
-            stroke: '#7030a0', // Excel purple border
-            strokeWidth: '1',
+            fill: '#3b0764', // Much darker purple
+            stroke: '#e4d4f4', // Light Excel purple (swapped with fill)
+            strokeWidth: '0.5', // Very thin border
             rx: '5' // Smaller rounded corners
           }
         );
-        greenRect.setAttribute('fill-opacity', '0.9'); // Almost opaque
+        greenRect.setAttribute('fill-opacity', '0.3'); // Increased opacity
 
         // Insert after the yellow rectangle so it appears on top
         svg.insertBefore(greenRect, blueLinesGroup);
@@ -7107,7 +7666,7 @@ function initializeDiagramAbsolute() {
           'Domestic Banks',
           {
             textAnchor: 'end',
-            fill: '#7030a0', // Excel purple matching the border
+            fill: '#e4d4f4', // Light purple (swapped text color)
             fontSize: '14' // Smaller than ADIs font (16)
           }
         );
@@ -7140,13 +7699,13 @@ function initializeDiagramAbsolute() {
           (maxX5 - minX5) + group2LeftPadding + group2RightPadding + dotRadius * 2,
           (maxY5 - minY5) + group2TopPadding + group2BottomPadding + dotRadius * 2,
           {
-            fill: '#ccfbf1', // Soft aqua tone
-            stroke: '#38bdf8', // Sky blue border (same as group 3)
-            strokeWidth: '1.2',
+            fill: '#155e75', // Much darker aqua/cyan
+            stroke: '#7DF9FF', // Electric cyan
+            strokeWidth: '0.5',
             rx: '4' // Small rounded corners
           }
         );
-        group2Rect.setAttribute('fill-opacity', '0.4'); // Made less opaque
+        group2Rect.setAttribute('fill-opacity', '0.3'); // Increased opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group2Rect, blueLinesGroup);
@@ -7164,8 +7723,8 @@ function initializeDiagramAbsolute() {
           'Foreign Branches',
           {
             textAnchor: 'end',
-            fill: '#0284c7', // Sky blue (same as group 3)
-            fontSize: '12', // Smaller font
+            fill: '#7DF9FF', // Electric cyan
+            fontSize: '11', // Bigger font
             fontWeight: 'normal'
           }
         );
@@ -7198,13 +7757,13 @@ function initializeDiagramAbsolute() {
           (maxX6 - minX6) + group3LeftPadding + group3RightPadding + dotRadius * 2,
           (maxY6 - minY6) + group3TopPadding + group3BottomPadding + dotRadius * 2,
           {
-            fill: '#ccfbf1', // Soft aqua tone
-            stroke: '#38bdf8', // Sky blue border
-            strokeWidth: '1.2',
+            fill: '#155e75', // Much darker aqua/cyan
+            stroke: '#7DF9FF', // Electric cyan
+            strokeWidth: '0.5',
             rx: '4' // Small rounded corners
           }
         );
-        group3Rect.setAttribute('fill-opacity', '0.4'); // Made less opaque
+        group3Rect.setAttribute('fill-opacity', '0.3'); // Increased opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group3Rect, blueLinesGroup);
@@ -7222,8 +7781,8 @@ function initializeDiagramAbsolute() {
           'Foreign Subsidiaries',
           {
             textAnchor: 'end',
-            fill: '#0284c7', // Sky blue
-            fontSize: '12', // Smaller font
+            fill: '#7DF9FF', // Electric cyan
+            fontSize: '11', // Bigger font
             fontWeight: 'normal'
           }
         );
@@ -7256,8 +7815,8 @@ function initializeDiagramAbsolute() {
           (maxX7 - minX7) + group5aLeftPadding + group5aRightPadding + dotRadius * 2,
           (maxY7 - minY7) + group5aTopPadding + group5aBottomPadding + dotRadius * 2,
           {
-            fill: '#f5e6ff', // Light intermediate purple
-            stroke: '#8129a0', // Intermediate between #7030a0 and #942193
+            fill: '#8129a0', // Intermediate purple (swapped with border)
+            stroke: '#f5e6ff', // Light intermediate purple (swapped with fill)
             strokeWidth: '0.75',
             rx: '4' // Small rounded corners
           }
@@ -7280,7 +7839,7 @@ function initializeDiagramAbsolute() {
           'Specialised ADIs',
           {
             textAnchor: 'end',
-            fill: '#8129a0', // Intermediate purple
+            fill: '#f5e6ff', // Light purple (swapped text color)
             fontSize: '13' // Between 12 and 14
           }
         );
@@ -7313,8 +7872,8 @@ function initializeDiagramAbsolute() {
           (maxX8 - minX8) + group5bLeftPadding + group5bRightPadding + dotRadius * 2,
           (maxY8 - minY8) + group5bTopPadding + group5bBottomPadding + dotRadius * 2,
           {
-            fill: '#ffe0f7', // Light version of #942193
-            stroke: '#942193', // Based on hex 942193
+            fill: '#942193', // Based on hex 942193 (swapped with border)
+            stroke: '#ffe0f7', // Light version (swapped with fill)
             strokeWidth: '0.75',
             rx: '4' // Small rounded corners
           }
@@ -7337,7 +7896,7 @@ function initializeDiagramAbsolute() {
           'Other ADIs',
           {
             textAnchor: 'end',
-            fill: '#942193', // Based on hex 942193
+            fill: '#ffe0f7', // Light version (swapped text color)
             fontSize: '13' // Between 12 and 14
           }
         );
@@ -7398,8 +7957,8 @@ function initializeDiagramAbsolute() {
           if (typeof window.updateDirectEntryToAdiLine === 'function') {
             window.updateDirectEntryToAdiLine();
           }
-          if (typeof window.updateAdiToOskoLine === 'function') {
-            window.updateAdiToOskoLine();
+          if (typeof window.updateOskoToAdiLine === 'function') {
+            window.updateOskoToAdiLine();
           }
 
           // Create orange line from Sympli to ADIs now that both box data are available
@@ -7425,7 +7984,7 @@ function initializeDiagramAbsolute() {
             // Follow the same curve pattern as the blue line but extend much further right
             const nonAdiRightEdge = window.nonAdiBoxData ? window.nonAdiBoxData.x + window.nonAdiBoxData.width : 0;
             // Start curving up even closer to the ADIs box
-            const curveStartX = window.adiBoxData.x +300; // Start curve only 50px before ADI box left edge
+            const curveStartX = window.adiBoxData.x + 320; // Extended 20px further right
             const extendPastNonAdi = window.adiBoxData.x + 420; // Control point for curve
 
             // End point for orange line - next to where blue line connects
@@ -7450,13 +8009,13 @@ function initializeDiagramAbsolute() {
               `${orangeEndX} ${endY}`; // Curve up to ADIs box
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
-              stroke: 'rgb(239,136,51)', // Same orange as Sympli box
-              strokeWidth: '2',
+              stroke: 'rgb(239,136,51)', // Sympli original color
+              strokeWidth: '3',
               fill: 'none',
               id: 'sympli-to-adis-line'
             });
 
-            labelsGroup.appendChild(sympliToAdiLineStyled);
+            labelsGroup.insertBefore(sympliToAdiLineStyled, labelsGroup.firstChild);
           }
 
           if (window.pexaConveyBoxData && window.adiBoxData && window.asxLineData) {
@@ -7474,12 +8033,12 @@ function initializeDiagramAbsolute() {
             const cornerRadius = 20;
             const baseDownToY = window.asxLineData.horizontalY + 8; // Was 20, moved up 12 total
             let downToY = baseDownToY + horizontalSeparation;
-            const curveStartX = window.adiBoxData.x + 300;
+            const curveStartX = window.adiBoxData.x + 320; // Extended 20px further right to match orange line
             const extendPastNonAdi = window.adiBoxData.x + 420;
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkEndX = orangeEndX;
+            const pinkEndX = orangeEndX + 3; // 3 pixels to the right of orange line
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
@@ -7508,7 +8067,7 @@ function initializeDiagramAbsolute() {
               id: 'pexa-to-adis-line'
             });
 
-            labelsGroup.appendChild(pexaToAdiLineStyled);
+            labelsGroup.insertBefore(pexaToAdiLineStyled, labelsGroup.firstChild);
           }
 
           // Position: same left edge as ADI box, top edge below ADI box
@@ -7525,14 +8084,13 @@ function initializeDiagramAbsolute() {
           const rectHeight = (clsY + clsRadius + 16) - rectY; // Raised bottom edge slightly (was 20)
 
           const nonAdiRect = createStyledRect(rectX - 3, rectY, rectWidth + 3, rectHeight, {
-            fill: 'rgba(254, 243, 199, 1)', // Light gold fully opaque
-            stroke: '#f59e0b', // Darker gold/amber border
-            strokeWidth: '2', // Same thickness as ADI box
+            fill: '#5C0A0A', // Dark maroon
+            stroke: '#fbbf24', // Light gold
+            strokeWidth: '1',
             rx: '8' // Same rounded corners as ADI box
           });
-          nonAdiRect.setAttribute('fill-opacity', '0.8'); // Made more opaque
+          nonAdiRect.setAttribute('fill-opacity', '0.85'); // Made more opaque
 
-          // Insert on top of other rectangles
           svg.insertBefore(nonAdiRect, blueLinesGroup);
 
           // Store non-ADI box data for blue line
@@ -7557,10 +8115,10 @@ function initializeDiagramAbsolute() {
           const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
 
           // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
-          // Adjust end point to account for stroke width (stop at edge, not past it)
+          // Adjust end point to account for stroke width using helper
           const strokeWidth = 6; // Updated stroke width
-          const strokeHalf = strokeWidth / 2;
-          const adjustedAdiBottom = adiBottom + strokeHalf;
+          const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', strokeWidth);
+          const adjustedAdiBottom = adiEdge.y;
 
           // Calculate where to start the gradual curve
           // We need to stay below ESAs and non-ADIs boxes
@@ -7616,8 +8174,8 @@ function initializeDiagramAbsolute() {
 
             // Calculate actual vertical distance for this line
             const asxStrokeWidth = parseFloat(asxLine2Extension.getAttribute('stroke-width')) || 4;
-            const strokeHalf = asxStrokeWidth / 2;
-            const curveEndY = adiBottom + strokeHalf;
+            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', asxStrokeWidth);
+            const curveEndY = adiEdge.y;
             const actualVerticalDistance = window.asxLine2Data.horizontalY - curveEndY;
 
             // Position endpoint closer to green line endpoint
@@ -7654,7 +8212,7 @@ function initializeDiagramAbsolute() {
           'Non-ADIs',
           {
             textAnchor: 'end',
-            fill: '#f59e0b', // Match the Group 6 box gold border color
+            fill: '#ffffff', // White
             fontSize: '24' // Match ADIs font size
           }
         );
@@ -7726,8 +8284,8 @@ function initializeDiagramAbsolute() {
           reducedRedWidth + 5,
           (maxY10 - minY10) + redTopPadding + redBottomPadding + dotRadius * 2,
           {
-            fill: '#fee2e2', // Very light red
-            stroke: '#ef4444', // Red border
+            fill: '#b91c1c', // Darker red
+            stroke: '#fca5a5', // Light red
             strokeWidth: '1',
             rx: '3' // Small rounded corners
           }
@@ -7749,7 +8307,7 @@ function initializeDiagramAbsolute() {
           'PSPs',
           {
             textAnchor: 'end',
-            fill: '#ef4444', // Red color matching border
+            fill: '#ffffff', // White text
             fontSize: '13'
           }
         );
@@ -7773,7 +8331,7 @@ function initializeDiagramAbsolute() {
         // Use tight padding for green-bordered dots rectangle
         const greenBorderLeftPadding = -25 + 2; // Slight left adjustment + 2px left padding
         const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
-        const greenBorderBottomPadding = 10 + 2 - 2; // Increased headroom + 2px additional padding - 2px reduction
+        const greenBorderBottomPadding = 10 + 2 - 2 + 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -7787,8 +8345,8 @@ function initializeDiagramAbsolute() {
           reducedCsWidth + 5,
           (maxY11 - minY11) + greenBorderTopPadding + greenBorderBottomPadding + dotRadius * 2,
           {
-            fill: '#E8F5E9', // Light green
-            stroke: '#4CAF50', // Green border
+            fill: '#15803d', // Darker green
+            stroke: '#86efac', // Light green closer to white
             strokeWidth: '1',
             rx: '3' // Small rounded corners
           }
@@ -7810,7 +8368,7 @@ function initializeDiagramAbsolute() {
           'CS',
           {
             textAnchor: 'end',
-            fill: '#4CAF50', // Green color matching border
+            fill: '#ffffff', // White text
             fontSize: '13'
           }
         );
@@ -7915,7 +8473,7 @@ if (i === 0) {
 
   // Apply geometry + styling
   // sigmoidPath.setAttribute('d', sigmoidD);
-  // sigmoidPath.setAttribute('stroke', '#7FFF00'); // neon lime green
+  // sigmoidPath.setAttribute('stroke', '#CCFF00'); // neon lime green
   // sigmoidPath.setAttribute('stroke-width', '8');
   // sigmoidPath.setAttribute('fill', 'none');
   // sigmoidPath.setAttribute('stroke-linecap', 'round');
@@ -7975,11 +8533,11 @@ const newBoundingBox = createStyledRect(
   hvcsBoxWidth,
   newBoundingBoxHeight + 5,
   {
-    fill: '#D8D0F0', // Darker purple interior (swapped from NPP BI)
-    stroke: 'rgb(100,80,180)', // Darker purple border (swapped from NPP BI)
-    strokeWidth: '2',
-    rx: '8', // Rounded corners
-    ry: '8' // Rounded corners
+    fill: 'rgb(60,45,110)', // Dark purple (matching BPAY)
+    stroke: '#D8D0F0', // Light purple border (matching BPAY)
+    strokeWidth: '2.5',
+    rx: '12', // Rounded corners (matching BPAY)
+    ry: '12' // Rounded corners (matching BPAY)
   }
 );
 newBoundingBox.setAttribute('id', 'npp-purple-box');
@@ -8003,8 +8561,9 @@ window.nppBoundingData = {
 // Now create the pacs-style box inside the bounding box
 // Match the style and size of pacs.008
 const pacsStyle = {
-  fill: '#0f766e', // Dark gray fill (same as pacs boxes)
-  stroke: 'none', // No border
+  fill: '#5dd9b8', // Green SWIFT line color
+  stroke: '#ffffff', // Very thin white border
+  strokeWidth: '0.5',
   rx: '12', // More rounded corners
   ry: '12' // More rounded corners
 };
@@ -8046,8 +8605,8 @@ const nppBoundingLabel = createStyledText(
   nppLabelY,
   'NPP',
   {
-    fill: 'rgb(100,80,180)', // Purple color matching the border
-    fontSize: '20', // Reduced from 24
+    fill: '#ffffff', // White text (matching BPAY)
+    fontSize: '18', // Larger font size
     fontWeight: 'bold'
   }
 );
@@ -8062,16 +8621,17 @@ const newPacsText = createStyledText(
   pacsBoxY + pacsBoxHeight / 2,
   'BSCT',
   {
-    fill: '#ffffff',
+    fill: '#063d38', // Dark text (same as pacs boxes)
     fontSize: '11'
   }
 );
 labelsGroup.appendChild(newPacsText);
 
-// PayTo box (bottom) - dark purple style
+// PayTo box (bottom) - light purple style
 const purpleBoxStyle = {
-  fill: 'rgb(100,80,180)', // Dark purple (same as NPP BI border)
-  stroke: 'none',
+  fill: 'rgb(180,160,220)', // Light purple
+  stroke: '#ffffff', // Very thin white border
+  strokeWidth: '0.5',
   rx: '12',
   ry: '12'
 };
@@ -8083,7 +8643,7 @@ const payToText = createStyledText(
   adjustedPayToBoxY + pacsBoxHeight / 2,
   'PayTo',
   {
-    fill: '#ffffff',
+    fill: 'rgb(30,20,60)', // Darker purple text
     fontSize: '11'
   }
 );
@@ -8104,16 +8664,13 @@ const payIdText = createStyledText(
   adjustedPayIdBoxY + pacsBoxHeight / 2,
   'PayID',
   {
-    fill: '#ffffff',
+    fill: 'rgb(30,20,60)', // Darker purple text
     fontSize: '11'
   }
 );
 labelsGroup.appendChild(payIdText);
 
 // Draw connecting line from BSCT box to NPP BI (SWIFT) bounding box
-const connectingLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-connectingLine.setAttribute('id', 'new-pacs-to-npp-line');
-
 // Start from right edge of BSCT box (using new position), middle height
 const lineStartX = pacsBoxX + pacsBoxWidth;
 const lineStartY = adjustedBsctY + pacsBoxHeight / 2;
@@ -8122,13 +8679,16 @@ const lineStartY = adjustedBsctY + pacsBoxHeight / 2;
 const lineEndX = nppX;
 const lineEndY = lineStartY; // Same Y for horizontal line
 
-connectingLine.setAttribute('x1', lineStartX.toFixed(2));
-connectingLine.setAttribute('y1', lineStartY.toFixed(2));
-connectingLine.setAttribute('x2', lineEndX.toFixed(2));
-connectingLine.setAttribute('y2', lineEndY.toFixed(2));
-connectingLine.setAttribute('stroke', '#3da88a'); // Same color as NPP to FSS line
-connectingLine.setAttribute('stroke-width', '6'); // Same width as NPP to FSS line (thicker)
-connectingLine.setAttribute('stroke-linecap', 'round');
+const connectingLine = createStyledLine(
+  lineStartX, lineStartY,
+  lineEndX, lineEndY,
+  {
+    stroke: '#5dd9b8',
+    strokeWidth: '6',
+    strokeLinecap: 'round',
+    id: 'new-pacs-to-npp-line'
+  }
+);
 
 // Insert line before labels so it appears behind
 svg.insertBefore(connectingLine, labelsGroup);
@@ -8206,8 +8766,9 @@ const oskoWidth = hvcsBoxWidth; // Same width as NPP BI (SWIFT) bounding box
 const oskoX = newBoundingBoxX; // Same X as NPP BI (SWIFT) bounding box
 
 const oskoBox = createStyledRect(oskoX, oskoY, oskoWidth, oskoHeight, {
-  fill: 'rgb(100,80,180)', // Same purple as EFTPOS
-  stroke: 'none',
+  fill: 'rgb(60,45,110)', // Dark purple (matching BPAY)
+  stroke: '#D8D0F0', // Light purple border (matching BPAY)
+  strokeWidth: '2.5',
   rx: '12', // Same rounded corners as PayID/PayTo boxes inside NPP
   ry: '12'
 });
@@ -8219,7 +8780,7 @@ const oskoText = createStyledText(
   oskoY + oskoHeight / 2,
   'Osko',
   {
-    fill: '#ffffff', // White text
+    fill: '#ffffff', // White text (matching BPAY)
     fontSize: '14', // Same font size as Direct Entry
     fontWeight: 'bold' // Same weight as Direct Entry
   }
@@ -8232,8 +8793,8 @@ const oskoLine = createStyledLine(
   (window.nppBoundingData ? window.nppBoundingData.x + window.nppBoundingData.width / 2 : window.nppBoxData.x + window.nppBoxData.width / 2),
   (window.nppBoundingData ? window.nppBoundingData.y : desiredNppY), // End at top of NPP
   {
-    stroke: 'rgb(100,80,180)',
-    strokeWidth: '4',
+    stroke: 'rgb(180,160,220)', // Light purple
+    strokeWidth: '8', // Made thicker (was 4)
     strokeLinecap: 'round'
   }
 );
@@ -8280,6 +8841,11 @@ window.oskoElements = {
   line: oskoLine
 };
 window.updateOskoLine = updateOskoLine;
+
+// Update the OSKO to ADI curve now that OSKO box exists
+if (typeof window.updateOskoToAdiLine === 'function') {
+  window.updateOskoToAdiLine();
+}
 updateOskoLine();
 // XXX-to-ADI line update removed
 // if (typeof window.updateXXXToAdiLine === 'function') {
@@ -8288,8 +8854,8 @@ updateOskoLine();
 if (typeof window.updateDirectEntryToAdiLine === 'function') {
   window.updateDirectEntryToAdiLine();
 }
-if (typeof window.updateAdiToOskoLine === 'function') {
-  window.updateAdiToOskoLine();
+if (typeof window.updateOskoToAdiLine === 'function') {
+  window.updateOskoToAdiLine();
 }
 
   } // Close if (finalNppBox && window.swiftHvcsElements)
@@ -8345,7 +8911,7 @@ const controlY2 = clsLineStartY + distY * 0.5; // Start curving vertically
 const clsToRitsPath = `M ${clsLineStartX} ${clsLineStartY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${clsLineEndX} ${clsLineEndY}`;
 
 clsToRitsLineFinal.setAttribute('d', clsToRitsPath);
-clsToRitsLineFinal.setAttribute('stroke', '#7FFF00'); // Neon lime green
+clsToRitsLineFinal.setAttribute('stroke', '#00FF33'); // Neon green
 clsToRitsLineFinal.setAttribute('stroke-width', '6'); // Thick line
 clsToRitsLineFinal.setAttribute('fill', 'none');
 clsToRitsLineFinal.setAttribute('stroke-linecap', 'round');
@@ -8508,7 +9074,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
 
       if (sCurvePath) {
         sCurvePath.setAttribute('d', pathData);
-        sCurvePath.setAttribute('stroke', '#7FFF00');
+        sCurvePath.setAttribute('stroke', '#00FF33');
         sCurvePath.setAttribute('stroke-width', '6');
         sCurvePath.setAttribute('fill', 'none');
         sCurvePath.setAttribute('stroke-linecap', 'round');
@@ -8572,18 +9138,16 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
         (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
         {
-          fill: 'rgba(219, 234, 254, 1)', // Light blue fully opaque
+          fill: 'rgba(140, 165, 220, 1)', // Light blue fully opaque
           stroke: '#2563eb', // Darker blue border
           strokeWidth: '2',
           rx: '8' // Slightly less rounded corners
         }
       );
-      adiRect.setAttribute('fill-opacity', '0.25'); // Less opaque
+      adiRect.setAttribute('fill-opacity', '0.65'); // Less opaque
 
-      // Insert after the background rectangle so it appears above it
       const esaRect = document.getElementById('blue-dots-background');
       svg.insertBefore(adiRect, esaRect.nextSibling);
-      console.log('ADI box debug: ADI rect inserted into DOM');
 
       // Store ADI box position for HVCS line
       if (!window.adiBoxData) window.adiBoxData = {};
@@ -8611,10 +9175,9 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
     }
   }
 
-  window.absoluteLayout = absoluteLayout;
   console.log('Test 4: After IIFE');
 
 
 }
 
-window.initializeDiagramAbsolute = initializeDiagramAbsolute;
+window.initializeDiagram = initializeDiagram;
