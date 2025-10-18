@@ -262,6 +262,24 @@ function initializeDiagram() {
     const redLinesGroup = document.getElementById('red-connecting-lines');
     const adminLinesGroup = document.getElementById('admin-connecting-lines');
     const yellowLinesGroup = document.getElementById('admin-connecting-lines');
+
+    // Add RBA red circle border to redLinesGroup so it renders under blue/yellow lines
+    // This will be created after RBA circle fill is created and info is stored
+    window.addRbaRedBorder = function() {
+      if (window.rbaCircleInfo && redLinesGroup) {
+        const rbaBorder = createStyledCircle(
+          window.rbaCircleInfo.x,
+          window.rbaCircleInfo.y,
+          window.rbaCircleInfo.radius,
+          {
+            fill: 'none',
+            stroke: '#ff0000',
+            strokeWidth: '2'
+          }
+        );
+        redLinesGroup.appendChild(rbaBorder);
+      }
+    };
     const bigGroupElement = document.getElementById('big-group');
 
     // Ensure orange connectors render above the RITS circle
@@ -449,13 +467,25 @@ function initializeDiagram() {
         const blackCircleRadius = smallCircleRadius * 6;
         blackCenterY -= blackCircleRadius * 2; // Move up by 2x radius (full diameter)
 
-        // Create large black circle at extended position
+        // Store RBA circle info for later
+        window.rbaCircleInfo = {
+          x: blackCenterX,
+          y: blackCenterY,
+          radius: blackCircleRadius
+        };
+
+        // Create large black circle at extended position (fill only, no border yet)
         const blackCircle = createStyledCircle(blackCenterX, blackCenterY, blackCircleRadius, {
           fill: '#000000',
-          stroke: '#ff0000',
-          strokeWidth: '2'
+          stroke: 'none'
         });
-        circlesGroup.appendChild(blackCircle);
+        // Insert before big-group so black circle renders under RITS/FSS but the blue/yellow lines can go over it
+        const bigGroup = document.getElementById('big-group');
+        if (bigGroup && bigGroup.parentNode) {
+          bigGroup.parentNode.insertBefore(blackCircle, bigGroup);
+        } else {
+          circlesGroup.appendChild(blackCircle);
+        }
       }
 
       // Group 1: 1 dot (index 0)
@@ -623,7 +653,17 @@ function initializeDiagram() {
       });
 
       if (!skipBlueLines) {
-        blueLinesGroup.appendChild(line);
+        // For RBA dot (i=0), insert before big-group so line renders over black circle but under RITS
+        if (i === 0) {
+          const bigGroup = document.getElementById('big-group');
+          if (bigGroup && bigGroup.parentNode) {
+            bigGroup.parentNode.insertBefore(line, bigGroup);
+          } else {
+            blueLinesGroup.appendChild(line);
+          }
+        } else {
+          blueLinesGroup.appendChild(line);
+        }
       }
 
       // Create small circle
@@ -636,12 +676,45 @@ function initializeDiagram() {
         borderWidth = '6'; // Much thicker grey border for CLS
       }
 
-      const circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
-        fill: fillColor,
-        stroke: strokeColor,
-        strokeWidth: borderWidth
-      });
-      circlesGroup.appendChild(circle);
+      // For CLS dot (i === 99), add white border first, then green border on top
+      let circle;
+      if (i === 99) {
+        // Create inner white border circle
+        const whiteCircle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
+          fill: fillColor,
+          stroke: '#ffffff', // White border
+          strokeWidth: '0.75' // Thin white border like other dots
+        });
+        circlesGroup.appendChild(whiteCircle);
+
+        // Create outer green border circle
+        // White stroke 0.75 extends from R-0.375 to R+0.375
+        // Green stroke 6 should sit just outside, so radius = R + 0.375 + 3 = R + 3.375
+        circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius + 3.375, {
+          fill: 'none', // Transparent fill
+          stroke: strokeColor, // Green border
+          strokeWidth: borderWidth // Thick green border
+        });
+        circlesGroup.appendChild(circle);
+      } else {
+        // Normal circle for all other dots
+        circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
+          fill: fillColor,
+          stroke: strokeColor,
+          strokeWidth: borderWidth
+        });
+        // For RBA dot (i=0), insert before big-group so dot renders over black circle/line but under RITS
+        if (i === 0) {
+          const bigGroup = document.getElementById('big-group');
+          if (bigGroup && bigGroup.parentNode) {
+            bigGroup.parentNode.insertBefore(circle, bigGroup);
+          } else {
+            circlesGroup.appendChild(circle);
+          }
+        } else {
+          circlesGroup.appendChild(circle);
+        }
+      }
 
       // Add "CLS" text to last dot
       if (i === 99) {
@@ -1603,7 +1676,7 @@ function initializeDiagram() {
         // APCS (fourth from bottom)
         const apcsY = becsY - boxHeight - squareRectGap;
         const apcsBox = createStyledRect(reducedNarrowBoxX, apcsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#8b2020', // Darker and redder fill
+          fill: '#C41E3A', // Vivid maroon fill (BECS label)
           stroke: '#ffe0e0', // Light pink border (matching text)
           strokeWidth: '3',
           rx: '8',
@@ -2708,9 +2781,9 @@ function initializeDiagram() {
           height: sympliHeight
         };
 
-        const sympliLineGap = 2.5;
+        const sympliLineGap = 3.0;
         const sympliLineColor = '#FF0090';
-        const sympliLineOffsets = [-sympliLineGap, 0, sympliLineGap]; // Triple lines
+        const sympliLineOffsets = [-sympliLineGap/2, sympliLineGap/2]; // Double lines (gap = 1.5 to match curved lines)
         const sympliConnectorStartX = sympliX + sympliWidth;
         let sympliConnectorEndX = sympliConnectorStartX;
         if (window.bridgePositions) {
@@ -2729,7 +2802,7 @@ function initializeDiagram() {
             sympliY + sympliHeight / 2 + offset,
             {
               stroke: sympliLineColor,
-              strokeWidth: '1', // Thin lines
+              strokeWidth: '2.25', // Match curved double lines
               strokeLinecap: 'round'
             }
           );
@@ -2843,10 +2916,10 @@ function initializeDiagram() {
             }
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
-              stroke: (isNarrowBox || label === 'Mastercard' || label === 'eftpos') ? '#ffffff' : 'none', // Thin white border for narrow boxes, Mastercard, and eftpos
-              strokeWidth: (isNarrowBox || label === 'Mastercard' || label === 'eftpos') ? '0.5' : '0',
-              rx: '8',
-              ry: '8'
+              stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,230,230)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, light pink for Mastercard, thin white for narrow boxes
+              strokeWidth: (label === 'eftpos' || label === 'Mastercard') ? '2.5' : (isNarrowBox ? '0.5' : '0'), // Thicker border for eftpos and Mastercard
+              rx: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8', // More rounded corners for eftpos and Mastercard to match BPAY
+              ry: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8'
             });
             labelsGroup.appendChild(rect);
 
@@ -2856,7 +2929,8 @@ function initializeDiagram() {
               label,
               {
                 fill: '#ffffff',
-                fontSize: fontSizeOverride !== undefined ? fontSizeOverride.toString() : '12'
+                fontSize: fontSizeOverride !== undefined ? fontSizeOverride.toString() : '12',
+                fontWeight: (label === 'eftpos' || label === 'Mastercard') ? 'bold' : 'normal' // Bold text for eftpos and Mastercard to match BPAY
               }
             );
             labelsGroup.appendChild(text);
@@ -2883,7 +2957,7 @@ function initializeDiagram() {
             });
           };
 
-          const eftpos = createStackedRect(eftposY, 'rgb(100,80,180)', 'eftpos');
+          const eftpos = createStackedRect(eftposY, 'rgb(80,58,130)', 'eftpos');
 
           const eftposRect = eftpos.rect;
           const eftposActualX = parseFloat(eftposRect.getAttribute('x'));
@@ -2903,9 +2977,9 @@ function initializeDiagram() {
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
           const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
           const medicareY = visaY - gapHalf - reducedHeight;
-          const medicare = createStackedRect(medicareY, '#88e788', 'Claims', eftposActualX, reducedHeight, reducedFont);
+          const medicare = createStackedRect(medicareY, '#9ACD32', 'Claims', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
-          const atms = createStackedRect(atmsY, '#ffcc99', 'ATMs', eftposActualX, reducedHeight, reducedFont);
+          const atms = createStackedRect(atmsY, '#C08552', 'ATMs', eftposActualX, reducedHeight, reducedFont);
 
           const boundingPadX = 9;
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
@@ -3043,7 +3117,7 @@ function initializeDiagram() {
           const stackLineConfigs = [
             {
               id: 'direct-entry-stack-line-blue',
-              color: '#5AC8FA',
+              color: '#27AEE3', // Match Other Cards box
               fraction: 0.2,
               offset: 9,
               strokeWidth: 1.5,
@@ -3055,7 +3129,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-yellow',
-              color: '#C67A35',
+              color: '#FFA500', // Match Visa box
               fraction: 0.4,
               offset: 16,
               strokeWidth: 1.5,
@@ -3065,7 +3139,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-green',
-              color: '#228835',
+              color: '#9ACD32', // Match Claims box
               fraction: 0.6,
               offset: 16,
               strokeWidth: 1.5,
@@ -3075,7 +3149,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-brown',
-              color: '#9B7653',
+              color: '#C08552', // Match ATMs box
               fraction: 0.8,
               offset: 18,
               strokeWidth: 1.5,
@@ -3290,8 +3364,12 @@ function initializeDiagram() {
                 horizontalBranch.setAttribute('stroke-linecap', 'round');
                 horizontalBranch.setAttribute('fill', 'none');
                 horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
-                // Insert at beginning to ensure horizontal branches also go under boxes
-                labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
+                // Insert into background group to ensure horizontal branches go under all boxes
+                if (backgroundGroup) {
+                  backgroundGroup.insertBefore(horizontalBranch, backgroundGroup.firstChild);
+                } else {
+                  adminLinesGroup.appendChild(horizontalBranch);
+                }
                 entry.horizontalBranch = horizontalBranch;
               }
 
@@ -3453,12 +3531,8 @@ function initializeDiagram() {
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
 
-              // Insert at the beginning of labelsGroup so lines appear behind all boxes
-              if (labelsGroup.firstChild) {
-                labelsGroup.insertBefore(line, labelsGroup.firstChild);
-              } else {
-                labelsGroup.appendChild(line);
-              }
+              // Add to admin lines group so lines appear behind all boxes
+              adminLinesGroup.appendChild(line);
 
               window.cecsToAtmsBoundingLines.push(line);
             });
@@ -3810,14 +3884,14 @@ function initializeDiagram() {
               );
 
               const eftposUpturnPath = createStyledPath(eftposSegments.pathString, {
-                stroke: 'rgb(100,80,180)', // eftpos purple border color
+                stroke: 'rgb(158,138,239)', // eftpos line color (same as border)
                 strokeWidth: '2',
                 fill: 'none',
                 strokeLinecap: 'round',
                 id: 'eftpos-left-line'
               });
-              // Insert at beginning so lines go under ADI box
-              labelsGroup.insertBefore(eftposUpturnPath, labelsGroup.firstChild);
+              // Insert into admin lines group so lines go under all boxes
+              adminLinesGroup.appendChild(eftposUpturnPath);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
                 stroke: 'rgb(216,46,43)', // Mastercard red border color
@@ -3826,8 +3900,8 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'mastercard-left-line'
               });
-              // Insert at beginning so lines go under ADI box
-              labelsGroup.insertBefore(mastercardUpturnPath, labelsGroup.firstChild);
+              // Insert into admin lines group so lines go under all boxes
+              adminLinesGroup.appendChild(mastercardUpturnPath);
 
               // Create horizontal branches for Eftpos and Mastercard
               const createHorizontalBranch = (segments, color, id) => {
@@ -3877,14 +3951,14 @@ function initializeDiagram() {
                   }
                 }
 
-                // Insert at beginning so lines go under boxes
-                labelsGroup.insertBefore(horizontalPath, labelsGroup.firstChild);
+                // Insert into admin lines group so lines go under all boxes
+                adminLinesGroup.appendChild(horizontalPath);
                 return horizontalPath;
               };
 
               const eftposHorizontalPath = createHorizontalBranch(
                 eftposSegments,
-                'rgb(100,80,180)',
+                'rgb(158,138,239)', // eftpos line color (same as border)
                 'eftpos-left-line'
               );
 
@@ -4111,8 +4185,8 @@ function initializeDiagram() {
           line.setAttribute('stroke-width', '4');
           line.setAttribute('stroke-linecap', 'round');
           line.setAttribute('fill', 'none');
-          // Insert at beginning so line goes under ADI box
-          labelsGroup.insertBefore(line, labelsGroup.firstChild);
+          // Add to red lines group so line goes under all boxes
+          redLinesGroup.appendChild(line);
           directEntryToAdiLines.push(line);
 
           // Single visible duplicate that will mirror the invisible original
@@ -4122,8 +4196,8 @@ function initializeDiagram() {
           duplicate.setAttribute('stroke-width', '4');
           duplicate.setAttribute('stroke-linecap', 'round');
           duplicate.setAttribute('fill', 'none');
-          // Insert at the beginning so it goes under other elements
-          labelsGroup.insertBefore(duplicate, labelsGroup.firstChild);
+          // Add to red lines group so it goes under all boxes
+          redLinesGroup.appendChild(duplicate);
           maroonLineDuplicates.push(duplicate);
 
           window.maroonLineDuplicates = maroonLineDuplicates;
@@ -4136,8 +4210,8 @@ function initializeDiagram() {
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
           horizontalBranch.setAttribute('stroke-linecap', 'round'); // Round cap since stopping at edge
           horizontalBranch.setAttribute('fill', 'none');
-          // Insert at beginning to ensure it goes under boxes
-          labelsGroup.insertBefore(horizontalBranch, labelsGroup.firstChild);
+          // Add to red lines group to ensure it goes under all boxes
+          redLinesGroup.appendChild(horizontalBranch);
           maroonHorizontalBranches.push(horizontalBranch);
           window.maroonHorizontalBranches = maroonHorizontalBranches;
 
@@ -4211,7 +4285,7 @@ function initializeDiagram() {
             const endX = greyEndX + 10; // 30px to the right of grey line
 
             // Calculate exact endpoint on ADI box top edge
-            const strokeWidth = 1.5; // Line stroke width
+            const strokeWidth = 4; // Line stroke width (matches actual line stroke-width)
             const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
             const endY = adiEdge.y;
 
@@ -4291,6 +4365,7 @@ function initializeDiagram() {
                   const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
 
                   // Build horizontal branch path that continues from where the curve would normally go down
+                  const maroonStrokeWidth = 2; // From line 4136
                   const horizontalBranchPath = `M ${cStartX.toFixed(2)} ${cStartY.toFixed(2)} ` + // Start at DE center
                                               `C ${cCtrlX.toFixed(2)} ${cCtrl1Y.toFixed(2)}, ` + // First control point
                                               `${cCtrlX.toFixed(2)} ${cCtrl2Y.toFixed(2)}, ` + // Second control point
@@ -4299,7 +4374,7 @@ function initializeDiagram() {
                                               `Q ${horizontalExtendX.toFixed(2)} ${cConnectionY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(cConnectionY + curveRadius).toFixed(2)} ` + // Curve down
                                               `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)} ` + // Vertical down to curve start
                                               `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)} ` + // Curve left
-                                              `L ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge, stop at edge with round cap
+                                              `L ${(nonAdiEntryX - maroonStrokeWidth / 2).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge, endpoint before edge to hide round cap inside
 
                   window.maroonHorizontalBranches[0].setAttribute('d', horizontalBranchPath);
                 }
@@ -4732,8 +4807,8 @@ function initializeDiagram() {
         if (window.hexagonPositions) {
           pexaConnectorEndX = window.hexagonPositions.pexaX;
         }
-        const pexaLineGap = 2.5;
-        const pexaOffsets = [-pexaLineGap, 0, pexaLineGap]; // Triple lines
+        const pexaLineGap = 3.0;
+        const pexaOffsets = [-pexaLineGap/2, pexaLineGap/2]; // Double lines (gap = 1.5 to match curved lines)
         window.pexaHorizontalLines = pexaOffsets.map((offset, idx) => {
           const line = createStyledLine(
             pexaConnectorStartX,
@@ -4742,7 +4817,7 @@ function initializeDiagram() {
             pexaConveyY + pexaConveyHeight / 2 + offset,
             {
               stroke: pexaLineColor,
-              strokeWidth: '1', // Thin lines
+              strokeWidth: '2.25', // Match curved double lines
               strokeLinecap: 'round'
             }
           );
@@ -4757,7 +4832,7 @@ function initializeDiagram() {
 
         // Trade by trade box - above SSS/CCP with double gap
         const tradeByTradePadding = 0; // No padding - align with other boxes
-        const tradeByTradeWidth = rectWidth; // Same width as other boxes
+        const tradeByTradeWidth = rectWidth * 0.93; // Slightly reduced width
         // Position aligned with CCP cashflows and DvP cash leg
         let alignedTradeByTradeX = window.asxBoxesAlignment ? 
           window.asxBoxesAlignment.center - (tradeByTradeWidth / 2) : 
@@ -4791,7 +4866,7 @@ function initializeDiagram() {
         // Clearing/netting box - above trade by trade
         // Make clearing box use more of the bounding box width
         const clearingPadding = 0; // No padding - align with other boxes
-        const clearingWidth = rectWidth; // Same width as other boxes
+        const clearingWidth = rectWidth * 0.93; // Slightly reduced width
         // Position aligned with CCP cashflows and DvP cash leg
         let alignedClearingX = window.asxBoxesAlignment ? 
           window.asxBoxesAlignment.center - (clearingWidth / 2) : 
@@ -4935,7 +5010,7 @@ function initializeDiagram() {
               }
             }
             const sympliYCenter = sympliY + sympliHeight / 2;
-            const offsets = [-2.5, 0, 2.5]; // Triple lines
+            const offsets = [-1.5, 1.5]; // Double lines (gap = 1.5 to match curved lines)
             window.sympliHorizontalLines.forEach((line, idx) => {
               if (!line) return;
               const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
@@ -5223,7 +5298,7 @@ function initializeDiagram() {
               if (!window.directEntryChild1) {
                 window.directEntryChild1 = {
                   rect: createStyledRect(newHeaderX, boxY, boxWidth, boxHeight, {
-                    fill: '#8b2020', // Match BECS box
+                    fill: '#C41E3A', // Vivid maroon (match BECS box)
                     stroke: '#ffe0e0',
                     strokeWidth: '2.5',
                     rx: '4',
@@ -5288,8 +5363,8 @@ function initializeDiagram() {
 
               // Create BPAY box with style matching eftpos
               const bpayBox = createStyledRect(bpayX, bpayY, bpayWidth, bpayHeight, {
-                fill: 'rgb(60,45,110)', // Dark purple (matching eftpos)
-                stroke: '#D8D0F0', // Light purple border (matching eftpos)
+                fill: 'rgb(80,58,130)', // Dark purple interior
+                stroke: 'rgb(158,138,239)', // Light purple border
                 strokeWidth: '2.5',
                 rx: '12',
                 ry: '12'
@@ -5467,7 +5542,7 @@ function initializeDiagram() {
               pexaEnd = window.hexagonPositions.pexaX;
             }
             const pexaYCenter = pexaConveyY + pexaConveyHeight / 2;
-            const offsets = [-2.5, 0, 2.5]; // Triple lines
+            const offsets = [-1.5, 1.5]; // Double lines (gap = 1.5 to match curved lines)
             window.pexaHorizontalLines.forEach((line, idx) => {
               if (!line) return;
               const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
@@ -5502,7 +5577,7 @@ function initializeDiagram() {
 
           // Start from center bottom of ASX bounding box
           const asxLineStartX = asxBoxX + (asxBoxWidth / 2); // Center of box
-          const asxLineStartY = asxBoxY + asxBoxHeight + 2; // Bottom edge + 2px gap
+          const asxLineStartY = asxBoxY + asxBoxHeight; // Bottom edge of box
 
           // Get SWIFT HVCS position from stored data
           const hvcsLineY_update = window.hvcsLineData.startY;
@@ -5534,7 +5609,7 @@ function initializeDiagram() {
             strokeLinecap: 'round',
             id: 'asx-to-hvcs-line'
           });
-          labelsGroup.insertBefore(asxToHvcsLineStyled, labelsGroup.firstChild);
+          blueLinesGroup.appendChild(asxToHvcsLineStyled);
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -5543,7 +5618,7 @@ function initializeDiagram() {
 
           // Start from center bottom of ASX bounding box (same as first line)
           const asxLine2StartX = asxBoxX + (asxBoxWidth / 2); // Center of box
-          const asxLine2StartY = asxBoxY + asxBoxHeight + 2; // Bottom edge + 2px gap
+          const asxLine2StartY = asxBoxY + asxBoxHeight; // Bottom edge of box
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
@@ -5560,7 +5635,7 @@ function initializeDiagram() {
             strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
             id: 'asx-to-adi-line'
           });
-          labelsGroup.insertBefore(asxToAdiLineStyled, labelsGroup.firstChild);
+          blueLinesGroup.appendChild(asxToAdiLineStyled);
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -5885,7 +5960,7 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            labelsGroup.insertBefore(line, eftposBox);
+            adminLinesGroup.appendChild(line);
           });
 
           // Yellow double lines from Mastercard to MCAU
@@ -5903,7 +5978,7 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            labelsGroup.insertBefore(line, mastercardBox);
+            adminLinesGroup.appendChild(line);
           });
         }
 
@@ -6250,20 +6325,40 @@ function initializeDiagram() {
           innerCircleY = arcCenterY + (arcRadiusY - innerOffset) * Math.sin(angle);
         }
 
-        const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
-          fill: '#FFFF00',
-          stroke: '#ffffff',
-          strokeWidth: '1'
-        });
-        circlesGroup.appendChild(orangeCircle);
-
         // Create orange line from orange dot to center of small orange circle
         const orangeLine = createStyledLine(cx, cySmall, innerCircleX, innerCircleY, {
           stroke: '#FFFF00',
           strokeWidth: '2.5',
           opacity: '1'
         });
-        orangeLinesGroup.appendChild(orangeLine);
+        // For RBA dot (i=0), insert before big-group so line renders over black circle but under FSS
+        if (i === 0) {
+          const bigGroup = document.getElementById('big-group');
+          if (bigGroup && bigGroup.parentNode) {
+            bigGroup.parentNode.insertBefore(orangeLine, bigGroup);
+          } else {
+            orangeLinesGroup.appendChild(orangeLine);
+          }
+        } else {
+          orangeLinesGroup.appendChild(orangeLine);
+        }
+
+        const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
+          fill: '#FFFF00',
+          stroke: '#ffffff',
+          strokeWidth: '1'
+        });
+        // For RBA dot (i=0), insert before big-group so dot renders over line but under FSS
+        if (i === 0) {
+          const bigGroup = document.getElementById('big-group');
+          if (bigGroup && bigGroup.parentNode) {
+            bigGroup.parentNode.insertBefore(orangeCircle, bigGroup);
+          } else {
+            circlesGroup.appendChild(orangeCircle);
+          }
+        } else {
+          circlesGroup.appendChild(orangeCircle);
+        }
       }
 
       // Dot positions are now stored outside the if block
@@ -6480,6 +6575,11 @@ function initializeDiagram() {
   if (window.dotPositions && window.dotPositions[50] && window.dotPositions[53]) {
       const squareSize = 60; // 50% larger (was 40)
       // Calculate position for BDF square (moved further right)
+      // Add RBA red border now that all positions are set
+      if (window.addRbaRedBorder) {
+        window.addRbaRedBorder();
+      }
+
       const bdfX = window.dotPositions[50].x + 60 + squareSize/2; // Moved further right
       const bdfY = (window.dotPositions[50].y + window.dotPositions[53].y) / 2 + 60; // Shifted down by 60px (was 55)
 
@@ -6554,18 +6654,19 @@ function initializeDiagram() {
         opaLabel.setAttribute('dominant-baseline', 'middle');
         labelsGroup.appendChild(opaLabel);
 
-        // Draw red horizontal line from OPA box to RBA dot (UNDER the black circle)
+        // Draw red horizontal line from OPA box to edge of RBA red circle
+        // RBA circle has radius stored in window.rbaCircleInfo
+        const rbaRadius = window.rbaCircleInfo ? window.rbaCircleInfo.radius : 0;
+        const redLineEndX = rbaX - rbaRadius; // Stop at left edge of circle
         const opaLine = createStyledLine(
           opaX + opaBoxSize/2, opaY,
-          rbaX, rbaY,
+          redLineEndX, rbaY,
           {
             stroke: '#ff0000',
             strokeWidth: '2'
           }
         );
-        // Insert BEFORE the circles group so it renders UNDER the black RBA circle
-        const circlesGroup = document.getElementById('arc-circles');
-        svg.insertBefore(opaLine, circlesGroup);
+        labelsGroup.appendChild(opaLine);
       }
 
       // Add kinked lines from dots 50-53 to the square
@@ -6677,8 +6778,8 @@ function initializeDiagram() {
       return;
     }
 
-    const endX = cx - (rBig * dx) / distance;
-    const endY = cyBig - (rBig * dy) / distance;
+    const endX = cx - ((rBig - 20) * dx) / distance; // Extend 20px into circle
+    const endY = cyBig - ((rBig - 20) * dy) / distance;
 
     const horizontalDelta = endX - startX;
     const verticalDelta = endY - startY;
@@ -6699,7 +6800,7 @@ function initializeDiagram() {
           return;
         }
         const horizontalReach = Math.sqrt(spanSquared);
-        const lineEndX = Math.max(startX, cx + horizontalReach);
+        const lineEndX = Math.max(startX, cx + horizontalReach - 20); // Stop 20px before edge (inside circle)
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', startX.toFixed(2));
@@ -6861,10 +6962,10 @@ function initializeDiagram() {
       esaRect.setAttribute('y', rectY);
       esaRect.setAttribute('width', (maxX - minX) + leftPadding + rightPadding + dotRadius * 2);
       esaRect.setAttribute('height', (maxY - minY) + topPadding + bottomPadding + dotRadius * 2);
-      esaRect.setAttribute('fill', '#4b5563'); // Darker grey fill
+      esaRect.setAttribute('fill', '#2D3748'); // Much darker grey fill
       esaRect.setAttribute('fill-opacity', '1'); // Fully opaque
-      esaRect.setAttribute('stroke', '#e5e7eb'); // Light grey border
-      esaRect.setAttribute('stroke-width', '1'); // Thinner border
+      esaRect.setAttribute('stroke', '#A0AEC0'); // More prominent grey border
+      esaRect.setAttribute('stroke-width', '2'); // Thicker border
       // Square edges - no rx attribute
 
       // Add ESAs label to top right corner of grey rectangle
@@ -7192,7 +7293,7 @@ function initializeDiagram() {
 
       // Layer 1: Darkest red background circle
       const redCircleOuter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      const redCircleRadius = 37 * 1.2 * 0.9; // Reduced by 10% from the increased size
+      const redCircleRadius = 37 * 1.2 * 0.9 * 0.9; // Reduced by 10% again (total 19% smaller)
       // Position above Administered Batches box
       const mastercardY_ref = window.hexagonPositions ? window.hexagonPositions.mastercardY || 320 : 320;
       // Position at same level as APCS box
@@ -7238,7 +7339,7 @@ function initializeDiagram() {
       path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
       const gearBorder = createStyledPath(path, {
-        fill: '#E9967A' // Dark salmon (matching current LVSS lines color)
+        fill: '#6B7280' // Darker steel color
       });
       gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
       gearBorder.setAttribute('fill-rule', 'evenodd');
@@ -7246,8 +7347,8 @@ function initializeDiagram() {
 
       // Layer 3: Inner circle
       const redCircleInner = createStyledCircle(redCircleX, redCircleY, innerRadius, {
-        fill: '#5C0F1A', // Dark burgundy
-        stroke: '#E9967A', // Dark salmon (matching current LVSS lines color)
+        fill: '#6B1F2A', // Darker burgundy interior
+        stroke: '#6B7280', // Darker steel (matching gearwheel)
         strokeWidth: '3'
       });
       lvssGroup.appendChild(redCircleInner);
@@ -7261,7 +7362,7 @@ function initializeDiagram() {
         'LVSS',
         {
           fill: '#ffffff', // White text for contrast
-          fontSize: '16' // Smaller for smaller circle
+          fontSize: '14' // Smaller text
         }
       );
       labelsGroup.appendChild(lvssText);
@@ -7419,7 +7520,7 @@ function initializeDiagram() {
 
           // Create double line effect like eftpos/pexa
           const lineGap = 3; // Gap between the two lines
-          const greyColor = '#fae5dc'; // Very light salmon, almost white with tint
+          const greyColor = '#C0C0C0'; // Silver color
 
           // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
@@ -7488,7 +7589,7 @@ function initializeDiagram() {
           (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
           (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
           {
-            fill: '#1e1b4b', // Much darker indigo
+            fill: '#080520', // Even darker indigo
             stroke: 'rgba(140, 165, 220, 1)', // Swapped: light blue border
             strokeWidth: '1',
             rx: '8' // Slightly less rounded corners
@@ -7533,7 +7634,7 @@ function initializeDiagram() {
          'ADIs',
          {
            textAnchor: 'end',
-           fill: 'rgba(140, 165, 220, 1)', // Same as border color
+           fill: '#ffffff', // White (matching Non-ADIs label)
            fontSize: '24' // Slightly bigger
          }
        );
@@ -7573,13 +7674,13 @@ function initializeDiagram() {
           (maxX3 - minX3) + yellowLeftPadding + yellowRightPadding + dotRadius * 2,
           (maxY3 - minY3) + yellowTopPadding + yellowBottomPadding + dotRadius * 2,
           {
-            fill: '#334155', // Lighter blue-grey
+            fill: '#415366', // Slightly lighter blue-grey
             stroke: '#dde6ff', // Light blue (swapped with fill)
             strokeWidth: '0.5', // Very thin border
             rx: '6' // Smaller rounded corners
           }
         );
-        yellowRect.setAttribute('fill-opacity', '0.3'); // Increased opacity
+        yellowRect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
 
         // Insert after the inner rectangle so it appears on top
         svg.insertBefore(yellowRect, blueLinesGroup);
@@ -7642,13 +7743,13 @@ function initializeDiagram() {
           (maxX4 - minX4) + greenLeftPadding + greenRightPadding + dotRadius * 2,
           (maxY4 - minY4) + greenTopPadding + greenBottomPadding + dotRadius * 2,
           {
-            fill: '#3b0764', // Much darker purple
+            fill: '#4B1078', // Slightly lighter purple
             stroke: '#e4d4f4', // Light Excel purple (swapped with fill)
             strokeWidth: '0.5', // Very thin border
             rx: '5' // Smaller rounded corners
           }
         );
-        greenRect.setAttribute('fill-opacity', '0.3'); // Increased opacity
+        greenRect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
 
         // Insert after the yellow rectangle so it appears on top
         svg.insertBefore(greenRect, blueLinesGroup);
@@ -7699,13 +7800,13 @@ function initializeDiagram() {
           (maxX5 - minX5) + group2LeftPadding + group2RightPadding + dotRadius * 2,
           (maxY5 - minY5) + group2TopPadding + group2BottomPadding + dotRadius * 2,
           {
-            fill: '#155e75', // Much darker aqua/cyan
+            fill: '#1E7088', // Slightly lighter aqua/cyan
             stroke: '#7DF9FF', // Electric cyan
             strokeWidth: '0.5',
             rx: '4' // Small rounded corners
           }
         );
-        group2Rect.setAttribute('fill-opacity', '0.3'); // Increased opacity
+        group2Rect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group2Rect, blueLinesGroup);
@@ -7757,13 +7858,13 @@ function initializeDiagram() {
           (maxX6 - minX6) + group3LeftPadding + group3RightPadding + dotRadius * 2,
           (maxY6 - minY6) + group3TopPadding + group3BottomPadding + dotRadius * 2,
           {
-            fill: '#155e75', // Much darker aqua/cyan
+            fill: '#1E7088', // Slightly lighter aqua/cyan
             stroke: '#7DF9FF', // Electric cyan
             strokeWidth: '0.5',
             rx: '4' // Small rounded corners
           }
         );
-        group3Rect.setAttribute('fill-opacity', '0.3'); // Increased opacity
+        group3Rect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group3Rect, blueLinesGroup);
@@ -8329,9 +8430,9 @@ function initializeDiagram() {
 
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
-        const greenBorderLeftPadding = -25 + 2; // Slight left adjustment + 2px left padding
+        const greenBorderLeftPadding = -25 + 2 - 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin
         const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
-        const greenBorderBottomPadding = 10 + 2 - 2 + 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra
+        const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -8533,8 +8634,8 @@ const newBoundingBox = createStyledRect(
   hvcsBoxWidth,
   newBoundingBoxHeight + 5,
   {
-    fill: 'rgb(60,45,110)', // Dark purple (matching BPAY)
-    stroke: '#D8D0F0', // Light purple border (matching BPAY)
+    fill: 'rgb(80,58,130)', // Dark purple interior
+    stroke: 'rgb(158,138,239)', // Light purple border
     strokeWidth: '2.5',
     rx: '12', // Rounded corners (matching BPAY)
     ry: '12' // Rounded corners (matching BPAY)
@@ -8629,7 +8730,7 @@ labelsGroup.appendChild(newPacsText);
 
 // PayTo box (bottom) - light purple style
 const purpleBoxStyle = {
-  fill: 'rgb(180,160,220)', // Light purple
+  fill: 'rgb(158,138,239)', // Light purple (matching borders)
   stroke: '#ffffff', // Very thin white border
   strokeWidth: '0.5',
   rx: '12',
@@ -8766,8 +8867,8 @@ const oskoWidth = hvcsBoxWidth; // Same width as NPP BI (SWIFT) bounding box
 const oskoX = newBoundingBoxX; // Same X as NPP BI (SWIFT) bounding box
 
 const oskoBox = createStyledRect(oskoX, oskoY, oskoWidth, oskoHeight, {
-  fill: 'rgb(60,45,110)', // Dark purple (matching BPAY)
-  stroke: '#D8D0F0', // Light purple border (matching BPAY)
+  fill: 'rgb(80,58,130)', // Dark purple interior
+  stroke: 'rgb(158,138,239)', // Light purple border
   strokeWidth: '2.5',
   rx: '12', // Same rounded corners as PayID/PayTo boxes inside NPP
   ry: '12'
@@ -9167,7 +9268,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         'ADIs',
         {
           textAnchor: 'end',
-          fill: '#2563eb', // Blue color
+          fill: '#ffffff', // White (matching Non-ADIs label)
           fontSize: '24' // Slightly bigger
         }
       );

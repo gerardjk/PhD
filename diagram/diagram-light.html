@@ -2,23 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>RITS Diagram (Dark Mode)</title>
+  <title>RITS Diagram (Refactored)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { margin: 0; background:#000000; display:grid; place-items:center; height:100vh; }
+    body { margin: 0; background:#ffffff; display:grid; place-items:center; height:100vh; }
   </style>
 </head>
 <body>
   <!-- SVG canvas: 700×1000 to accommodate extended arc -->
-  <svg id="diagram" width="1320" height="990" viewBox="-570 -75 1500 1100" aria-label="circles with enclosing arc">
+  <svg id="diagram" width="1500" height="1100" viewBox="-650 -150 1500 1100" aria-label="circles with enclosing arc">
     <defs>
       <!-- Colors -->
       <style>
         .big-fill { fill: #3b82f6; }       /* blue fill */
         .big-stroke { stroke: #1e3a8a; }   /* dark blue stroke */
-        .small-fill { fill: #F5FF00; }     /* orange/yellow fill */
+        .small-fill { fill: #f59e0b; }     /* orange/yellow fill */
         .small-stroke { stroke: #9a3412; } /* dark orange stroke */
-        .arc-stroke { stroke: #e5e7eb; }   /* light grey arc for dark mode */
+        .arc-stroke { stroke: #111827; }   /* very dark grey arc */
       </style>
       <!-- Gradient for figure-8 effect -->
       <radialGradient id="darkEdgeGradient">
@@ -60,25 +60,24 @@
     <g id="big-group">
       <!-- Layer 1: Lightest blue background circle -->
       <circle id="big-outer"
-              fill="#04d9ff"
-              fill-opacity="0.5"
+              fill="#60a5fa"
               cx="300" cy="450" r="113"></circle>
       <!-- Layer 2: Medium blue gear shape border -->
       <path id="big-gear-border"
-            fill="#03a8cc"
-            stroke="#ffffff"
+            fill="#3b82f6"
+            stroke="#1e3a8a"
             stroke-width="1"
             d=""
             transform="translate(300, 450)"></path>
       <!-- Layer 3: Next darkest blue circle fill -->
       <circle id="big-inner"
-              fill="#027799"
-              stroke="#015166"
+              fill="#2563eb"
+              stroke="#1e3a8a"
               stroke-width="1"
               cx="300" cy="450" r="97"></circle>
       <!-- Layer 4: Darkest blue interior gear pattern -->
       <path id="big-gear"
-            fill="#013B4A"
+            fill="#1e3a8a"
             stroke="#ffffff"
             stroke-width="0.5"
             d=""
@@ -99,25 +98,24 @@
     <!-- Smaller orange/yellow circle above the big one with double border -->
     <!-- y = cy_big - (r_big + gap) + r_small, so they don't overlap -->
     <g id="small-group">
-      <!-- Layer 1: Light orangey-yellow background circle -->
+      <!-- Layer 1: Lightest orange background circle -->
       <circle id="small-outer"
-              fill="#FFE680"
-              fill-opacity="0.5"
+              fill="#fbbf24"
               cx="300" cy="222" r="48"></circle>
-      <!-- Layer 2: Neon yellow gear shape border -->
+      <!-- Layer 2: Medium orange gear shape border -->
       <path id="small-gear-border"
             fill="#FFFF00"
-            stroke="#ffffff"
+            stroke="#9a3412"
             stroke-width="1"
             d=""
             transform="translate(300, 222)"></path>
-      <!-- Layer 3: More orange circle fill -->
+      <!-- Layer 3: Next darkest orange circle fill -->
       <circle id="small-inner"
               fill="#F4A842"
-              stroke="#D35400"
+              stroke="#9a3412"
               stroke-width="1"
               cx="300" cy="222" r="40"></circle>
-      <!-- Layer 4: Much darker orange interior gear pattern -->
+      <!-- Layer 4: Darkest orange interior gear pattern -->
       <path id="small-gear"
             fill="#6B1F0E"
             stroke="#ffffff"
