@@ -90,108 +90,8 @@ function initializeDiagram() {
     }
 
 
-    // Position circles (exactly):
-    // Blue circle - update all layers
-    const bigOuter = document.getElementById('big-outer');
-    const bigGearBorder = document.getElementById('big-gear-border');
-    const bigInner = document.getElementById('big-inner');
-
-    bigOuter.setAttribute('cx', cx);
-    bigOuter.setAttribute('cy', cyBig);
-    bigOuter.setAttribute('r', rBig + strokeW/2); // Slightly larger to ensure background coverage
-
-    bigInner.setAttribute('cx', cx);
-    bigInner.setAttribute('cy', cyBig);
-    bigInner.setAttribute('r', rBig - strokeW * 2.5); // Inner circle radius
-
-    // Orange circle - update all layers
-    const smallOuter = document.getElementById('small-outer');
-    const smallGearBorder = document.getElementById('small-gear-border');
-    const smallInner = document.getElementById('small-inner');
-
-    // For outer edges to touch, we need to account for stroke width
-    // Distance between centers = r1 + r2 + strokeWidth (since stroke extends outward from the edge)
-    const cySmall = cyBig - (rBig + rSmall + strokeW);
-
-    smallOuter.setAttribute('cx', cx);
-    smallOuter.setAttribute('cy', cySmall);
-    smallOuter.setAttribute('r', rSmall + strokeW/2); // Slightly larger for background
-
-    smallInner.setAttribute('cx', cx);
-    smallInner.setAttribute('cy', cySmall);
-    smallInner.setAttribute('r', rSmall - strokeW * 2); // Inner circle radius - made smaller for thicker gear border
-
-    // Update the orange circle label position
-    const smallLabel = document.getElementById('small-label');
-    if (smallLabel) {
-      smallLabel.setAttribute('x', cx);
-      smallLabel.setAttribute('y', cySmall);
-    }
-
-    // Update the blue circle label position
-    const bigLabel = document.getElementById('big-label');
-    if (bigLabel) {
-      bigLabel.setAttribute('x', cx);
-      bigLabel.setAttribute('y', cyBig);
-      // Update all tspan elements
-      const tspans = bigLabel.getElementsByTagName('tspan');
-      for (let tspan of tspans) {
-        tspan.setAttribute('x', cx);
-      }
-    }
-
-
-    // Update gear paths
-    // Create gear-shaped border (layer 2)
-    if (bigGearBorder) {
-      const outerRadius = rBig - strokeW * 0.75;
-      const innerRadius = rBig - strokeW * 2.5;
-      const teeth = 20;
-      const toothHeight = 6;
-
-      // Create gear shape that fills between outer circle and inner circle
-      let path = createGearPath(outerRadius - toothHeight, teeth, toothHeight, 0.25);
-      // Add inner cutout
-      path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
-
-      bigGearBorder.setAttribute('d', path);
-      bigGearBorder.setAttribute('transform', `translate(${cx}, ${cyBig})`);
-      bigGearBorder.setAttribute('fill-rule', 'evenodd');
-    }
-
-    const bigGear = document.getElementById('big-gear');
-    if (bigGear) {
-      const bigInnerRadius = rBig - strokeW * 2.5;
-      const bigGearRadius = bigInnerRadius - 12; // Leave 12px border (was 15)
-      const bigToothHeight = 8;
-      bigGear.setAttribute('d', createGearPath(bigGearRadius - bigToothHeight, 16, bigToothHeight, 0.25));
-      bigGear.setAttribute('transform', `translate(${cx}, ${cyBig})`);
-    }
-
-    // Create gear-shaped border for orange circle (layer 2)
-    if (smallGearBorder) {
-      const outerRadius = rSmall - strokeW * 0.3;
-      const innerRadius = rSmall - strokeW * 2;
-      const teeth = 12;
-      const toothHeight = 4;
-
-      // Create gear shape that fills between outer circle and inner circle
-      let path = createGearPath(outerRadius - toothHeight, teeth, toothHeight, 0.25);
-      // Add inner cutout
-      path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
-
-      smallGearBorder.setAttribute('d', path);
-      smallGearBorder.setAttribute('transform', `translate(${cx}, ${cySmall})`);
-      smallGearBorder.setAttribute('fill-rule', 'evenodd');
-    }
-
-    const smallGear = document.getElementById('small-gear');
-    if (smallGear) {
-      const smallGearRadius = (rSmall - strokeW * 2) - 8; // Leave 8px border
-      const smallToothHeight = 4;
-      smallGear.setAttribute('d', createGearPath(smallGearRadius - smallToothHeight, 10, smallToothHeight, 0.25));
-      smallGear.setAttribute('transform', `translate(${cx}, ${cySmall})`);
-    }
+    // Position circles and create gear borders - REFACTORED to diagram-circles.js
+    const {cySmall} = initializeMainCircles({cx, cyBig, rBig, rSmall, strokeW});
 
     // Build the arc so it starts above the small circle and ends below the big circle.
     // The arc should curve around the RIGHT side of the circles.
@@ -486,6 +386,11 @@ function initializeDiagram() {
         } else {
           circlesGroup.appendChild(blackCircle);
         }
+
+        // Make RBA black circle interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(blackCircle, 'dot-0');
+        }
       }
 
       // Group 1: 1 dot (index 0)
@@ -661,6 +566,10 @@ function initializeDiagram() {
           } else {
             blueLinesGroup.appendChild(line);
           }
+          // Make RBA blue line interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(line, 'rba-blue-line');
+          }
         } else {
           blueLinesGroup.appendChild(line);
         }
@@ -710,6 +619,10 @@ function initializeDiagram() {
             bigGroup.parentNode.insertBefore(circle, bigGroup);
           } else {
             circlesGroup.appendChild(circle);
+          }
+          // Make RBA blue dot interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(circle, 'rba-blue-dot');
           }
         } else {
           circlesGroup.appendChild(circle);
@@ -769,12 +682,17 @@ function initializeDiagram() {
           actualCircleX + blackCircleRadius + 5, actualCircleY, 'RBA',
           {
             textAnchor: 'start',
-            fill: '#ffffff', // White
+            fill: '#ff0000', // Red
             fontSize: '16',
             fontWeight: 'bold'
           }
         );
         labelsGroup.appendChild(text);
+
+        // Make RBA label interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(text, 'dot-0');
+        }
 
         // Add SWIFT PDS rectangle
 
@@ -1740,7 +1658,7 @@ function initializeDiagram() {
           gabsY + boxHeight / 2,
           'APCS',
           {
-            fill: '#e5e7eb', // Light grey text (swapped)
+            fill: '#ffffff', // White text
             fontSize: '12'
           }
         );
@@ -2916,7 +2834,7 @@ function initializeDiagram() {
             }
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
-              stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,230,230)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, light pink for Mastercard, thin white for narrow boxes
+              stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,180,178)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, lighter red for Mastercard, thin white for narrow boxes
               strokeWidth: (label === 'eftpos' || label === 'Mastercard') ? '2.5' : (isNarrowBox ? '0.5' : '0'), // Thicker border for eftpos and Mastercard
               rx: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8', // More rounded corners for eftpos and Mastercard to match BPAY
               ry: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8'
@@ -3894,7 +3812,7 @@ function initializeDiagram() {
               adminLinesGroup.appendChild(eftposUpturnPath);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
-                stroke: 'rgb(216,46,43)', // Mastercard red border color
+                stroke: 'rgb(255,180,178)', // Mastercard border color (lighter red)
                 strokeWidth: '2',
                 fill: 'none',
                 strokeLinecap: 'round',
@@ -3964,7 +3882,7 @@ function initializeDiagram() {
 
               const mastercardHorizontalPath = createHorizontalBranch(
                 mastercardSegments,
-                'rgb(216,46,43)',
+                'rgb(255,180,178)', // Mastercard border color (lighter red)
                 'mastercard-left-line'
               );
 
@@ -5305,7 +5223,7 @@ function initializeDiagram() {
                     ry: '4'
                   }),
                   text: createStyledText(newHeaderX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
-                    { fill: '#ffffff', fontSize: '12' }),
+                    { fill: '#ffffff', fontSize: '12', dominantBaseline: 'middle' }),
                   x: newHeaderX,
                   y: boxY,
                   width: boxWidth,
@@ -5338,7 +5256,7 @@ function initializeDiagram() {
                     ry: '4'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
-                    { fill: '#FFFFFF', fontSize: '12' }),  // White text (from GABS)
+                    { fill: '#FFFFFF', fontSize: '12', dominantBaseline: 'middle' }),  // White text (from GABS)
                   x: box2X,
                   y: boxY,
                   width: boxWidth,
@@ -6339,6 +6257,10 @@ function initializeDiagram() {
           } else {
             orangeLinesGroup.appendChild(orangeLine);
           }
+          // Make RBA yellow line interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(orangeLine, 'rba-yellow-line');
+          }
         } else {
           orangeLinesGroup.appendChild(orangeLine);
         }
@@ -6355,6 +6277,10 @@ function initializeDiagram() {
             bigGroup.parentNode.insertBefore(orangeCircle, bigGroup);
           } else {
             circlesGroup.appendChild(orangeCircle);
+          }
+          // Make RBA yellow dot interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(orangeCircle, 'rba-yellow-dot');
           }
         } else {
           circlesGroup.appendChild(orangeCircle);
@@ -6469,15 +6395,15 @@ function initializeDiagram() {
         } else if (i === 96) {
           // ASX Settlement - level with its dot
           labelX = actualCircleX + 35; // Align horizontally
-          labelY = actualCircleY - 1; // Same Y as dot, raised by 1 pixel
+          labelY = actualCircleY - 2; // Same Y as dot, raised by 2 pixels
         } else if (i === 97) {
           // ASX Clearing - one line below ASX Settlement
           labelX = actualCircleX + 35; // Same X position
-          labelY = window.dotPositions[96] ? window.dotPositions[96].y + 10 - 1 : actualCircleY + 10 - 1; // Raised by 1 pixel
+          labelY = window.dotPositions[96] ? window.dotPositions[96].y + 10 - 2 : actualCircleY + 10 - 2; // Raised by 2 pixels
         } else if (i === 98) {
           // LCH Limited - one line below ASX Clearing
           labelX = actualCircleX + 35; // Same X position
-          labelY = window.dotPositions[96] ? window.dotPositions[96].y + 20 - 1 : actualCircleY + 20 - 1; // Raised by 1 pixel
+          labelY = window.dotPositions[96] ? window.dotPositions[96].y + 20 - 2 : actualCircleY + 20 - 2; // Raised by 2 pixels
         }
 
         // Add pointer line from edge of dot
@@ -6639,6 +6565,11 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(opaSquare);
 
+        // Make OPA box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(opaSquare, 'opa-box');
+        }
+
         // Add OPA label
         const opaLabel = createStyledText(
           opaX,
@@ -6654,6 +6585,11 @@ function initializeDiagram() {
         opaLabel.setAttribute('dominant-baseline', 'middle');
         labelsGroup.appendChild(opaLabel);
 
+        // Make OPA label interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(opaLabel, 'opa-label');
+        }
+
         // Draw red horizontal line from OPA box to edge of RBA red circle
         // RBA circle has radius stored in window.rbaCircleInfo
         const rbaRadius = window.rbaCircleInfo ? window.rbaCircleInfo.radius : 0;
@@ -6667,6 +6603,11 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(opaLine);
+
+        // Make OPA line interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(opaLine, 'opa-to-rba-line');
+        }
       }
 
       // Add kinked lines from dots 50-53 to the square
@@ -7288,91 +7229,8 @@ function initializeDiagram() {
       const mastercardRightEdgeForLVSS = window.hexagonPositions.mastercardX + window.hexagonPositions.mastercardWidth;
       const redCircleX = mastercardRightEdgeForLVSS + 50 + 37 * 1.2; // Position 50px to the right of the moved boxes, plus half the circle width (radius increased by 20%)
 
-      // Create LVSS group for layered gear effect
-      const lvssGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-      // Layer 1: Darkest red background circle
-      const redCircleOuter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      const redCircleRadius = 37 * 1.2 * 0.9 * 0.9; // Reduced by 10% again (total 19% smaller)
-      // Position above Administered Batches box
-      const mastercardY_ref = window.hexagonPositions ? window.hexagonPositions.mastercardY || 320 : 320;
-      // Position at same level as APCS box
-      const verticalGap_ref = 5; // Same as defined earlier
-      const hexHeight_ref = window.hexagonPositions ? window.hexagonPositions.hexHeight || 20 : 20;
-      const apcsY_ref = mastercardY_ref - (verticalGap_ref * 2) - hexHeight_ref - 20;
-      // Calculate LVSS Y to make IAC line horizontal
-      // CECS Y position will be cecsY + boxHeight / 2
-      // We need to match this Y position
-      let redCircleY;
-      if (window.needsLvssUpdate && window.needsLvssUpdate.y) {
-        // Use the updated position that was calculated when boxes were positioned
-        redCircleY = window.needsLvssUpdate.y + 5;
-        console.log('LVSS using needsLvssUpdate Y:', redCircleY);
-      } else if (window.lvssBoxPositions && window.lvssBoxPositions.cecsY) {
-        // CECS has height of boxHeight, so center is at cecsY + (boxHeight / 2)
-        redCircleY = window.lvssBoxPositions.cecsY + (window.lvssBoxPositions.boxHeight / 2) + 5;
-        console.log('LVSS using lvssBoxPositions Y:', redCircleY);
-      } else {
-        // Fallback
-        redCircleY = apcsY_ref + hexHeight_ref / 2 + 5;
-        console.log('LVSS using fallback Y:', redCircleY);
-      }
-
-
-      // Remove the outer circle - comment it out to show gear shape better
-      // redCircleOuter.setAttribute('cx', redCircleX);
-      // redCircleOuter.setAttribute('cy', redCircleY);
-      // redCircleOuter.setAttribute('r', redCircleRadius);
-      // redCircleOuter.setAttribute('fill', '#7f1d1d'); // Dark red
-      // lvssGroup.appendChild(redCircleOuter);
-
-      // Layer 2: Gear border (using the same createGearPath function as FSS)
-      const strokeW = 3;
-      const outerRadius = redCircleRadius - strokeW * 0.5;
-      const innerRadius = redCircleRadius - strokeW * 2;
-      const teeth = 12;
-      const toothHeight = 3;
-
-      // Create gear shape that fills between outer circle and inner circle
-      let path = createGearPath(outerRadius - toothHeight, teeth, toothHeight, 0.25);
-      // Add inner cutout
-      path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
-
-      const gearBorder = createStyledPath(path, {
-        fill: '#6B7280' // Darker steel color
-      });
-      gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
-      gearBorder.setAttribute('fill-rule', 'evenodd');
-      lvssGroup.appendChild(gearBorder);
-
-      // Layer 3: Inner circle
-      const redCircleInner = createStyledCircle(redCircleX, redCircleY, innerRadius, {
-        fill: '#6B1F2A', // Darker burgundy interior
-        stroke: '#6B7280', // Darker steel (matching gearwheel)
-        strokeWidth: '3'
-      });
-      lvssGroup.appendChild(redCircleInner);
-
-      labelsGroup.appendChild(lvssGroup);
-
-      // Add LVSS label to red circle
-      const lvssText = createStyledText(
-        redCircleX,
-        redCircleY,
-        'LVSS',
-        {
-          fill: '#ffffff', // White text for contrast
-          fontSize: '14' // Smaller text
-        }
-      );
-      labelsGroup.appendChild(lvssText);
-
-      // Store LVSS position for connecting lines
-      window.lvssPosition = {
-        x: redCircleX,
-        y: redCircleY,
-        radius: redCircleRadius
-      };
+      // Create LVSS circle - REFACTORED to diagram-circles.js
+      createLvssCircle({redCircleX}, labelsGroup);
 
       // Now draw magenta-rose lines from boxes to LVSS
       if (window.lvssBoxPositions) {
@@ -7743,7 +7601,7 @@ function initializeDiagram() {
           (maxX4 - minX4) + greenLeftPadding + greenRightPadding + dotRadius * 2,
           (maxY4 - minY4) + greenTopPadding + greenBottomPadding + dotRadius * 2,
           {
-            fill: '#4B1078', // Slightly lighter purple
+            fill: '#8B4DB8', // Even lighter purple
             stroke: '#e4d4f4', // Light Excel purple (swapped with fill)
             strokeWidth: '0.5', // Very thin border
             rx: '5' // Smaller rounded corners
@@ -7922,7 +7780,7 @@ function initializeDiagram() {
             rx: '4' // Small rounded corners
           }
         );
-        group5aRect.setAttribute('fill-opacity', '0.9'); // Almost opaque
+        group5aRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group5aRect, blueLinesGroup);
@@ -7979,7 +7837,7 @@ function initializeDiagram() {
             rx: '4' // Small rounded corners
           }
         );
-        group5bRect.setAttribute('fill-opacity', '0.9'); // Almost opaque
+        group5bRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
 
         // Insert on top of other rectangles
         svg.insertBefore(group5bRect, blueLinesGroup);
@@ -8391,7 +8249,7 @@ function initializeDiagram() {
             rx: '3' // Small rounded corners
           }
         );
-        redBorderRect.setAttribute('fill-opacity', '0.8'); // Made more opaque
+        redBorderRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
 
         // Insert on top of nonAdiRect
         svg.insertBefore(redBorderRect, blueLinesGroup);
@@ -8430,9 +8288,9 @@ function initializeDiagram() {
 
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
-        const greenBorderLeftPadding = -25 + 2 - 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin
+        const greenBorderLeftPadding = -25 + 2 - 1 - 3 + 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin - 3px additional trim + 1px increase
         const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
-        const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin
+        const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1 - 3; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin - 3px additional trim
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -8452,7 +8310,7 @@ function initializeDiagram() {
             rx: '3' // Small rounded corners
           }
         );
-        greenBorderRect.setAttribute('fill-opacity', '0.8'); // Made more opaque
+        greenBorderRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
 
         // Insert on top of nonAdiRect
         svg.insertBefore(greenBorderRect, blueLinesGroup);
