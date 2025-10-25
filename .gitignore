@@ -1,0 +1,85 @@
+# ------------------------------
+# OS junk
+# ------------------------------
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# ------------------------------
+# Node / JS / TS
+# ------------------------------
+node_modules/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.cache/
+.parcel-cache/
+.turbo/
+coverage/
+.nyc_output/
+
+# Builds & output
+dist/
+build/
+.out/
+.next/
+out/
+.storybook-out/
+
+# Env files (keep example)
+.env
+.env.*
+!.env.example
+
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Packages
+*.egg-info/
+.eggs/
+
+# ------------------------------
+# Solidity / Hardhat / TypeChain
+# ------------------------------
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# ------------------------------
+# IDE / Editor
+# ------------------------------
+.vscode/
+.idea/
+*.iml
+
+# ------------------------------
+# Git merge/backups
+# ------------------------------
+*.orig
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*

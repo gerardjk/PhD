@@ -1,0 +1,123 @@
+eip,title,status,created,finalized,path,history_note
+1046,tokenURI Interoperability,Final,2018-04-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1046.md,only one commit available
+1155,Multi Token Standard,Final,2018-06-17,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1155.md,only one commit available
+1167,Minimal Proxy Contract,Final,2018-06-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1167.md,only one commit available
+1271,Standard Signature Validation Method for Contracts,Final,2018-07-25,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1271.md,only one commit available
+1328,WalletConnect URI Format,Final,2018-08-15,,/Users/mac/PhD/sim/ERCs/ERCS/erc-1328.md,only one commit available
+1363,Payable Token,Final,2018-08-30,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1363.md,only one commit available
+137,Ethereum Domain Name Service - Specification,Final,2016-04-04,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-137.md,only one commit available
+162,Initial ENS Hash Registrar,Final,2016-10-25,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-162.md,only one commit available
+165,Standard Interface Detection,Final,2018-01-23,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-165.md,only one commit available
+173,Contract Ownership Standard,Final,2018-06-07,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-173.md,only one commit available
+181,ENS support for reverse resolution of Ethereum addresses,Final,2016-12-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-181.md,only one commit available
+1820,Pseudo-introspection Registry Contract,Final,2019-03-04,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1820.md,only one commit available
+190,Ethereum Smart Contract Packaging Standard,Final,2017-01-10,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-190.md,only one commit available
+191,Signed Data Standard,Final,2016-01-20,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-191.md,only one commit available
+1967,Proxy Storage Slots,Final,2019-04-24,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-1967.md,only one commit available
+20,Token Standard,Final,2015-11-19,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-20.md,only one commit available
+2098,Compact Signature Representation,Final,2019-03-14,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2098.md,only one commit available
+2135,Consumable Interface (Tickets  etc),Final,2019-06-23,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2135.md,only one commit available
+223,Token with transaction handling model,Final,2017-05-03,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-223.md,only one commit available
+2309,ERC-721 Consecutive Transfer Extension,Final,2019-10-08,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2309.md,only one commit available
+2535,Diamonds  Multi-Facet Proxy,Final,2020-02-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2535.md,only one commit available
+2612,Permit Extension for EIP-20 Signed Approvals,Final,2020-04-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2612.md,only one commit available
+2678,Revised Ethereum Smart Contract Packaging Standard (EthPM v3),Final,2020-05-26,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2678.md,only one commit available
+2771,Secure Protocol for Native Meta Transactions,Final,2020-07-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2771.md,only one commit available
+2981,NFT Royalty Standard,Final,2020-09-15,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-2981.md,only one commit available
+3156,Flash Loans,Final,2020-11-15,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-3156.md,only one commit available
+3448,MetaProxy Standard,Final,2021-03-29,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-3448.md,only one commit available
+3475,Abstract Storage Bonds,Final,2021-04-05,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-3475.md,only one commit available
+3525,Semi-Fungible Token,Final,2020-12-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-3525.md,only one commit available
+3643,T-REX - Token for Regulated EXchanges,Final,2021-07-09,,/Users/mac/PhD/sim/ERCs/ERCS/erc-3643.md,only one commit available
+3668,CCIP Read—Secure offchain data retrieval,Final,2020-07-19,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-3668.md,only one commit available
+4361,Sign-In with Ethereum,Final,2021-10-11,,/Users/mac/PhD/sim/ERCs/ERCS/erc-4361.md,only one commit available
+4400,EIP-721 Consumable Extension,Final,2021-10-30,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4400.md,only one commit available
+4519,Non-Fungible Tokens Tied to Physical Assets,Final,2021-12-03,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4519.md,only one commit available
+4626,Tokenized Vaults,Final,2021-12-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4626.md,only one commit available
+4804,Web3 URL to EVM Call Message Translation,Final,2022-02-14,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4804.md,only one commit available
+4834,Hierarchical Domains,Final,2022-02-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4834.md,only one commit available
+4906,EIP-721 Metadata Update Extension,Final,2022-03-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4906.md,only one commit available
+4907,Rental NFT  an Extension of EIP-721,Final,2022-03-11,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4907.md,only one commit available
+4910,Royalty Bearing NFTs,Final,2022-03-14,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4910.md,only one commit available
+4955,Vendor Metadata Extension for NFTs,Final,2022-03-29,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-4955.md,only one commit available
+5006,Rental NFT  NFT User Extension,Final,2022-04-12,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5006.md,only one commit available
+5007,Time NFT  ERC-721 Time Extension,Final,2022-04-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5007.md,only one commit available
+5023,Shareable Non-Fungible Token,Final,2022-01-28,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5023.md,only one commit available
+5169,Client Script URI for Token Contracts,Final,2022-05-03,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5169.md,only one commit available
+5192,Minimal Soulbound NFTs,Final,2022-07-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5192.md,only one commit available
+5202,Blueprint contract format,Final,2022-06-23,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5202.md,only one commit available
+5219,Contract Resource Requests,Final,2022-07-10,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5219.md,only one commit available
+5267,Retrieval of EIP-712 domain,Final,2022-07-14,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5267.md,only one commit available
+5313,Light Contract Ownership,Final,2022-07-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5313.md,only one commit available
+5375,NFT Author Information and Consent,Final,2022-07-30,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5375.md,only one commit available
+5380,ERC-721 Entitlement Extension,Final,2022-03-11,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5380.md,only one commit available
+5484,Consensual Soulbound Tokens,Final,2022-08-17,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5484.md,only one commit available
+5489,NFT Hyperlink Extension,Final,2022-08-16,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5489.md,only one commit available
+55,Mixed-case checksum address encoding,Final,2016-01-14,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-55.md,only one commit available
+5507,Refundable Tokens,Final,2022-08-19,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5507.md,only one commit available
+5521,Referable NFT,Final,2022-08-10,,/Users/mac/PhD/sim/ERCs/ERCS/erc-5521.md,only one commit available
+5528,Refundable Fungible Token,Final,2022-08-16,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5528.md,only one commit available
+5564,Stealth Addresses,Final,2022-08-13,,/Users/mac/PhD/sim/ERCs/ERCS/erc-5564.md,only one commit available
+5570,Digital Receipt Non-Fungible Tokens,Final,2022-09-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5570.md,only one commit available
+5585,ERC-721 NFT Authorization,Final,2022-08-15,,/Users/mac/PhD/sim/ERCs/ERCS/erc-5585.md,only one commit available
+5606,Multiverse NFTs,Final,2022-09-06,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5606.md,only one commit available
+5615,ERC-1155 Supply Extension,Final,2023-05-25,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5615.md,only one commit available
+5625,NFT Metadata JSON Schema dStorage Extension,Final,2022-09-08,,/Users/mac/PhD/sim/ERCs/ERCS/erc-5625.md,only one commit available
+5646,Token State Fingerprint,Final,2022-09-11,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5646.md,only one commit available
+5679,Token Minting and Burning,Final,2022-09-17,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5679.md,only one commit available
+5725,Transferable Vesting NFT,Final,2022-09-08,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5725.md,only one commit available
+5732,Commit Interface,Final,2022-09-29,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5732.md,only one commit available
+5750,General Extensibility for Method Behaviors,Final,2022-10-04,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5750.md,only one commit available
+5773,Context-Dependent Multi-Asset Tokens,Final,2022-10-10,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-5773.md,only one commit available
+600,Ethereum purpose allocation for Deterministic Wallets,Final,2017-04-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-600.md,only one commit available
+601,Ethereum hierarchy for deterministic wallets,Final,2017-04-13,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-601.md,only one commit available
+6059,Parent-Governed Nestable Non-Fungible Tokens,Final,2022-11-15,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6059.md,only one commit available
+6066,Signature Validation Method for NFTs,Final,2022-11-29,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6066.md,only one commit available
+6093,Custom errors for commonly-used tokens,Final,2022-12-06,,/Users/mac/PhD/sim/ERCs/ERCS/erc-6093.md,only one commit available
+6105,No Intermediary NFT Trading Protocol,Final,2022-12-02,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6105.md,only one commit available
+6147,Guard of NFT/SBT  an Extension of ERC-721,Final,2022-12-07,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6147.md,only one commit available
+6150,Hierarchical NFTs,Final,2022-12-15,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6150.md,only one commit available
+6220,Composable NFTs utilizing Equippable Parts,Final,2022-12-20,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6220.md,only one commit available
+6239,Semantic Soulbound Tokens,Final,2022-12-30,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6239.md,only one commit available
+6381,Public Non-Fungible Token Emote Repository,Final,2023-01-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6381.md,only one commit available
+6454,Minimal Transferable NFT detection interface,Final,2023-01-31,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6454.md,only one commit available
+6492,Signature Validation for Predeploy Contracts,Final,2023-02-10,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6492.md,only one commit available
+6538,Stealth Meta-Address Registry,Final,2023-01-24,,/Users/mac/PhD/sim/ERCs/ERCS/erc-6538.md,only one commit available
+6672,Multi-redeemable NFTs,Final,2023-02-21,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6672.md,only one commit available
+6808,Fungible Key Bound Token,Final,2023-03-31,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6808.md,only one commit available
+6809,Non-Fungible Key Bound Token,Final,2023-03-31,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-6809.md,only one commit available
+681,URL Format for Transaction Requests,Final,2017-08-01,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-681.md,only one commit available
+6909,Minimal Multi-Token Interface,Final,2023-04-19,,/Users/mac/PhD/sim/ERCs/ERCS/erc-6909.md,only one commit available
+6982,Efficient Default Lockable Tokens,Final,2023-05-02,,/Users/mac/PhD/sim/ERCs/ERCS/erc-6982.md,only one commit available
+7007,Verifiable AI-Generated Content Token,Final,2023-05-10,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7007.md,only one commit available
+7053,Interoperable Digital Media Indexing,Final,2023-05-22,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-7053.md,only one commit available
+7066,Lockable Extension for ERC-721,Final,2023-05-25,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7066.md,only one commit available
+7092,Financial Bonds,Final,2023-05-28,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7092.md,only one commit available
+7160,ERC-721 Multi-Metadata Extension,Final,2023-06-09,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7160.md,only one commit available
+7201,Namespaced Storage Layout,Final,2023-06-20,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7201.md,only one commit available
+7208,On-Chain Data Containers,Final,2023-06-09,2025-01-24,/Users/mac/PhD/sim/ERCs/ERCS/erc-7208.md,
+721,Non-Fungible Token Standard,Final,2018-01-24,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-721.md,only one commit available
+7231,Identity-aggregated NFT,Final,2023-06-25,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7231.md,only one commit available
+7291,Purpose bound money,Final,2023-06-24,2025-10-08,/Users/mac/PhD/sim/ERCs/ERCS/erc-7291.md,
+7401,Parent-Governed Non-Fungible Tokens Nesting,Final,2023-07-26,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-7401.md,only one commit available
+7409,Public Non-Fungible Tokens Emote Repository,Final,2023-07-26,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7409.md,only one commit available
+7432,Non-Fungible Token Roles,Final,2023-07-14,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7432.md,only one commit available
+7439,Prevent ticket touting,Final,2023-07-28,2024-01-09,/Users/mac/PhD/sim/ERCs/ERCS/erc-7439.md,
+7528,ETH (Native Asset) Address Convention,Final,2023-10-03,,/Users/mac/PhD/sim/ERCs/ERCS/erc-7528.md,only one commit available
+7535,Native Asset ERC-4626 Tokenized Vault,Final,2023-10-12,2024-04-02,/Users/mac/PhD/sim/ERCs/ERCS/erc-7535.md,
+7540,Asynchronous ERC-4626 Tokenized Vaults,Final,2023-10-18,2024-06-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-7540.md,
+7575,Multi-Asset ERC-4626 Vaults,Final,2023-12-11,2024-06-11,/Users/mac/PhD/sim/ERCs/ERCS/erc-7575.md,
+7578,Physical Asset Redemption,Final,2023-08-01,2025-01-24,/Users/mac/PhD/sim/ERCs/ERCS/erc-7578.md,
+7588,Blob Transactions Metadata JSON Schema,Final,2024-01-01,2024-09-03,/Users/mac/PhD/sim/ERCs/ERCS/erc-7588.md,
+7631,Dual Nature Token Pair,Final,2024-02-21,2025-07-16,/Users/mac/PhD/sim/ERCs/ERCS/erc-7631.md,
+7734,Decentralized Identity Verification (DID),Final,2024-06-26,2025-01-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-7734.md,
+7743,Multi-Owner Non-Fungible Tokens (MO-NFT),Final,2024-07-13,2025-05-28,/Users/mac/PhD/sim/ERCs/ERCS/erc-7743.md,
+7751,Wrapping of bubbled up reverts,Final,2024-08-06,2025-02-11,/Users/mac/PhD/sim/ERCs/ERCS/erc-7751.md,
+777,Token Standard,Final,2017-11-20,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-777.md,only one commit available
+7818,Expirable ERC-20,Final,2024-11-13,2025-02-18,/Users/mac/PhD/sim/ERCs/ERCS/erc-7818.md,
+7820,Access Control Registry,Final,2024-11-19,2025-01-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-7820.md,
+7837,Diffusive Tokens,Final,2024-12-07,2025-05-28,/Users/mac/PhD/sim/ERCs/ERCS/erc-7837.md,
+7858,Expirable NFTs and SBTs,Final,2024-01-04,2025-09-09,/Users/mac/PhD/sim/ERCs/ERCS/erc-7858.md,
+7878,Bequeathable Contracts,Final,2025-02-01,2025-09-09,/Users/mac/PhD/sim/ERCs/ERCS/erc-7878.md,
+7950,Encode chain id with transaction hash,Final,2025-05-22,2025-10-07,/Users/mac/PhD/sim/ERCs/ERCS/erc-7950.md,
+820,Pseudo-introspection Registry Contract,Final,2018-01-05,2023-10-25,/Users/mac/PhD/sim/ERCs/ERCS/erc-820.md,only one commit available
