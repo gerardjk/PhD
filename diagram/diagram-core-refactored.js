@@ -3035,7 +3035,7 @@ function initializeDiagram() {
           const stackLineConfigs = [
             {
               id: 'direct-entry-stack-line-blue',
-              color: '#27AEE3', // Match Other Cards box
+              color: '#5AC8FA',
               fraction: 0.2,
               offset: 9,
               strokeWidth: 1.5,
@@ -3047,7 +3047,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-yellow',
-              color: '#FFA500', // Match Visa box
+              color: '#C67A35',
               fraction: 0.4,
               offset: 16,
               strokeWidth: 1.5,
@@ -3057,7 +3057,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-green',
-              color: '#9ACD32', // Match Claims box
+              color: '#228835',
               fraction: 0.6,
               offset: 16,
               strokeWidth: 1.5,
@@ -3067,7 +3067,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-brown',
-              color: '#C08552', // Match ATMs box
+              color: '#9B7653',
               fraction: 0.8,
               offset: 18,
               strokeWidth: 1.5,
@@ -3211,21 +3211,21 @@ function initializeDiagram() {
                     control1X = curveStartX + (geometry.control1X - geometry.curveStartX);
                   }
                   if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
-                    // Adjust control point based on color to match endpoint offset (shifted left by 1.5px)
-                    let controlOffset = 3.5; // Default
-                    if (color === '#9B7653') controlOffset = 3.5; // Brown
-                    else if (color === '#228835') controlOffset = 4.5; // Green
-                    else if (color === '#C67A35') controlOffset = 5.5; // Yellow
-                    else if (color === '#5AC8FA') controlOffset = 6.5; // Blue
+                    // Adjust control point based on color to match endpoint offset
+                    let controlOffset = 6; // Default
+                    if (color === '#9B7653') controlOffset = 6; // Brown
+                    else if (color === '#228835') controlOffset = 8; // Green
+                    else if (color === '#C67A35') controlOffset = 10; // Yellow
+                    else if (color === '#5AC8FA') controlOffset = 12; // Blue
                     control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
                   }
                   if (Number.isFinite(geometry.endX)) {
-                    // Spread out endpoints based on color (shifted left by 3px)
-                    let endpointOffset = 7; // Default (was 10, now 10-3=7)
-                    if (color === '#9B7653') endpointOffset = 7; // Brown - leftmost (was 10, now 7)
-                    else if (color === '#228835') endpointOffset = 9; // Green - 2px right of brown (was 12, now 9)
-                    else if (color === '#C67A35') endpointOffset = 11; // Yellow - 2px right of green (was 14, now 11)
-                    else if (color === '#5AC8FA') endpointOffset = 13; // Blue - 2px right of yellow (was 16, now 13)
+                    // Spread out endpoints based on color
+                    let endpointOffset = 10; // Default
+                    if (color === '#9B7653') endpointOffset = 10; // Brown - leftmost
+                    else if (color === '#228835') endpointOffset = 12; // Green - 2px right of brown
+                    else if (color === '#C67A35') endpointOffset = 14; // Yellow - 2px right of green
+                    else if (color === '#5AC8FA') endpointOffset = 16; // Blue - 2px right of yellow
                     endX = geometry.endX + endpointOffset;
                   }
                   if (Number.isFinite(geometry.endY)) {
