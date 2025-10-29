@@ -202,25 +202,23 @@ function initializeDiagram() {
     // Create groups for proper layering order (bottom to top):
     // 1. Blue lines (already exists as blue-connecting-lines)
     // 2. Blue circles
-    // 3. Yellow circles (small dots)
-    // 4. Yellow lines (over small yellow dots, under large FSS)
-    // 5. Big-group (large RITS and FSS circles - already in DOM)
+    // 3. Big-group (large RITS blue circle - already in DOM)
+    // 4. Yellow lines and circles (interleaved: over RITS, each line under its own dot, over other dots)
+    // 5. Small-group (large FSS yellow circle - already in DOM)
     const blueCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     blueCirclesGroup.setAttribute('id', 'blue-circles');
 
     const yellowCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     yellowCirclesGroup.setAttribute('id', 'yellow-circles');
 
-    // Insert both groups before big-group in correct order
-    if (svg && bigGroupElement) {
-      // Insert blueCirclesGroup before big-group
+    // Insert groups in correct order for layering
+    // yellowCirclesGroup now contains both yellow lines and circles in interleaved order
+    const smallGroupElement = document.getElementById('small-group');
+    if (svg && bigGroupElement && smallGroupElement) {
+      // Insert blueCirclesGroup before big-group (under RITS)
       svg.insertBefore(blueCirclesGroup, bigGroupElement);
-      // Insert yellowCirclesGroup before big-group (after blueCirclesGroup)
-      svg.insertBefore(yellowCirclesGroup, bigGroupElement);
-      // Insert yellowLinesGroup before big-group (after yellowCirclesGroup)
-      if (yellowLinesGroup) {
-        svg.insertBefore(yellowLinesGroup, bigGroupElement);
-      }
+      // Insert yellowCirclesGroup before small-group (over RITS, under FSS)
+      svg.insertBefore(yellowCirclesGroup, smallGroupElement);
     } else {
       svg.appendChild(blueCirclesGroup);
       svg.appendChild(yellowCirclesGroup);
@@ -235,8 +233,9 @@ function initializeDiagram() {
     let australianSettlementsYellowCircle = null;
     let indueYellowCircle = null;
 
-    // Track yellow circles to re-append after their lines
+    // Track yellow circles and lines for interleaved rendering
     const yellowCirclesByDot = {};
+    const yellowLinesByDot = {};
 
     // Create a group for background elements (rendered first)
     const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -544,7 +543,7 @@ function initializeDiagram() {
         // CLS dot - Non-ADIs box
         console.log('Processing CLS dot (i=99)');
         strokeColor = '#00FF33'; // Neon green border for CLS
-        blueRadius = smallCircleRadius * 12;
+        blueRadius = smallCircleRadius * 10.8; // Reduced by 10%
       }
 
       // For first and last dots, position them at the end of the extended line
@@ -576,7 +575,7 @@ function initializeDiagram() {
         const dx = circleX - blueCircleX;
         const dy = circleY - cyBig;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const extensionFactor = 0.92; // Reduced to extend lines deeper into RITS circle
+        const extensionFactor = 1.05; // Same 5% extension as their lines
         actualCircleX = blueCircleX + (dx / dist) * dist * extensionFactor;
         actualCircleY = cyBig + (dy / dist) * dist * extensionFactor;
         // Lower green dots by the same amount as first dot was raised
@@ -6343,8 +6342,8 @@ function initializeDiagram() {
             makeInteractive(orangeLine, 'rba-yellow-line');
           }
         } else {
-          // Append to yellowLinesGroup so yellow lines appear over blue circles but under yellow circles
-          yellowLinesGroup.appendChild(orangeLine);
+          // Store yellow line for later interleaved rendering
+          yellowLinesByDot[i] = orangeLine;
         }
 
         const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
@@ -6365,51 +6364,8 @@ function initializeDiagram() {
             makeInteractive(orangeCircle, 'rba-yellow-dot');
           }
         } else {
-          // Append yellow circles to yellowCirclesGroup so they appear on top of everything small
-          // Loop order: 84, 85, 87, 88 (yellow dots only, no 86)
-          // Desired z-order (bottom to top): Wise < Indue < CUSCAL < AusSett
-          if (i === 88) {
-            // Wise - insert at beginning (bottom of stack)
-            const firstYellow = yellowCirclesGroup.querySelector('circle[fill="#FFFF00"]');
-            if (firstYellow) {
-              yellowCirclesGroup.insertBefore(orangeCircle, firstYellow);
-            } else {
-              yellowCirclesGroup.insertBefore(orangeCircle, yellowCirclesGroup.firstChild || null);
-            }
-          } else if (i === 85) {
-            // Indue - insert BEFORE AusSett so Indue is under CUSCAL and AusSett
-            if (australianSettlementsYellowCircle && australianSettlementsYellowCircle.parentNode) {
-              yellowCirclesGroup.insertBefore(orangeCircle, australianSettlementsYellowCircle);
-            } else {
-              yellowCirclesGroup.appendChild(orangeCircle);
-            }
-            indueYellowCircle = orangeCircle;
-          } else if (i === 87) {
-            // CUSCAL - insert BEFORE AusSett (which was already added) so CUSCAL is under AusSett but over Indue
-            if (australianSettlementsYellowCircle && australianSettlementsYellowCircle.parentNode) {
-              yellowCirclesGroup.insertBefore(orangeCircle, australianSettlementsYellowCircle);
-            } else {
-              yellowCirclesGroup.appendChild(orangeCircle);
-            }
-          } else if (i === 84) {
-            // Australian Settlements - append and store reference (will be on top)
-            australianSettlementsYellowCircle = orangeCircle;
-            yellowCirclesGroup.appendChild(orangeCircle);
-          } else {
-            // All other dots - append normally
-            yellowCirclesGroup.appendChild(orangeCircle);
-          }
-
-          // Store reference to this yellow circle for later re-appending
+          // Store yellow circle for later interleaved rendering
           yellowCirclesByDot[i] = orangeCircle;
-
-          // Re-append this circle after it's added to the group, so it appears on top of its own line
-          // This works because yellowLinesGroup was already rendered before yellowCirclesGroup,
-          // so when we re-append the circle, it goes to the end of yellowCirclesGroup (on top)
-          if (i !== 0) {
-            // Re-append to move to end of group (on top of other circles and over its own line)
-            yellowCirclesGroup.appendChild(orangeCircle);
-          }
         }
       }
 
@@ -6542,7 +6498,7 @@ function initializeDiagram() {
         let dotRadius = showOrange ? smallCircleRadius * 2 : smallCircleRadius;
         if (i >= 50 && i < 54) dotRadius = dotRadius * 1.5;
         if (i >= 96) dotRadius = smallCircleRadius * 2;
-        if (i === 99) dotRadius = smallCircleRadius * 12;
+        if (i === 99) dotRadius = smallCircleRadius * 10.8; // Reduced by 10%
 
         // For ANZ to Bendigo (indices 50-55), create kinked lines
         // ASX/LCH labels (96-98) now use straight lines
@@ -6594,9 +6550,23 @@ function initializeDiagram() {
       } // End of if (dotLabels[i])
     } // End of main for loop (let i = 0; i < numCircles; i++)
 
+    // Add yellow lines and circles in interleaved order
+    // Order from bottom to top: each line goes under its own dot but over other dots
+    // All yellow dots: 1, 2, 45, 46, 50-55, 84, 85, 87, 88
+    // For Specialised/Other ADIs (84, 85, 87, 88), use specific bottom-to-top order: 88, 85, 87, 84
+    const yellowDotOrder = [1, 2, 45, 46, 50, 51, 52, 53, 54, 55, 88, 85, 87, 84];
+    yellowDotOrder.forEach(dotIndex => {
+      if (yellowLinesByDot[dotIndex]) {
+        yellowCirclesGroup.appendChild(yellowLinesByDot[dotIndex]);
+      }
+      if (yellowCirclesByDot[dotIndex]) {
+        yellowCirclesGroup.appendChild(yellowCirclesByDot[dotIndex]);
+      }
+    });
+
   if ((!window.clsPositions || !window.clsEndpoints || !window.clsEndpoints.dotLineEndX) && window.dotPositions && window.dotPositions[99]) {
     const clsDot = window.dotPositions[99];
-    const clsRadius = smallCircleRadius * 12;
+    const clsRadius = smallCircleRadius * 10.8; // Reduced by 10%
     const clsStartX = clsDot.x - clsRadius;
     const clsStartY = clsDot.y;
     const baseDistance = 87;
@@ -7778,7 +7748,7 @@ function initializeDiagram() {
 
       if (minX5 !== null && maxX5 !== null) {
         // Use tight padding for Group 2 rectangle
-        const group2LeftPadding = 5;
+        const group2LeftPadding = 6;
         const group2TopPadding = 19;
         const group2BottomPadding = 1;
         const group2RightPadding = 110;
@@ -7836,9 +7806,9 @@ function initializeDiagram() {
 
       if (minX6 !== null && maxX6 !== null) {
         // Use tight padding for Group 3 rectangle
-        const group3LeftPadding = 8;
+        const group3LeftPadding = 10;
         const group3TopPadding = 5;
-        const group3BottomPadding = 16;
+        const group3BottomPadding = 18;
         const group3RightPadding = 205;
 
         const group3Rect = createStyledRect(
@@ -8171,7 +8141,7 @@ function initializeDiagram() {
           // Calculate height to reach just above ESA box bottom
           // CLS (dot 99) is the lowest dot, so we need to ensure it's enclosed
           const clsY = window.dotPositions[99].y;
-          const clsRadius = smallCircleRadius * 12; // CLS has large radius
+          const clsRadius = smallCircleRadius * 10.8; // CLS has large radius, reduced by 10%
           const rectHeight = (clsY + clsRadius + 16) - rectY; // Raised bottom edge slightly (was 20)
 
           const nonAdiRect = createStyledRect(rectX - 3, rectY, rectWidth + 3, rectHeight, {
