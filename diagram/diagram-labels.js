@@ -75,37 +75,16 @@ function getLabelPosition(index, actualCircleX, actualCircleY, dotPositions) {
  * Create pointer line from dot to label
  */
 function createPointerLine(index, actualCircleX, actualCircleY, dotRadius, labelX, labelY, labelsGroup) {
-  // For ANZ to Bendigo (indices 50-55), create kinked lines
-  if (index >= 50 && index <= 55) {
-    const shiftedLabelX = labelX + 8;
-    const startX = actualCircleX + dotRadius;
-    const startY = actualCircleY;
-    const endX = shiftedLabelX - 5;
-    const endY = labelY;
-    const midX = endX - 8;
-
-    const path = createStyledPath(
-      `M ${startX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`,
-      {
-        stroke: '#000000',
-        strokeWidth: '0.5',
-        fill: 'none'
-      }
-    );
-    labelsGroup.appendChild(path);
-    return shiftedLabelX;
-  } else {
-    // Regular straight line for other labels
-    const pointerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    pointerLine.setAttribute('x1', actualCircleX + dotRadius);
-    pointerLine.setAttribute('y1', actualCircleY);
-    pointerLine.setAttribute('x2', labelX - 5);
-    pointerLine.setAttribute('y2', labelY);
-    pointerLine.setAttribute('stroke', '#000000');
-    pointerLine.setAttribute('stroke-width', '0.5');
-    labelsGroup.appendChild(pointerLine);
-    return labelX;
-  }
+  // All labels get straight lines now
+  const pointerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  pointerLine.setAttribute('x1', actualCircleX + dotRadius);
+  pointerLine.setAttribute('y1', actualCircleY);
+  pointerLine.setAttribute('x2', labelX - 5);
+  pointerLine.setAttribute('y2', labelY);
+  pointerLine.setAttribute('stroke', '#000000');
+  pointerLine.setAttribute('stroke-width', '0.5');
+  labelsGroup.appendChild(pointerLine);
+  return labelX;
 }
 
 /**

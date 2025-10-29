@@ -634,7 +634,7 @@ function initializeDiagram() {
         const whiteCircle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
           fill: fillColor,
           stroke: '#ffffff', // White border
-          strokeWidth: '0.75' // Thin white border like other dots
+          strokeWidth: '2' // Thicker white border for CLS dot
         });
         circlesGroup.appendChild(whiteCircle);
 
@@ -1183,10 +1183,10 @@ function initializeDiagram() {
         // Add label for ASX Settlement
         const asxSettlementText = createStyledText(
           bridgeX + bridgeWidth / 2,
-          bridgeY + hexHeight / 2,
+          bridgeY + hexHeight / 2 + 1.5,
           'ASXB',
           {
-            fontSize: '12',
+            fontSize: '11',
             fill: '#ffffff' // Swapped text color
           }
         );
@@ -3127,7 +3127,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-yellow',
-              color: '#C67A35',
+              color: '#FFA500', // Orange matching Visa box
               fraction: 0.4,
               offset: 16,
               strokeWidth: 1.5,
@@ -3295,7 +3295,7 @@ function initializeDiagram() {
                     let controlOffset = 6; // Default
                     if (color === '#C08552') controlOffset = 6; // Brown (ATMs box color)
                     else if (color === '#9ACD32') controlOffset = 8; // Green (Claims box color)
-                    else if (color === '#C67A35') controlOffset = 10; // Yellow
+                    else if (color === '#FFA500') controlOffset = 10; // Yellow (Visa box color)
                     else if (color === '#5AC8FA') controlOffset = 12; // Blue
                     control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
                   }
@@ -3304,7 +3304,7 @@ function initializeDiagram() {
                     let endpointOffset = 10; // Default
                     if (color === '#C08552') endpointOffset = 10; // Brown - leftmost (ATMs box color)
                     else if (color === '#9ACD32') endpointOffset = 12; // Green - 2px right of brown (Claims box color)
-                    else if (color === '#C67A35') endpointOffset = 14; // Yellow - 2px right of green
+                    else if (color === '#FFA500') endpointOffset = 14; // Yellow - 2px right of green (Visa box color)
                     else if (color === '#5AC8FA') endpointOffset = 16; // Blue - 2px right of yellow
                     endX = geometry.endX + endpointOffset;
                   }
@@ -3326,7 +3326,7 @@ function initializeDiagram() {
             const metricsForYellow = data.eftposMetrics || data.mastercardMetrics;
 
             lines.forEach((entry) => {
-              const baseMetrics = entry.color === '#C67A35' ? metricsForYellow : data.mastercardMetrics;
+              const baseMetrics = entry.color === '#FFA500' ? metricsForYellow : data.mastercardMetrics;
               const filletMultiplier = Number.isFinite(entry.filletMultiplier) ? entry.filletMultiplier : 1;
               const cornerAdjustment = Number.isFinite(entry.cornerAdjustment) ? entry.cornerAdjustment : 0;
               const metrics = {
@@ -3416,7 +3416,7 @@ function initializeDiagram() {
                   let xOffset = 25; // Default offset
                   if (entry.color === '#C08552') xOffset = 20; // Brown (ATMs box color)
                   else if (entry.color === '#9ACD32') xOffset = 22; // Green (Claims box color)
-                  else if (entry.color === '#C67A35') xOffset = 25; // Yellow
+                  else if (entry.color === '#FFA500') xOffset = 25; // Yellow (Visa box color)
                   else if (entry.color === '#5AC8FA') xOffset = 28; // Blue
 
                   const horizontalExtendX = adiRightEdge + xOffset;
@@ -3433,7 +3433,7 @@ function initializeDiagram() {
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
                     if (entry.color === '#C08552') nonAdiEntryY += 1; // Brown - 2nd from top (ATMs box color)
                     else if (entry.color === '#9ACD32') nonAdiEntryY += 2; // Green - 3rd from top (Claims box color)
-                    else if (entry.color === '#C67A35') nonAdiEntryY += 3; // Yellow - 4th from top
+                    else if (entry.color === '#FFA500') nonAdiEntryY += 3; // Yellow - 4th from top (Visa box color)
                     else if (entry.color === '#5AC8FA') nonAdiEntryY += 4; // Blue - 5th from top
                   }
                   const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
@@ -5607,7 +5607,13 @@ function initializeDiagram() {
             strokeLinecap: 'round',
             id: 'asx-to-hvcs-line'
           });
-          blueLinesGroup.appendChild(asxToHvcsLineStyled);
+          // Insert before ASX bounding box so line goes under the box
+          const asxBox = svg.firstChild; // ASX box is at svg.firstChild
+          if (asxBox) {
+            svg.insertBefore(asxToHvcsLineStyled, asxBox);
+          } else {
+            blueLinesGroup.appendChild(asxToHvcsLineStyled);
+          }
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -5616,7 +5622,7 @@ function initializeDiagram() {
 
           // Start from center bottom of ASX bounding box (same as first line)
           const asxLine2StartX = asxBoxX + (asxBoxWidth / 2); // Center of box
-          const asxLine2StartY = asxBoxY + asxBoxHeight + 3; // Start 3px below bottom edge so line is hidden
+          const asxLine2StartY = asxBoxY + asxBoxHeight; // Bottom edge of box - aligned with first line
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
@@ -5633,7 +5639,12 @@ function initializeDiagram() {
             strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
             id: 'asx-to-adi-line'
           });
-          blueLinesGroup.appendChild(asxToAdiLineStyled);
+          // Insert before ASX bounding box so line goes under the box
+          if (asxBox) {
+            svg.insertBefore(asxToAdiLineStyled, asxBox);
+          } else {
+            blueLinesGroup.appendChild(asxToAdiLineStyled);
+          }
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -5671,7 +5682,8 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        labelsGroup.appendChild(clearingToAsxPath1);
+        // Insert at beginning so lines go under ASXB box
+        labelsGroup.insertBefore(clearingToAsxPath1, labelsGroup.firstChild);
 
         // Create second yellow line with offset for double line effect
         const pathData2 = `M ${clearingRightX} ${clearingCenterY + 3}
@@ -5684,7 +5696,8 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        labelsGroup.appendChild(clearingToAsxPath2);
+        // Insert at beginning so lines go under ASXB box
+        labelsGroup.insertBefore(clearingToAsxPath2, labelsGroup.firstChild);
 
         // Calculate the 1/3 point on ASXF box using the UPDATED position
         const sympliCenterY = sympliY + sympliHeight / 2;
@@ -5962,7 +5975,7 @@ function initializeDiagram() {
           });
 
           // Yellow double lines from Mastercard to MCAU
-          const mastercardLineY = stackedMastercardY + stackedHeight / 2;
+          const mastercardLineY = stackedMastercardY + stackedHeight / 2 + 2; // Shifted down 2px to center with boxes
 
           eftposLineOffsets.forEach((offset) => {
             const line = createStyledLine(
@@ -6134,9 +6147,9 @@ function initializeDiagram() {
           const dy = bigCircleY - source.y;
           const angleToCenter = Math.atan2(dy, dx);
 
-          // End point is on circle edge in direction of source
-          const endX = bigCircleX - bigCircleRadius * Math.cos(angleToCenter);
-          const endY = bigCircleY - bigCircleRadius * Math.sin(angleToCenter);
+          // End point is 20% deeper into circle (80% of radius from center)
+          const endX = bigCircleX - bigCircleRadius * 0.8 * Math.cos(angleToCenter);
+          const endY = bigCircleY - bigCircleRadius * 0.8 * Math.sin(angleToCenter);
 
           // Control points for J-shaped curve
           const distX = endX - source.x;
@@ -6277,12 +6290,12 @@ function initializeDiagram() {
 
         // Placeholder for sigmoid - will be added after we have the CLS dot position
 
-        // Find the big blue circle element
-        const bigBlueCircle = svg.querySelector('circle.big-fill');
+        // Find the big-group element
+        const bigGroup = document.getElementById('big-group');
 
-        // Insert line group before the blue circle so lines appear behind it
-        if (bigBlueCircle) {
-          svg.insertBefore(curvedLineGroup, bigBlueCircle);
+        // Insert line group before the big-group so lines appear behind it
+        if (bigGroup) {
+          svg.insertBefore(curvedLineGroup, bigGroup);
         } else {
           // Fallback: insert at the beginning of svg
           svg.insertBefore(curvedLineGroup, svg.firstChild);
@@ -6462,11 +6475,11 @@ function initializeDiagram() {
         } else if (i === 87) {
           // CUSCAL - next to its dot (second in Other ADIs, below Australian Settlements)
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 3; // Lowered by 2 more pixels (was +1, now +3)
+          labelY = actualCircleY + 4; // Lowered by 1 more pixel (was +3, now +4)
         } else if (i === 85) {
           // Indue Ltd - next to its dot (third in Other ADIs, below CUSCAL)
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 7; // Lowered by 3 more pixels (was +4, now +7)
+          labelY = actualCircleY + 9; // Lowered by 2 more pixels (was +7, now +9)
         } else if (i === 92) {
           // Adyen Australia - align with dot
           labelX = actualCircleX + 25;
@@ -6474,7 +6487,7 @@ function initializeDiagram() {
         } else if (i === 93) {
           // EFTEX - just below Adyen
           labelX = actualCircleX + 25;
-          labelY = window.dotPositions[92] ? window.dotPositions[92].y + 6 : actualCircleY + 6;
+          labelY = window.dotPositions[92] ? window.dotPositions[92].y + 5 : actualCircleY + 5;
         } else if (i === 94) {
           // First Data Network - below EFTEX
           labelX = actualCircleX + 25;
@@ -6741,7 +6754,8 @@ function initializeDiagram() {
               fill: 'none'
             }
           );
-          labelsGroup.appendChild(path);
+          // Insert at beginning so red lines render under label connectors
+          labelsGroup.insertBefore(path, labelsGroup.firstChild);
         }
       }
 
@@ -7193,12 +7207,12 @@ function initializeDiagram() {
                   const bigCircleY = 450;
                   const bigCircleRadius = 113;
 
-                  // Calculate end point on circle
+                  // Calculate end point 20% deeper into circle (80% of radius from center)
                   const dx = bigCircleX - startX;
                   const dy = bigCircleY - startY;
                   const angleToCenter = Math.atan2(dy, dx);
-                  const endX = bigCircleX - bigCircleRadius * Math.cos(angleToCenter);
-                  const endY = bigCircleY - bigCircleRadius * Math.sin(angleToCenter);
+                  const endX = bigCircleX - bigCircleRadius * 0.8 * Math.cos(angleToCenter);
+                  const endY = bigCircleY - bigCircleRadius * 0.8 * Math.sin(angleToCenter);
 
                   // Control points for J-shaped curve
                   const distX = endX - startX;
@@ -7489,7 +7503,7 @@ function initializeDiagram() {
             const offsetY = Math.cos(angle) * lineOffset;
 
             // Create offset path data
-            const offsetPathData = `M ${source.x + offsetX} ${sourceY + offsetY} 
+            const offsetPathData = `M ${source.x + offsetX} ${sourceY + offsetY}
                                    Q ${control1X + offsetX} ${control1Y + offsetY}, ${lvssCenterX + offsetX} ${lvssPassY + offsetY}
                                    Q ${control2X + offsetX} ${control2Y + offsetY}, ${endX + offsetX} ${endY + offsetY}`;
 
@@ -7722,7 +7736,7 @@ function initializeDiagram() {
         // Position at same distance from bottom as Other ADIs label
         const domesticBanksText = createStyledText(
           greenRectX + greenRectWidth - 15,
-          greenRectY + greenRectHeight / 2 + 5,
+          greenRectY + greenRectHeight - 15,
           'Domestic Banks',
           {
             textAnchor: 'end',
@@ -7950,10 +7964,10 @@ function initializeDiagram() {
         const group5bRectWidth = parseFloat(group5bRect.getAttribute('width'));
         const group5bRectHeight = parseFloat(group5bRect.getAttribute('height'));
 
-        // Position in right side, vertically centered
+        // Position near bottom edge, same as Domestic Banks
         const otherADIsText = createStyledText(
           group5bRectX + group5bRectWidth - 15,
-          group5bRectY + group5bRectHeight / 2 + 5,
+          group5bRectY + group5bRectHeight - 15,
           'Other ADIs',
           {
             textAnchor: 'end',
@@ -8099,7 +8113,7 @@ function initializeDiagram() {
             const greenEndX = extendPastNonAdi + 15;
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
-            const pinkEndX = orangeEndX + 3; // 3 pixels to the right of orange line
+            const pinkEndX = orangeEndX + 5; // 5 pixels to the right of orange line
             const endY = window.adiBoxData.y + window.adiBoxData.height;
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
@@ -8123,7 +8137,7 @@ function initializeDiagram() {
 
             const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
               stroke: 'rgb(179,46,161)',
-              strokeWidth: '2',
+              strokeWidth: '3',
               fill: 'none',
               id: 'pexa-to-adis-line'
             });
@@ -8144,7 +8158,7 @@ function initializeDiagram() {
           const clsRadius = smallCircleRadius * 10.8; // CLS has large radius, reduced by 10%
           const rectHeight = (clsY + clsRadius + 16) - rectY; // Raised bottom edge slightly (was 20)
 
-          const nonAdiRect = createStyledRect(rectX - 3, rectY, rectWidth + 3, rectHeight, {
+          const nonAdiRect = createStyledRect(rectX, rectY, rectWidth + 1, rectHeight, {
             fill: '#5C0A0A', // Dark maroon
             stroke: '#fbbf24', // Light gold
             strokeWidth: '1',
@@ -8392,7 +8406,7 @@ function initializeDiagram() {
         // Use tight padding for green-bordered dots rectangle
         const greenBorderLeftPadding = -25 + 2 - 1 - 3 + 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin - 3px additional trim + 1px increase
         const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
-        const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1 - 3; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin - 3px additional trim
+        const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1 - 3 + 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin - 3px additional trim + 1px bottom padding
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
         // Calculate width like Specialised ADIs box
@@ -8947,7 +8961,7 @@ console.log('CLS AUD to RITS line FINAL position:', {
 
 // Get RITS circle position
 const ritsCircleX = 300; // cx value
-const ritsCircleY = 450; // cy value  
+const ritsCircleY = 450; // cy value
 const ritsCircleRadius = 113; // r value
 
 // Calculate angle from CLS AUD to RITS center
@@ -8955,9 +8969,9 @@ const dx = ritsCircleX - clsLineStartX;
 const dy = ritsCircleY - clsLineStartY;
 const angleToCenter = Math.atan2(dy, dx);
 
-// End point on RITS circle edge
-const clsLineEndX = ritsCircleX - ritsCircleRadius * Math.cos(angleToCenter);
-const clsLineEndY = ritsCircleY - ritsCircleRadius * Math.sin(angleToCenter);
+// End point 20% deeper into circle (80% of radius from center)
+const clsLineEndX = ritsCircleX - ritsCircleRadius * 0.8 * Math.cos(angleToCenter);
+const clsLineEndY = ritsCircleY - ritsCircleRadius * 0.8 * Math.sin(angleToCenter);
 
 // Control points for J-shaped curve (matching SWIFT PDS pattern)
 const distX = clsLineEndX - clsLineStartX;
@@ -9112,9 +9126,10 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       if (!container && svg) {
         container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         container.setAttribute('id', 'cls-s-curve-group');
-        const bigGroup = document.getElementById('big-group');
-        if (bigGroup && bigGroup.nextSibling) {
-          svg.insertBefore(container, bigGroup.nextSibling);
+        const blueCirclesGroup = document.getElementById('blue-circles');
+        // Insert before blue-circles so neon line renders under CLS dot
+        if (blueCirclesGroup) {
+          svg.insertBefore(container, blueCirclesGroup);
         } else {
           svg.appendChild(container);
         }
