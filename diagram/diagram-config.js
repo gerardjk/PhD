@@ -82,6 +82,7 @@ const DIAGRAM_CONFIG = {
     55: "Bendigo and Adelaide Bank Limited",
     84: "Australian Settlements Limited",
     85: "Indue Ltd",
+    86: "Tyro Payments Limited",
     87: "CUSCAL Limited",
     88: "Wise Australia Pty Limited",
     92: "Adyen Australia Pty Limited",

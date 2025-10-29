@@ -199,10 +199,44 @@ function initializeDiagram() {
       }
     }
 
-    // Create a group for the small circles
-    const circlesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    circlesGroup.setAttribute('id', 'arc-circles');
-    svg.appendChild(circlesGroup);
+    // Create groups for proper layering order (bottom to top):
+    // 1. Blue lines (already exists as blue-connecting-lines)
+    // 2. Blue circles
+    // 3. Yellow circles (small dots)
+    // 4. Yellow lines (over small yellow dots, under large FSS)
+    // 5. Big-group (large RITS and FSS circles - already in DOM)
+    const blueCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    blueCirclesGroup.setAttribute('id', 'blue-circles');
+
+    const yellowCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    yellowCirclesGroup.setAttribute('id', 'yellow-circles');
+
+    // Insert both groups before big-group in correct order
+    if (svg && bigGroupElement) {
+      // Insert blueCirclesGroup before big-group
+      svg.insertBefore(blueCirclesGroup, bigGroupElement);
+      // Insert yellowCirclesGroup before big-group (after blueCirclesGroup)
+      svg.insertBefore(yellowCirclesGroup, bigGroupElement);
+      // Insert yellowLinesGroup before big-group (after yellowCirclesGroup)
+      if (yellowLinesGroup) {
+        svg.insertBefore(yellowLinesGroup, bigGroupElement);
+      }
+    } else {
+      svg.appendChild(blueCirclesGroup);
+      svg.appendChild(yellowCirclesGroup);
+    }
+
+    // Keep circlesGroup reference for compatibility
+    const circlesGroup = blueCirclesGroup;
+
+    // Track specific circles for stacking order control
+    let australianSettlementsCircle = null;
+    let indueCircle = null;
+    let australianSettlementsYellowCircle = null;
+    let indueYellowCircle = null;
+
+    // Track yellow circles to re-append after their lines
+    const yellowCirclesByDot = {};
 
     // Create a group for background elements (rendered first)
     const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -409,13 +443,21 @@ function initializeDiagram() {
       else if (i >= 50 && i < 84) {
         adjustedIndex = ((i + 1) * dotSpacing) + (6 * gapSpacing); // Add 3 + 1 + 2 gaps, shift by 1
       }
-      // Group 5a: 3 dots (indices 84-86) after increased gap - shifted down by 1
-      else if (i >= 84 && i < 87) {
-        adjustedIndex = ((i + 1) * dotSpacing) + (8 * gapSpacing); // Add 3 + 1 + 2 + 2 gaps (increased from 1 to 2), shift by 1
+      // Group 5a: 2 dots (indices 86, 88 - Specialised ADIs) positioned at arc positions 84-85
+      // Big circle (88=Wise) comes first (position 84), small circle (86=Tyro) comes second (position 85)
+      else if (i === 86 || i === 88) {
+        const positionInGroup = i === 88 ? 0 : 1; // Wise=0, Tyro=1
+        adjustedIndex = ((84 + positionInGroup + 1) * dotSpacing) + (8 * gapSpacing);
       }
-      // Group 5b: 5 dots (indices 87-91) after increased gap - now includes dot from Group 6
-      else if (i >= 87 && i < 92) {
-        adjustedIndex = (i * dotSpacing) + (10.5 * gapSpacing); // Add all gaps including slightly increased gap between 5a and 5b
+      // Group 5b: 6 dots (indices 84, 85, 87, 89-91 - Other ADIs) positioned at arc positions 86-91
+      // Order from top to bottom: Australian Settlements (84), CUSCAL (87), Indue (85), then 89-91
+      else if (i === 84 || i === 85 || i === 87 || (i >= 89 && i < 92)) {
+        let positionInGroup;
+        if (i === 84) positionInGroup = 0; // Australian Settlements - first (top)
+        else if (i === 87) positionInGroup = 1; // CUSCAL - second
+        else if (i === 85) positionInGroup = 2; // Indue - third
+        else positionInGroup = i - 89 + 3; // 89->3, 90->4, 91->5
+        adjustedIndex = (86 + positionInGroup) * dotSpacing + (10.5 * gapSpacing);
       }
       // Group 6: 8 dots (indices 92-99) after increased gap with 1.5x spacing
       else {
@@ -472,10 +514,10 @@ function initializeDiagram() {
       else if (i >= 45 && i < 50 && i < 47) showOrange = true;
       // Group 4 (indices 50-83): keep first 6 orange
       else if (i >= 50 && i < 84 && i < 56) showOrange = true;
-      // Group 5a (indices 84-86): keep first 2 orange
-      else if (i >= 84 && i < 87 && i < 86) showOrange = true;
-      // Group 5b (indices 87-91): keep first 2 orange
-      else if (i >= 87 && i < 92 && i < 89) showOrange = true;
+      // Group 5a (Specialised ADIs - dots 86, 88): only 88 has orange (Wise Australia)
+      else if (i === 88) showOrange = true;
+      // Group 5b (Other ADIs - dots 84, 85, 87, 89-91): dots 84, 85, 87 have orange
+      else if (i === 84 || i === 85 || i === 87) showOrange = true;
       // Group 6 (indices 92-99): keep none
 
       // Make paired dots twice as large
@@ -529,12 +571,12 @@ function initializeDiagram() {
           actualCircleY += blackCircleRadius * 1.8; // Move down by 1.8x radius
         }
       } else if (i >= 96 && i <= 98) {
-        // For green dots, position at the end of their slightly extended lines
+        // For green dots, position closer to center so lines extend deeper into RITS circle
         const blueCircleX = cx;
         const dx = circleX - blueCircleX;
         const dy = circleY - cyBig;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const extensionFactor = 1.05; // Same 5% extension as their lines
+        const extensionFactor = 0.92; // Reduced to extend lines deeper into RITS circle
         actualCircleX = blueCircleX + (dx / dist) * dist * extensionFactor;
         actualCircleY = cyBig + (dy / dist) * dist * extensionFactor;
         // Lower green dots by the same amount as first dot was raised
@@ -571,6 +613,7 @@ function initializeDiagram() {
             makeInteractive(line, 'rba-blue-line');
           }
         } else {
+          // Append to blueLinesGroup so blue lines appear UNDER blue circles
           blueLinesGroup.appendChild(line);
         }
       }
@@ -625,7 +668,45 @@ function initializeDiagram() {
             makeInteractive(circle, 'rba-blue-dot');
           }
         } else {
-          circlesGroup.appendChild(circle);
+          // For Specialised ADIs and Other ADIs dots, control stacking order
+          // Loop order: 84, 85, 86, 87, 88, 89, 90, 91
+          // Desired z-order (bottom to top): Wise < Tyro < dot89 < Indue < CUSCAL < AusSett
+          if (i === 88) {
+            // Wise - insert at beginning (bottom of stack)
+            circlesGroup.insertBefore(circle, circlesGroup.firstChild);
+          } else if (i === 86) {
+            // Tyro - insert at beginning so it comes right after Wise (which is added later)
+            circlesGroup.insertBefore(circle, circlesGroup.firstChild);
+          } else if (i === 85) {
+            // Indue - insert BEFORE AusSett so Indue is under CUSCAL and AusSett
+            if (australianSettlementsCircle && australianSettlementsCircle.parentNode) {
+              circlesGroup.insertBefore(circle, australianSettlementsCircle);
+            } else {
+              circlesGroup.appendChild(circle);
+            }
+            indueCircle = circle;
+          } else if (i === 87) {
+            // CUSCAL - insert BEFORE AusSett (which was already added) so CUSCAL is under AusSett but over Indue
+            if (australianSettlementsCircle && australianSettlementsCircle.parentNode) {
+              circlesGroup.insertBefore(circle, australianSettlementsCircle);
+            } else {
+              circlesGroup.appendChild(circle);
+            }
+          } else if (i === 84) {
+            // Australian Settlements - append and store reference
+            australianSettlementsCircle = circle;
+            circlesGroup.appendChild(circle);
+          } else if (i === 89) {
+            // Dot 89 - insert BEFORE Indue (which was already added) so 89 is under Indue
+            if (indueCircle && indueCircle.parentNode) {
+              circlesGroup.insertBefore(circle, indueCircle);
+            } else {
+              circlesGroup.appendChild(circle);
+            }
+          } else {
+            // All other dots - append normally
+            circlesGroup.appendChild(circle);
+          }
         }
       }
 
@@ -3057,7 +3138,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-green',
-              color: '#228835',
+              color: '#9ACD32', // Match Claims box green
               fraction: 0.6,
               offset: 16,
               strokeWidth: 1.5,
@@ -3067,7 +3148,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-brown',
-              color: '#9B7653',
+              color: '#C08552', // Match ATMs box brown
               fraction: 0.8,
               offset: 18,
               strokeWidth: 1.5,
@@ -3213,8 +3294,8 @@ function initializeDiagram() {
                   if (Number.isFinite(geometry.control2X) && Number.isFinite(geometry.extendPastReference)) {
                     // Adjust control point based on color to match endpoint offset
                     let controlOffset = 6; // Default
-                    if (color === '#9B7653') controlOffset = 6; // Brown
-                    else if (color === '#228835') controlOffset = 8; // Green
+                    if (color === '#C08552') controlOffset = 6; // Brown (ATMs box color)
+                    else if (color === '#9ACD32') controlOffset = 8; // Green (Claims box color)
                     else if (color === '#C67A35') controlOffset = 10; // Yellow
                     else if (color === '#5AC8FA') controlOffset = 12; // Blue
                     control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
@@ -3222,8 +3303,8 @@ function initializeDiagram() {
                   if (Number.isFinite(geometry.endX)) {
                     // Spread out endpoints based on color
                     let endpointOffset = 10; // Default
-                    if (color === '#9B7653') endpointOffset = 10; // Brown - leftmost
-                    else if (color === '#228835') endpointOffset = 12; // Green - 2px right of brown
+                    if (color === '#C08552') endpointOffset = 10; // Brown - leftmost (ATMs box color)
+                    else if (color === '#9ACD32') endpointOffset = 12; // Green - 2px right of brown (Claims box color)
                     else if (color === '#C67A35') endpointOffset = 14; // Yellow - 2px right of green
                     else if (color === '#5AC8FA') endpointOffset = 16; // Blue - 2px right of yellow
                     endX = geometry.endX + endpointOffset;
@@ -3334,8 +3415,8 @@ function initializeDiagram() {
                   const adiRightEdge = adiData.x + adiData.width;
                   // Offset each line based on its color to prevent overlap
                   let xOffset = 25; // Default offset
-                  if (entry.color === '#9B7653') xOffset = 20; // Brown
-                  else if (entry.color === '#228835') xOffset = 22; // Green
+                  if (entry.color === '#C08552') xOffset = 20; // Brown (ATMs box color)
+                  else if (entry.color === '#9ACD32') xOffset = 22; // Green (Claims box color)
                   else if (entry.color === '#C67A35') xOffset = 25; // Yellow
                   else if (entry.color === '#5AC8FA') xOffset = 28; // Blue
 
@@ -3351,8 +3432,8 @@ function initializeDiagram() {
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
-                    if (entry.color === '#9B7653') nonAdiEntryY += 1; // Brown - 2nd from top
-                    else if (entry.color === '#228835') nonAdiEntryY += 2; // Green - 3rd from top
+                    if (entry.color === '#C08552') nonAdiEntryY += 1; // Brown - 2nd from top (ATMs box color)
+                    else if (entry.color === '#9ACD32') nonAdiEntryY += 2; // Green - 3rd from top (Claims box color)
                     else if (entry.color === '#C67A35') nonAdiEntryY += 3; // Yellow - 4th from top
                     else if (entry.color === '#5AC8FA') nonAdiEntryY += 4; // Blue - 5th from top
                   }
@@ -5536,7 +5617,7 @@ function initializeDiagram() {
 
           // Start from center bottom of ASX bounding box (same as first line)
           const asxLine2StartX = asxBoxX + (asxBoxWidth / 2); // Center of box
-          const asxLine2StartY = asxBoxY + asxBoxHeight; // Bottom edge of box
+          const asxLine2StartY = asxBoxY + asxBoxHeight + 3; // Start 3px below bottom edge so line is hidden
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
@@ -6262,7 +6343,8 @@ function initializeDiagram() {
             makeInteractive(orangeLine, 'rba-yellow-line');
           }
         } else {
-          orangeLinesGroup.appendChild(orangeLine);
+          // Append to yellowLinesGroup so yellow lines appear over blue circles but under yellow circles
+          yellowLinesGroup.appendChild(orangeLine);
         }
 
         const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
@@ -6283,7 +6365,51 @@ function initializeDiagram() {
             makeInteractive(orangeCircle, 'rba-yellow-dot');
           }
         } else {
-          circlesGroup.appendChild(orangeCircle);
+          // Append yellow circles to yellowCirclesGroup so they appear on top of everything small
+          // Loop order: 84, 85, 87, 88 (yellow dots only, no 86)
+          // Desired z-order (bottom to top): Wise < Indue < CUSCAL < AusSett
+          if (i === 88) {
+            // Wise - insert at beginning (bottom of stack)
+            const firstYellow = yellowCirclesGroup.querySelector('circle[fill="#FFFF00"]');
+            if (firstYellow) {
+              yellowCirclesGroup.insertBefore(orangeCircle, firstYellow);
+            } else {
+              yellowCirclesGroup.insertBefore(orangeCircle, yellowCirclesGroup.firstChild || null);
+            }
+          } else if (i === 85) {
+            // Indue - insert BEFORE AusSett so Indue is under CUSCAL and AusSett
+            if (australianSettlementsYellowCircle && australianSettlementsYellowCircle.parentNode) {
+              yellowCirclesGroup.insertBefore(orangeCircle, australianSettlementsYellowCircle);
+            } else {
+              yellowCirclesGroup.appendChild(orangeCircle);
+            }
+            indueYellowCircle = orangeCircle;
+          } else if (i === 87) {
+            // CUSCAL - insert BEFORE AusSett (which was already added) so CUSCAL is under AusSett but over Indue
+            if (australianSettlementsYellowCircle && australianSettlementsYellowCircle.parentNode) {
+              yellowCirclesGroup.insertBefore(orangeCircle, australianSettlementsYellowCircle);
+            } else {
+              yellowCirclesGroup.appendChild(orangeCircle);
+            }
+          } else if (i === 84) {
+            // Australian Settlements - append and store reference (will be on top)
+            australianSettlementsYellowCircle = orangeCircle;
+            yellowCirclesGroup.appendChild(orangeCircle);
+          } else {
+            // All other dots - append normally
+            yellowCirclesGroup.appendChild(orangeCircle);
+          }
+
+          // Store reference to this yellow circle for later re-appending
+          yellowCirclesByDot[i] = orangeCircle;
+
+          // Re-append this circle after it's added to the group, so it appears on top of its own line
+          // This works because yellowLinesGroup was already rendered before yellowCirclesGroup,
+          // so when we re-append the circle, it goes to the end of yellowCirclesGroup (on top)
+          if (i !== 0) {
+            // Re-append to move to end of group (on top of other circles and over its own line)
+            yellowCirclesGroup.appendChild(orangeCircle);
+          }
         }
       }
 
@@ -6308,6 +6434,7 @@ function initializeDiagram() {
         55: "Bendigo and Adelaide Bank Limited",  // Changed from 56
         84: "Australian Settlements Limited",  // Changed from 85
         85: "Indue Ltd",  // Changed from 86
+        86: "Tyro Payments Limited",
         87: "CUSCAL Limited",  // Changed from 88
         88: "Wise Australia Pty Limited",  // Changed from 89
         92: "Adyen Australia Pty Limited",
@@ -6335,11 +6462,11 @@ function initializeDiagram() {
         } else if (i === 45) {
           // HSBC - moved down slightly
           labelX = actualCircleX + 25;
-          labelY = actualCircleY - 1;  // Was -2, now -1 (moved down 1px)
+          labelY = actualCircleY + 1;  // Lowered by 2 more pixels (was -1, now +1)
         } else if (i === 46) {
           // ING - slightly below its dot to maintain spacing
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 6;  // Was 5, now 6 (moved down 1px)
+          labelY = actualCircleY + 8;  // Lowered by 2 more pixels (was +6, now +8)
         } else if (i === 50) {
           // ANZ - nudged up more
           labelX = actualCircleX + 25;
@@ -6364,22 +6491,26 @@ function initializeDiagram() {
           // Bendigo - moved up slightly
           labelX = actualCircleX + 25;
           labelY = 483;  // Was 485, now 483
-        } else if (i === 84) {
-          // Australian Settlements - horizontal with its dot
-          labelX = actualCircleX + 25;
-          labelY = actualCircleY - 2;
-        } else if (i === 85) {
-          // Indue Ltd - one line below Australian Settlements
-          labelX = actualCircleX + 25;
-          labelY = window.dotPositions[84] ? window.dotPositions[84].y + 8 : actualCircleY + 8;
-        } else if (i === 87) {
-          // CUSCAL - three lines below Australian Settlements
-          labelX = actualCircleX + 25;
-          labelY = window.dotPositions[84] ? window.dotPositions[84].y + 30 : actualCircleY + 30;
         } else if (i === 88) {
-          // Wise Australia - four lines below Australian Settlements
+          // Wise Australia - next to its dot (first in Specialised ADIs, at top)
           labelX = actualCircleX + 25;
-          labelY = window.dotPositions[84] ? window.dotPositions[84].y + 40 : actualCircleY + 40;
+          labelY = actualCircleY - 4; // Lowered by 1 pixel from -5 to -4
+        } else if (i === 86) {
+          // Tyro Payments Limited - next to its dot (second in Specialised ADIs, below Wise)
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY + 1; // Lowered by 3 pixels (was -2, now +1)
+        } else if (i === 84) {
+          // Australian Settlements - next to its dot (first in Other ADIs, at top)
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY - 2; // Keep unchanged
+        } else if (i === 87) {
+          // CUSCAL - next to its dot (second in Other ADIs, below Australian Settlements)
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY + 3; // Lowered by 2 more pixels (was +1, now +3)
+        } else if (i === 85) {
+          // Indue Ltd - next to its dot (third in Other ADIs, below CUSCAL)
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY + 7; // Lowered by 3 more pixels (was +4, now +7)
         } else if (i === 92) {
           // Adyen Australia - align with dot
           labelX = actualCircleX + 25;
@@ -7591,8 +7722,8 @@ function initializeDiagram() {
       if (minX4 !== null && maxX4 !== null) {
         // Use even smaller padding for the green rectangle
         const greenLeftPadding = 100;
-        const greenTopPadding = 10;
-        const greenBottomPadding = 4;
+        const greenTopPadding = 11; // Increased by 1 pixel
+        const greenBottomPadding = 3; // Decreased by 1 pixel
         const greenRightPadding = 280;
 
         const greenRect = createStyledRect(
@@ -7618,10 +7749,10 @@ function initializeDiagram() {
         const greenRectWidth = parseFloat(greenRect.getAttribute('width'));
         const greenRectHeight = parseFloat(greenRect.getAttribute('height'));
 
-        // Position in bottom right corner with padding
+        // Position at same distance from bottom as Other ADIs label
         const domesticBanksText = createStyledText(
           greenRectX + greenRectWidth - 15,
-          greenRectY + greenRectHeight - 10,
+          greenRectY + greenRectHeight / 2 + 5,
           'Domestic Banks',
           {
             textAnchor: 'end',
@@ -7748,11 +7879,11 @@ function initializeDiagram() {
         labelsGroup.appendChild(foreignSubsText);
       }
 
-      // Add seventh rectangle for Group 5a (dots 84-86)
+      // Add seventh rectangle for Group 5a - Specialised ADIs (dots 86, 88)
       let minX7 = null, minY7 = null, maxX7 = null, maxY7 = null;
 
-      // Find boundaries for dots 84-86
-      for (let i = 84; i <= 86; i++) {
+      // Find boundaries for dots 86 and 88
+      for (let i of [86, 88]) {
         if (window.dotPositions[i]) {
           if (minX7 === null || window.dotPositions[i].x < minX7) minX7 = window.dotPositions[i].x;
           if (maxX7 === null || window.dotPositions[i].x > maxX7) maxX7 = window.dotPositions[i].x;
@@ -7765,7 +7896,7 @@ function initializeDiagram() {
         // Use tight padding for Group 5a rectangle
         const group5aLeftPadding = 8;
         const group5aTopPadding = 9;
-        const group5aBottomPadding = 3;
+        const group5aBottomPadding = 4;  // Added 3 pixels
         const group5aRightPadding = 295;  // Same as group 4
 
         const group5aRect = createStyledRect(
@@ -7794,22 +7925,23 @@ function initializeDiagram() {
         // Position in right side, vertically centered
         const specialisedADIsText = createStyledText(
           group5aRectX + group5aRectWidth - 15,
-          group5aRectY + group5aRectHeight / 2 + 5,
+          group5aRectY + group5aRectHeight / 2,
           'Specialised ADIs',
           {
             textAnchor: 'end',
             fill: '#f5e6ff', // Light purple (swapped text color)
-            fontSize: '13' // Between 12 and 14
+            fontSize: '13', // Between 12 and 14
+            dominantBaseline: 'middle' // Vertically center the text
           }
         );
         labelsGroup.appendChild(specialisedADIsText);
       }
 
-      // Add eighth rectangle for Group 5b (dots 87-91)
+      // Add eighth rectangle for Group 5b - Other ADIs (dots 84, 85, 87, 89-91)
       let minX8 = null, minY8 = null, maxX8 = null, maxY8 = null;
 
-      // Find boundaries for dots 87-91
-      for (let i = 87; i <= 91; i++) {
+      // Find boundaries for dots 84, 85, 87, 89-91
+      for (let i of [84, 85, 87, 89, 90, 91]) {
         if (window.dotPositions[i]) {
           if (minX8 === null || window.dotPositions[i].x < minX8) minX8 = window.dotPositions[i].x;
           if (maxX8 === null || window.dotPositions[i].x > maxX8) maxX8 = window.dotPositions[i].x;
@@ -7821,7 +7953,7 @@ function initializeDiagram() {
       if (minX8 !== null && maxX8 !== null) {
         // Use tight padding for Group 5b rectangle
         const group5bLeftPadding = 3;
-        const group5bTopPadding = 8;
+        const group5bTopPadding = 7;  // Increased by 1 pixel (was 6, now 7)
         const group5bBottomPadding = 3;
         const group5bRightPadding = 281;  // Same as group 4
 
@@ -8226,7 +8358,7 @@ function initializeDiagram() {
       if (minX10 !== null && maxX10 !== null) {
         // Use tight padding for red-bordered dots rectangle
         const redLeftPadding = -27; // Moved in by 5 pixels
-        const redTopPadding = 10; // Increased headroom
+        const redTopPadding = 11; // Increased by 1 pixel
         const redBottomPadding = 5; // Increased headroom
         const redRightPadding = 300; // Reduced to bring right edge in
 
