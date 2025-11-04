@@ -242,6 +242,11 @@ function initializeDiagram() {
     backgroundGroup.setAttribute('id', 'background-elements');
     svg.appendChild(backgroundGroup);
 
+    // Foreground lines group sits above background elements but below labels
+    const foregroundLinesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    foregroundLinesGroup.setAttribute('id', 'foreground-lines');
+    svg.appendChild(foregroundLinesGroup);
+
     // Create a group for labels (rendered last so they appear on top)
     const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     labelsGroup.setAttribute('id', 'dot-labels');
@@ -330,14 +335,16 @@ function initializeDiagram() {
           strokeLinecap: 'round',
           id: 'npp-to-adi-line'
         });
-        const lineGroup = svg.querySelector('g');
-        if (lineGroup) {
-          lineGroup.appendChild(path);
-        } else {
-          svg.insertBefore(path, svg.firstChild);
-        }
-      } else {
-        path.setAttribute('d', pathData);
+        path.classList.add('thick-line-to-adi');
+      }
+
+      path.setAttribute('d', pathData);
+
+      const foregroundGroupRef = document.getElementById('foreground-lines');
+      if (foregroundGroupRef) {
+        foregroundGroupRef.appendChild(path);
+      } else if (!path.parentNode) {
+        svg.appendChild(path);
       }
 
       window.nppToAdiGeometry = {
@@ -918,7 +925,7 @@ function initializeDiagram() {
           const smallRectY = lineCenterY - smallRectHeight / 2;
 
           const smallRect = createStyledRect(tempSmallRectX, smallRectY, pacsBoxWidth, smallRectHeight, {
-            fill: '#5dd9b8', // Green SWIFT line color
+            fill: '#7ce5ca', // Green SWIFT line color (brighter)
             stroke: '#ffffff', // Very thin white border
             strokeWidth: '0.5',
             rx: '12', // More rounded corners
@@ -1040,6 +1047,8 @@ function initializeDiagram() {
           id: 'hvcs-horizontal-line'
         });
 
+        hvcsLine.classList.add('thick-line-to-adi');
+
         // Store start position for later use
         if (!window.hvcsLineData) window.hvcsLineData = {};
         window.hvcsLineData.startX = hvcsBoxRight;
@@ -1049,10 +1058,12 @@ function initializeDiagram() {
           window.hvcsLineOffset = hvcsLineOffset;
         }
 
-        // Insert into lineGroup
-        const lineGroup = svg.querySelector('g');
-        if (lineGroup) {
-          lineGroup.appendChild(hvcsLine);
+        // Place connector in foreground lines group so it renders above thin branches
+        const foregroundGroupRef = document.getElementById('foreground-lines');
+        if (foregroundGroupRef) {
+          foregroundGroupRef.appendChild(hvcsLine);
+        } else {
+          svg.appendChild(hvcsLine);
         }
 
         // Store the line for later update
@@ -1675,7 +1686,7 @@ function initializeDiagram() {
         const apcsY = becsY - boxHeight - squareRectGap;
         const apcsBox = createStyledRect(reducedNarrowBoxX, apcsY, reducedNarrowBoxWidth, boxHeight, {
           fill: '#C41E3A', // Vivid maroon fill (BECS label)
-          stroke: '#ffe0e0', // Light pink border (matching text)
+          stroke: '#ffb8c8', // Pinker border
           strokeWidth: '3',
           rx: '8',
           ry: '8'
@@ -2928,7 +2939,7 @@ function initializeDiagram() {
               {
                 fill: '#ffffff',
                 fontSize: fontSizeOverride !== undefined ? fontSizeOverride.toString() : '12',
-                fontWeight: (label === 'eftpos' || label === 'Mastercard') ? 'bold' : 'normal' // Bold text for eftpos and Mastercard to match BPAY
+                fontWeight: (label === 'eftpos' || label === 'Mastercard' || isNarrowBox) ? 'bold' : 'normal' // Bold text for eftpos, Mastercard, and narrow boxes
               }
             );
             labelsGroup.appendChild(text);
@@ -2975,9 +2986,16 @@ function initializeDiagram() {
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
           const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
           const medicareY = visaY - gapHalf - reducedHeight;
-          const medicare = createStackedRect(medicareY, '#9ACD32', 'Claims', eftposActualX, reducedHeight, reducedFont);
+          const medicare = createStackedRect(medicareY, '#32cd32', 'Claims', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
           const atms = createStackedRect(atmsY, '#C08552', 'ATMs', eftposActualX, reducedHeight, reducedFont);
+
+          // Store data to draw white dot later after eftpos line is created
+          window.whiteDotData = {
+            eftposBottom: eftposY + stackedHeight,
+            pexaConveyTop: pexaConveyY,
+            labelsGroup: labelsGroup
+          };
 
           const boundingPadX = 9;
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
@@ -3137,7 +3155,7 @@ function initializeDiagram() {
             },
             {
               id: 'direct-entry-stack-line-green',
-              color: '#9ACD32', // Match Claims box green
+              color: '#32cd32', // Match Claims box green
               fraction: 0.6,
               offset: 16,
               strokeWidth: 1.5,
@@ -3167,6 +3185,9 @@ function initializeDiagram() {
               fill: 'none',
               id: config.id
             });
+
+            // Mark as thick line for z-order control
+            path.classList.add('thick-line-to-adi');
 
             if (backgroundGroup) {
               // Insert at beginning of backgroundGroup to ensure lines go under boxes
@@ -3294,7 +3315,7 @@ function initializeDiagram() {
                     // Adjust control point based on color to match endpoint offset
                     let controlOffset = 6; // Default
                     if (color === '#C08552') controlOffset = 6; // Brown (ATMs box color)
-                    else if (color === '#9ACD32') controlOffset = 8; // Green (Claims box color)
+                    else if (color === '#32cd32') controlOffset = 8; // Green (Claims box color)
                     else if (color === '#FFA500') controlOffset = 10; // Yellow (Visa box color)
                     else if (color === '#5AC8FA') controlOffset = 12; // Blue
                     control2X = extendPastReference + (geometry.control2X - geometry.extendPastReference) + controlOffset;
@@ -3303,7 +3324,7 @@ function initializeDiagram() {
                     // Spread out endpoints based on color
                     let endpointOffset = 10; // Default
                     if (color === '#C08552') endpointOffset = 10; // Brown - leftmost (ATMs box color)
-                    else if (color === '#9ACD32') endpointOffset = 12; // Green - 2px right of brown (Claims box color)
+                    else if (color === '#32cd32') endpointOffset = 12; // Green - 2px right of brown (Claims box color)
                     else if (color === '#FFA500') endpointOffset = 14; // Yellow - 2px right of green (Visa box color)
                     else if (color === '#5AC8FA') endpointOffset = 16; // Blue - 2px right of yellow
                     endX = geometry.endX + endpointOffset;
@@ -3362,13 +3383,10 @@ function initializeDiagram() {
                 horizontalBranch.setAttribute('stroke-linecap', 'round');
                 horizontalBranch.setAttribute('fill', 'none');
                 horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
-                // Insert into background group to ensure horizontal branches go under all boxes
-                if (backgroundGroup) {
-                  backgroundGroup.insertBefore(horizontalBranch, backgroundGroup.firstChild);
-                } else {
-                  adminLinesGroup.appendChild(horizontalBranch);
-                }
+                horizontalBranch.classList.add('thin-nonadi-line');
+                // DO NOT INSERT - we'll insert after all thick lines are positioned
                 entry.horizontalBranch = horizontalBranch;
+                entry.horizontalBranchPendingInsert = true;
               }
 
               // Build horizontal path that continues from where the curve would start
@@ -3415,7 +3433,7 @@ function initializeDiagram() {
                   // Offset each line based on its color to prevent overlap
                   let xOffset = 25; // Default offset
                   if (entry.color === '#C08552') xOffset = 20; // Brown (ATMs box color)
-                  else if (entry.color === '#9ACD32') xOffset = 22; // Green (Claims box color)
+                  else if (entry.color === '#32cd32') xOffset = 22; // Green (Claims box color)
                   else if (entry.color === '#FFA500') xOffset = 25; // Yellow (Visa box color)
                   else if (entry.color === '#5AC8FA') xOffset = 28; // Blue
 
@@ -3432,7 +3450,7 @@ function initializeDiagram() {
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
                     if (entry.color === '#C08552') nonAdiEntryY += 1; // Brown - 2nd from top (ATMs box color)
-                    else if (entry.color === '#9ACD32') nonAdiEntryY += 2; // Green - 3rd from top (Claims box color)
+                    else if (entry.color === '#32cd32') nonAdiEntryY += 2; // Green - 3rd from top (Claims box color)
                     else if (entry.color === '#FFA500') nonAdiEntryY += 3; // Yellow - 4th from top (Visa box color)
                     else if (entry.color === '#5AC8FA') nonAdiEntryY += 4; // Blue - 5th from top
                   }
@@ -3448,7 +3466,7 @@ function initializeDiagram() {
                     `Q ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(horizontalY + curveRadius).toFixed(2)}`, // Curve down
                     `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}`, // Vertical down to curve start
                     `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`, // Curve left
-                    `L ${(nonAdiEntryX - entry.strokeWidth).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` // Horizontal into non-ADIs box, extend past edge to hide round cap
+                    `L ${(nonAdiEntryX).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` // Horizontal to non-ADIs box edge (not into it)
                   ].join(' ');
 
                   return horizontalPath;
@@ -3461,6 +3479,24 @@ function initializeDiagram() {
                 entry.horizontalBranch.setAttribute('d', horizontalPathData);
               }
             });
+
+            // After all path updates, insert thin horizontal branches and ensure z-order
+            if (backgroundGroup && lines && lines.length > 0) {
+              // Insert all pending thin lines first
+              lines.forEach((entry) => {
+                if (entry.horizontalBranchPendingInsert && entry.horizontalBranch) {
+                  backgroundGroup.appendChild(entry.horizontalBranch);
+                  entry.horizontalBranchPendingInsert = false;
+                }
+              });
+
+              // Now reorder: move all thick lines AFTER thin lines in DOM
+              const thickLines = backgroundGroup.querySelectorAll('.thick-line-to-adi');
+              thickLines.forEach(thickLine => {
+                // Remove and re-append to move to end
+                backgroundGroup.appendChild(thickLine);
+              });
+            }
           };
 
           window.updateDirectEntryBoundingLine(stackBoundingLeftEdge, stackBoundingTop, stackBoundingHeight);
@@ -3748,7 +3784,6 @@ function initializeDiagram() {
                 // Extend the horizontal run and curve gently down into the ADIs box from the left
                 if (window.adiBoxData && Number.isFinite(horizontalYValue) && Number.isFinite(horizontalEndX)) {
                   const adiData = window.adiBoxData;
-                  const adiTopY = adiData.y;
                   const adiLeft = adiData.x;
                   const geometry = window.directEntryToAdiGeometry || window.nppToAdiGeometry || null;
 
@@ -3762,6 +3797,7 @@ function initializeDiagram() {
 
                   const entryOffset = isEftpos ? 25 : 18; // eftpos slightly farther than maroon, Mastercard 2px left of original
                   const endX = baselineEndX + entryOffset;
+
                   // Calculate exact endpoint accounting for line stroke width
                   const adiEdge = getBoxEdgePoint(adiData, 'top', 2); // strokeWidth is 2
                   const endY = adiEdge.y;
@@ -3936,21 +3972,23 @@ function initializeDiagram() {
                   // Find the last 'L' command before the curve 'C' command
                   const lastCIndex = segments.pathString.lastIndexOf(' C ');
                   if (lastCIndex > -1) {
-                    // Get everything before the curve command
+                    // Add horizontal extension with downward curve, then left curve stopping at non-ADIs border
                     const pathBeforeCurve = segments.pathString.substring(0, lastCIndex);
-                    // Add horizontal extension with downward curve, then left curve into non-ADIs
                     const horizontalPathData = pathBeforeCurve +
                                              ` L ${(horizontalExtendX - curveRadius).toFixed(2)} ${segments.horizontalY.toFixed(2)}` + // Horizontal to curve start
                                              ` Q ${horizontalExtendX.toFixed(2)} ${segments.horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(segments.horizontalY + curveRadius).toFixed(2)}` + // Curve down
                                              ` L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
                                              ` Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` + // Curve left
-                                             ` L ${(nonAdiEntryX - 2).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap (stroke width 2)
+                                             ` L ${(nonAdiEntryX).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
                     horizontalPath.setAttribute('d', horizontalPathData);
                   }
                 }
 
-                // Insert into admin lines group so lines go under all boxes
-                adminLinesGroup.appendChild(horizontalPath);
+                // Insert before thick lines to ADI so thin lines render under them
+                const backgroundGroup = document.getElementById('background-elements');
+                horizontalPath.classList.add('thin-nonadi-line');
+                // Store for later insertion - we'll insert after thick lines are positioned
+                horizontalPath.dataset.pendingInsert = 'true';
                 return horizontalPath;
               };
 
@@ -3979,6 +4017,28 @@ function initializeDiagram() {
             eftposMetrics: eftposSegments,
             mastercardMetrics: mastercardSegments
           };
+
+          // White dot will be drawn later after the purple PEXA line is created
+
+          // Insert eftpos/mastercard horizontal paths and ensure z-order
+          const bgGroup = document.getElementById('background-elements');
+          if (bgGroup) {
+            // Insert thin lines
+            if (eftposHorizontalPath && eftposHorizontalPath.dataset.pendingInsert === 'true') {
+              bgGroup.appendChild(eftposHorizontalPath);
+              delete eftposHorizontalPath.dataset.pendingInsert;
+            }
+            if (mastercardHorizontalPath && mastercardHorizontalPath.dataset.pendingInsert === 'true') {
+              bgGroup.appendChild(mastercardHorizontalPath);
+              delete mastercardHorizontalPath.dataset.pendingInsert;
+            }
+
+            // Move all thick lines AFTER thin lines in DOM so they render on top
+            const thickLines = bgGroup.querySelectorAll('.thick-line-to-adi');
+            thickLines.forEach(thickLine => {
+              bgGroup.appendChild(thickLine);
+            });
+          }
 
               window.updateCardLeftLines = function updateCardLeftLines() {
                 const data = window.cardLeftLineData;
@@ -4060,7 +4120,7 @@ function initializeDiagram() {
                                                ` Q ${eftposExtendX.toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}, ${eftposExtendX.toFixed(2)} ${(updatedEftposSegments.horizontalY + curveRadius).toFixed(2)}` +
                                                ` L ${eftposExtendX.toFixed(2)} ${(eftposEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
                                                ` Q ${eftposExtendX.toFixed(2)} ${eftposEntryY.toFixed(2)}, ${(eftposExtendX - leftCurveRadius).toFixed(2)} ${eftposEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${(nonAdiEntryX - 2).toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap
+                                               ` L ${(nonAdiEntryX).toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
                       data.eftposHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
@@ -4076,7 +4136,7 @@ function initializeDiagram() {
                                                ` Q ${mastercardExtendX.toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}, ${mastercardExtendX.toFixed(2)} ${(updatedMastercardSegments.horizontalY + curveRadius).toFixed(2)}` +
                                                ` L ${mastercardExtendX.toFixed(2)} ${(mastercardEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
                                                ` Q ${mastercardExtendX.toFixed(2)} ${mastercardEntryY.toFixed(2)}, ${(mastercardExtendX - leftCurveRadius).toFixed(2)} ${mastercardEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${(nonAdiEntryX - 2).toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Horizontal into non-ADIs box, extend past edge to hide round cap
+                                               ` L ${(nonAdiEntryX).toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
                       data.mastercardHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
@@ -4206,7 +4266,7 @@ function initializeDiagram() {
           horizontalBranch.setAttribute('id', 'maroon-horizontal-branch');
           horizontalBranch.setAttribute('stroke', '#ff073a'); // Red
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
-          horizontalBranch.setAttribute('stroke-linecap', 'round'); // Round cap since stopping at edge
+          horizontalBranch.setAttribute('stroke-linecap', 'butt'); // Square cap so it stops exactly at edge
           horizontalBranch.setAttribute('fill', 'none');
           // Add to red lines group to ensure it goes under all boxes
           redLinesGroup.appendChild(horizontalBranch);
@@ -5297,7 +5357,7 @@ function initializeDiagram() {
                 window.directEntryChild1 = {
                   rect: createStyledRect(newHeaderX, boxY, boxWidth, boxHeight, {
                     fill: '#C41E3A', // Vivid maroon (match BECS box)
-                    stroke: '#ffe0e0',
+                    stroke: '#ffb8c8', // Pinker border
                     strokeWidth: '2.5',
                     rx: '4',
                     ry: '4'
@@ -5607,12 +5667,11 @@ function initializeDiagram() {
             strokeLinecap: 'round',
             id: 'asx-to-hvcs-line'
           });
-          // Insert before ASX bounding box so line goes under the box
-          const asxBox = svg.firstChild; // ASX box is at svg.firstChild
-          if (asxBox) {
-            svg.insertBefore(asxToHvcsLineStyled, asxBox);
+          const backgroundGroupRef = document.getElementById('background-elements');
+          if (backgroundGroupRef) {
+            backgroundGroupRef.appendChild(asxToHvcsLineStyled);
           } else {
-            blueLinesGroup.appendChild(asxToHvcsLineStyled);
+            svg.appendChild(asxToHvcsLineStyled);
           }
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
@@ -5639,11 +5698,13 @@ function initializeDiagram() {
             strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
             id: 'asx-to-adi-line'
           });
-          // Insert before ASX bounding box so line goes under the box
-          if (asxBox) {
-            svg.insertBefore(asxToAdiLineStyled, asxBox);
+          asxToAdiLineStyled.classList.add('thick-line-to-adi');
+
+          const foregroundGroupRef = document.getElementById('foreground-lines');
+          if (foregroundGroupRef) {
+            foregroundGroupRef.appendChild(asxToAdiLineStyled);
           } else {
-            blueLinesGroup.appendChild(asxToAdiLineStyled);
+            svg.appendChild(asxToAdiLineStyled);
           }
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
@@ -6036,7 +6097,7 @@ function initializeDiagram() {
         // CLS AUD uses adjusted position if available
         const clsAudYFinal = window.clsAudAdjustedY || clsAudY;
         const bottomRect = createStyledRect(rectX, clsAudYFinal, swiftRectWidth, smallRectHeight, {
-          fill: '#5dd9b8',  // Green SWIFT line color
+          fill: '#7ce5ca',  // Green SWIFT line color (brighter)
           stroke: '#ffffff', // Very thin white border
           strokeWidth: '0.5'
           // Square corners - no rx/ry
@@ -8123,6 +8184,7 @@ function initializeDiagram() {
 
             const verticalEntryX = startX - verticalSegmentShift;
             const controlX = verticalEntryX - cornerRadius;
+            window.purpleLineVerticalX = controlX; // Store for title alignment
 
             const pexaPathData =
               `M ${startX} ${startY} ` +
@@ -8143,6 +8205,97 @@ function initializeDiagram() {
             });
 
             labelsGroup.insertBefore(pexaToAdiLineStyled, labelsGroup.firstChild);
+
+            // Draw white divider line with same width as PEXA e-conveyancing box
+            if (window.whiteDotData && window.pexaConveyBoxData) {
+              const originalLineEndX = controlX - 30; // Vertical part of the purple line (right end), shifted left to compensate for viewBox shift
+              const lineWidth = window.pexaConveyBoxData.width;
+              const lineStartX = originalLineEndX - lineWidth; // Left end
+              window.whiteLineStartX = lineStartX; // Store for title alignment
+              const lineY = (window.whiteDotData.eftposBottom + window.whiteDotData.pexaConveyTop) / 2;
+
+              // Extend line to the right, fading to black by the left edge of PEXA e-conveyancing box
+              const lineEndX = window.pexaConveyBoxData.x; // Fade reaches black at PEXA box left edge
+
+              // Create gradient for fade effect using userSpaceOnUse
+              const svg = document.getElementById('diagram');
+              const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svg.firstChild);
+              const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+              gradient.setAttribute('id', 'white-fade-gradient');
+              gradient.setAttribute('gradientUnits', 'userSpaceOnUse');
+              gradient.setAttribute('x1', lineStartX);
+              gradient.setAttribute('x2', lineEndX);
+              gradient.setAttribute('y1', lineY);
+              gradient.setAttribute('y2', lineY);
+
+              const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+              stop1.setAttribute('offset', '0%');
+              stop1.setAttribute('stop-color', '#ffffff');
+              stop1.setAttribute('stop-opacity', '1');
+
+              const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+              const fadeStartPercent = ((originalLineEndX - lineStartX) / (lineEndX - lineStartX)) * 100;
+              stop2.setAttribute('offset', fadeStartPercent + '%');
+              stop2.setAttribute('stop-color', '#ffffff');
+              stop2.setAttribute('stop-opacity', '1');
+
+              const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+              stop3.setAttribute('offset', '100%');
+              stop3.setAttribute('stop-color', '#ffffff');
+              stop3.setAttribute('stop-opacity', '0');
+
+              gradient.appendChild(stop1);
+              gradient.appendChild(stop2);
+              gradient.appendChild(stop3);
+              defs.appendChild(gradient);
+
+              const whiteLine = createStyledLine(lineStartX, lineY, lineEndX, lineY, {
+                stroke: 'url(#white-fade-gradient)',
+                strokeWidth: '0.75'
+              });
+              labelsGroup.appendChild(whiteLine);
+
+              // Centre labels around the centre of the original line (before fade extension)
+              const lineCenterX = (lineStartX + originalLineEndX) / 2;
+              window.dividerLineCenterX = lineCenterX; // Store for title alignment
+              const arrowSize = 10;
+
+              // Upper section: arrow above text
+              const upLabelY = lineY - 25;
+              const upLabel = createStyledText(lineCenterX, upLabelY, 'Low Value / Retail', {
+                fill: '#ffffff',
+                fontSize: '15',
+                fontWeight: 'bold',
+                textAnchor: 'middle',
+                fontFamily: 'Courier New, monospace'
+              });
+              labelsGroup.appendChild(upLabel);
+
+              const upArrowY = lineY - 60;
+              const upArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              const upArrowPath = `M ${lineCenterX} ${upArrowY} L ${lineCenterX - arrowSize} ${upArrowY + arrowSize} L ${lineCenterX + arrowSize} ${upArrowY + arrowSize} Z`;
+              upArrow.setAttribute('d', upArrowPath);
+              upArrow.setAttribute('fill', '#ffffff');
+              labelsGroup.appendChild(upArrow);
+
+              // Lower section: text above arrow
+              const downLabelY = lineY + 30;
+              const downLabel = createStyledText(lineCenterX, downLabelY, 'High Value / Wholesale', {
+                fill: '#ffffff',
+                fontSize: '15',
+                fontWeight: 'bold',
+                textAnchor: 'middle',
+                fontFamily: 'Courier New, monospace'
+              });
+              labelsGroup.appendChild(downLabel);
+
+              const downArrowY = lineY + 65;
+              const downArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              const downArrowPath = `M ${lineCenterX} ${downArrowY} L ${lineCenterX - arrowSize} ${downArrowY - arrowSize} L ${lineCenterX + arrowSize} ${downArrowY - arrowSize} Z`;
+              downArrow.setAttribute('d', downArrowPath);
+              downArrow.setAttribute('fill', '#ffffff');
+              labelsGroup.appendChild(downArrow);
+            }
           }
 
           // Position: same left edge as ADI box, top edge below ADI box
@@ -8183,45 +8336,49 @@ function initializeDiagram() {
             console.log('SWIFT HVCS box right edge:', window.swiftHvcsElements ? window.swiftHvcsElements.rightEdge : 'not set');
 
             const nonAdiRightEdge = rectX + rectWidth;
-          const extendPastNonAdi = nonAdiRightEdge + 60; // Extend 60px past non-ADIs (further right)
+            const extendPastNonAdi = nonAdiRightEdge + 60; // Extend 60px past non-ADIs (further right)
 
-          // Get ADI box left edge and bottom position
-          const adiLeftEdge = window.adiBoxData.x;
-          const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
+            // Get ADI box bottom position
+            const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
 
-          // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
-          // Adjust end point to account for stroke width using helper
-          const strokeWidth = 6; // Updated stroke width
-          const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', strokeWidth);
-          const adjustedAdiBottom = adiEdge.y;
+            // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
+            // Adjust end point to account for stroke width using helper
+            const strokeWidth = 6; // Updated stroke width
+            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', strokeWidth);
+            const adjustedAdiBottom = adiEdge.y;
 
-          // Calculate where to start the gradual curve
-          // We need to stay below ESAs and non-ADIs boxes
-          const esasRightEdgeApprox = window.hvcsLineData.startX + 200; // Stay well clear of ESAs
-          const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80); // Start closer to non-ADIs right edge for more clearance
+            // Calculate where to start the gradual curve
+            // We need to stay below ESAs and non-ADIs boxes
+            const esasRightEdgeApprox = window.hvcsLineData.startX + 200; // Stay well clear of ESAs
+            const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80); // Start closer to non-ADIs right edge for more clearance
 
-          const verticalDistance = window.hvcsLineData.startY - adjustedAdiBottom;
+            const verticalDistance = window.hvcsLineData.startY - adjustedAdiBottom;
 
-          // Create path with very gradual curve that gets steeper
-          // Use two cubic bezier curves for more control
-          const midPointX = (curveStartX + extendPastNonAdi) / 2;
-          const midPointY = window.hvcsLineData.startY - verticalDistance * 0.15; // Very gradual at first
+            // Create path with very gradual curve that gets steeper
+            // Use two cubic bezier curves for more control
+            const midPointX = (curveStartX + extendPastNonAdi) / 2;
+            const midPointY = window.hvcsLineData.startY - verticalDistance * 0.15; // Very gradual at first
 
-          // Create a single smooth curve without kinks
-          // Adjust first control point to be further right for smoother transition
-          // Use the updated SWIFT HVCS right edge if available, otherwise fall back to stored value
-          const hvcsStartX = window.swiftHvcsElements && window.swiftHvcsElements.rightEdge ? 
-                             window.swiftHvcsElements.rightEdge : 
-                             window.hvcsLineData.startX;
+            // Create a single smooth curve without kinks
+            // Adjust first control point to be further right for smoother transition
+            // Use the updated SWIFT HVCS right edge if available, otherwise fall back to stored value
+            const hvcsStartX = window.swiftHvcsElements && window.swiftHvcsElements.rightEdge ?
+                               window.swiftHvcsElements.rightEdge :
+                               window.hvcsLineData.startX;
 
-          const hvcsEndX = extendPastNonAdi + 15;
-          const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +
-                      `L ${curveStartX} ${window.hvcsLineData.startY} ` +
-                      `C ${curveStartX + 60} ${window.hvcsLineData.startY}, ` +
-                      `${extendPastNonAdi} ${window.hvcsLineData.startY - verticalDistance * 0.15}, ` +
-                      `${hvcsEndX} ${adjustedAdiBottom}`;
+            const hvcsEndX = extendPastNonAdi + 15;
+            const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +
+                        `L ${curveStartX} ${window.hvcsLineData.startY} ` +
+                        `C ${curveStartX + 60} ${window.hvcsLineData.startY}, ` +
+                        `${extendPastNonAdi} ${window.hvcsLineData.startY - verticalDistance * 0.15}, ` +
+                        `${hvcsEndX} ${adjustedAdiBottom}`;
 
-          hvcsHorizontalLine.setAttribute('d', path);
+            hvcsHorizontalLine.setAttribute('d', path);
+
+            const foregroundGroupRef = document.getElementById('foreground-lines');
+            if (foregroundGroupRef) {
+              foregroundGroupRef.appendChild(hvcsHorizontalLine);
+            }
 
           if (!window.clsEndpoints) {
             window.clsEndpoints = {};
@@ -8269,6 +8426,11 @@ function initializeDiagram() {
                       `${targetX} ${curveEndY}`;
 
             asxLine2Extension.setAttribute('d', extensionPath);
+
+            const foregroundGroupRef = document.getElementById('foreground-lines');
+            if (foregroundGroupRef) {
+              foregroundGroupRef.appendChild(asxLine2Extension);
+            }
           }
         }
 
@@ -8636,7 +8798,7 @@ window.nppBoundingData = {
 // Now create the pacs-style box inside the bounding box
 // Match the style and size of pacs.008
 const pacsStyle = {
-  fill: '#5dd9b8', // Green SWIFT line color
+  fill: '#7ce5ca', // Green SWIFT line color (brighter)
   stroke: '#ffffff', // Very thin white border
   strokeWidth: '0.5',
   rx: '12', // More rounded corners
@@ -9250,6 +9412,37 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       labelsGroup.appendChild(adisText);
     }
   }
+
+  // Add title label at the top of the diagram with typewriter effect
+  const titleX = window.dividerLineCenterX || (-600 + (1550 / 2)); // Align left edge with white line center
+  const titleY = -148; // Near top of viewBox
+  const fullTitle = 'Reserve Bank Information and Transfer System (RITS)';
+  const titleText = createStyledText(
+    titleX,
+    titleY,
+    '',
+    {
+      textAnchor: 'start',
+      fill: '#ffffff',
+      fontSize: '32',
+      fontWeight: 'bold',
+      fontFamily: 'Courier New, monospace'
+    }
+  );
+  titleText.setAttribute('letter-spacing', '2');
+  labelsGroup.appendChild(titleText);
+
+  // Typewriter effect
+  let charIndex = 0;
+  const typeSpeed = 50; // milliseconds per character
+  function typeWriter() {
+    if (charIndex < fullTitle.length) {
+      titleText.textContent += fullTitle.charAt(charIndex);
+      charIndex++;
+      setTimeout(typeWriter, typeSpeed);
+    }
+  }
+  typeWriter();
 
   console.log('Test 4: After IIFE');
 

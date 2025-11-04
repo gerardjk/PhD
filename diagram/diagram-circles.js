@@ -152,7 +152,7 @@ function createLvssCircle(params, labelsGroup) {
 
   const gearBorder = createStyledPath(path, {
     fill: '#800020', // Maroon
-    stroke: '#9ca3af', // Grey outline
+    stroke: '#bcc3cf', // Brighter grey outline
     strokeWidth: '1'
   });
   gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
@@ -161,7 +161,7 @@ function createLvssCircle(params, labelsGroup) {
 
   // Inner circle
   const redCircleInner = createStyledCircle(redCircleX, redCircleY, innerRadius, {
-    fill: '#4A1942', // Red-purple plum
+    fill: '#5A0016', // Darker maroon
     stroke: 'none'
   });
   lvssGroup.appendChild(redCircleInner);
