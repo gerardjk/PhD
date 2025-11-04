@@ -4,6 +4,8 @@
  */
 
 // Tooltip state
+const IS_FIREFOX = typeof navigator !== 'undefined' && /firefox/i.test((navigator.userAgent || '').toLowerCase());
+
 let currentTooltip = null;
 let currentHighlightedElements = new Set();
 
@@ -17,20 +19,32 @@ function createTooltipElement() {
   tooltip.id = 'diagram-tooltip';
   tooltip.style.cssText = `
     position: fixed;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(12, 12, 12, 0.94);
     color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 8px 9px;
+    border-radius: 4px;
     font-family: Arial, sans-serif;
-    font-size: 14px;
+    font-size: 9px;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
     pointer-events: none;
     z-index: 10000;
-    max-width: 320px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    width: 210px;
+    max-width: 210px;
+    max-height: 170px;
+    overflow-y: auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     opacity: 0;
-    transition: opacity 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 0.15s ease;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    word-break: break-word;
+    transform-origin: top left;
   `;
+  if (IS_FIREFOX) {
+    tooltip.style.transform = 'scale(0.72)';
+  } else {
+    tooltip.style.transform = 'scale(0.85)';
+  }
   document.body.appendChild(tooltip);
 }
 
@@ -48,27 +62,41 @@ function showTooltip(elementId, event) {
   }
 
   // Build tooltip HTML
-  let html = `<div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">${content.title}</div>`;
+  const truncate = (str, max) => (str && str.length > max) ? `${str.slice(0, max - 1)}…` : str || '';
+
+  const titleFontSize = 9;
+  const subtitleFontSize = 8.5;
+  const bodyFontSize = 8;
+  const detailFontSize = 7.8;
+  const hoursFontSize = 8;
+
+  let html = `<div style="font-weight: bold; font-size: ${titleFontSize}px; margin-bottom: 1px;">${truncate(content.title, 70)}</div>`;
 
   if (content.subtitle) {
-    html += `<div style="color: #aaa; font-size: 12px; margin-bottom: 8px;">${content.subtitle}</div>`;
+    html += `<div style="color: #bbb; font-size: ${subtitleFontSize}px; margin-bottom: 2px;">${truncate(content.subtitle, 90)}</div>`;
   }
 
   if (content.description) {
-    html += `<div style="margin-bottom: 8px;">${content.description}</div>`;
+    html += `<div style="margin-bottom: 3px; font-size: ${bodyFontSize}px; line-height: 1.28;">${truncate(content.description, 170)}</div>`;
   }
 
   if (content.details && content.details.length > 0) {
-    html += '<ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px;">';
-    content.details.forEach(detail => {
-      html += `<li style="margin: 4px 0;">${detail}</li>`;
+    const maxItems = 3;
+    const detailItems = content.details.slice(0, maxItems);
+    html += `<ul style="margin: 2px 0 0 0; padding-left: 10px; font-size: ${detailFontSize}px; line-height: 1.22;">`;
+    detailItems.forEach(detail => {
+      html += `<li style="margin: 1px 0;">${truncate(detail, 110)}</li>`;
     });
+    if (content.details.length > maxItems) {
+      const remaining = content.details.length - maxItems;
+      html += `<li style="margin: 1px 0; color: #bbb;">+ ${remaining} more</li>`;
+    }
     html += '</ul>';
   }
 
   if (content.hours) {
-    html += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); color: #8cf; font-size: 12px;">
-      ⏰ ${content.hours}
+    html += `<div style="margin-top: 3px; padding-top: 2px; border-top: 1px solid rgba(255,255,255,0.2); color: #8cf; font-size: ${hoursFontSize}px;">
+      ⏰ ${truncate(content.hours, 80)}
     </div>`;
   }
 

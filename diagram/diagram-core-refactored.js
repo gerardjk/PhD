@@ -2925,7 +2925,7 @@ function initializeDiagram() {
             }
             const rect = createStyledRect(xPos, y, stackBoxWidth, rectHeight, {
               fill: fillColor,
-              stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,180,178)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, lighter red for Mastercard, thin white for narrow boxes
+              stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,120,120)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, less pink more red for Mastercard, thin white for narrow boxes
               strokeWidth: (label === 'eftpos' || label === 'Mastercard') ? '2.5' : (isNarrowBox ? '0.5' : '0'), // Thicker border for eftpos and Mastercard
               rx: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8', // More rounded corners for eftpos and Mastercard to match BPAY
               ry: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8'
@@ -3928,7 +3928,7 @@ function initializeDiagram() {
               adminLinesGroup.appendChild(eftposUpturnPath);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
-                stroke: 'rgb(255,180,178)', // Mastercard border color (lighter red)
+                stroke: 'rgb(255,120,120)', // Mastercard border color (less pink, more red)
                 strokeWidth: '2',
                 fill: 'none',
                 strokeLinecap: 'round',
@@ -4000,7 +4000,7 @@ function initializeDiagram() {
 
               const mastercardHorizontalPath = createHorizontalBranch(
                 mastercardSegments,
-                'rgb(255,180,178)', // Mastercard border color (lighter red)
+                'rgb(255,120,120)', // Mastercard border color (less pink, more red)
                 'mastercard-left-line'
               );
 
@@ -5027,6 +5027,9 @@ function initializeDiagram() {
         // Insert at the very beginning of SVG so it's behind EVERYTHING
         svg.insertBefore(asxBoundingBox, svg.firstChild);
 
+        // Store reference to ASX box for z-ordering lines
+        window.asxBoundingBoxElement = asxBoundingBox;
+
         // Store ASX box right edge for SWIFT PDS alignment
         window.asxBoxRightEdge = asxBoxX + asxBoxWidth;
 
@@ -5645,33 +5648,33 @@ function initializeDiagram() {
           const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
+          const pathStartY = asxLineStartY + 0.1; // Begin just below the box edge to avoid overlap
+          const asxPath = `M ${asxLineStartX} ${pathStartY} ` +
+                        `L ${asxLineStartX} ${pathStartY + goDownDistance} ` + // Go straight down
+                        `Q ${asxLineStartX} ${pathStartY + goDownDistance + cornerRadius}, ` +
+                        `${asxLineStartX + cornerRadius} ${pathStartY + goDownDistance + cornerRadius} ` + // Curve right
+                        `L ${asxLineStartX + 150} ${pathStartY + goDownDistance + cornerRadius}`; // Extend right
+
           // Store line data for later use by non-ADIs curve
           if (!window.asxLineData) window.asxLineData = {};
-          window.asxLineData.horizontalY = asxLineStartY + goDownDistance + cornerRadius;
+          window.asxLineData.horizontalY = pathStartY + goDownDistance + cornerRadius;
           window.asxLineData.startX = asxLineStartX;
           window.asxLineData.startY = asxLineStartY;
           window.asxLineData.cornerRadius = cornerRadius;
           window.asxLineData.horizontalLength = 150;
           window.asxLineData.goDownDistance = goDownDistance;
 
-          const asxPath = `M ${asxLineStartX} ${asxLineStartY} ` +
-                        `L ${asxLineStartX} ${asxLineStartY + goDownDistance} ` + // Go straight down
-                        `Q ${asxLineStartX} ${asxLineStartY + goDownDistance + cornerRadius}, ` +
-                        `${asxLineStartX + cornerRadius} ${asxLineStartY + goDownDistance + cornerRadius} ` + // Curve right
-                        `L ${asxLineStartX + 150} ${asxLineStartY + goDownDistance + cornerRadius}`; // Extend right
-
           const asxToHvcsLineStyled = createStyledPath(asxPath, {
             stroke: '#009fff',
             strokeWidth: '6',
             fill: 'none',
-            strokeLinecap: 'round',
+            strokeLinecap: 'butt',
             id: 'asx-to-hvcs-line'
           });
-          const backgroundGroupRef = document.getElementById('background-elements');
-          if (backgroundGroupRef) {
-            backgroundGroupRef.appendChild(asxToHvcsLineStyled);
+          if (window.asxBoundingBoxElement) {
+            svg.insertBefore(asxToHvcsLineStyled, window.asxBoundingBoxElement);
           } else {
-            svg.appendChild(asxToHvcsLineStyled);
+            svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
           }
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
@@ -5700,11 +5703,12 @@ function initializeDiagram() {
           });
           asxToAdiLineStyled.classList.add('thick-line-to-adi');
 
-          const foregroundGroupRef = document.getElementById('foreground-lines');
-          if (foregroundGroupRef) {
-            foregroundGroupRef.appendChild(asxToAdiLineStyled);
+          // Insert before ASX bounding box so box edge (including stroke) renders on top of line
+          if (window.asxBoundingBoxElement) {
+            svg.insertBefore(asxToAdiLineStyled, window.asxBoundingBoxElement);
           } else {
-            svg.appendChild(asxToAdiLineStyled);
+            // Fallback: insert at beginning
+            svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
           }
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
@@ -6760,9 +6764,9 @@ function initializeDiagram() {
         opaLabel.setAttribute('dominant-baseline', 'middle');
         labelsGroup.appendChild(opaLabel);
 
-        // Make OPA label interactive
+        // Make OPA label interactive (use same tooltip as box)
         if (typeof makeInteractive === 'function') {
-          makeInteractive(opaLabel, 'opa-label');
+          makeInteractive(opaLabel, 'opa-box');
         }
 
         // Draw red horizontal line from OPA box to edge of RBA red circle
@@ -7434,15 +7438,19 @@ function initializeDiagram() {
           console.log('Adjusting LVSS Y from', lvssY, 'to', iacLineY, 'diff:', yDiff);
 
           // Find and move all LVSS elements
-          const allCircles = labelsGroup.querySelectorAll('circle');
-          allCircles.forEach(circle => {
-            const cx = parseFloat(circle.getAttribute('cx'));
-            const cy = parseFloat(circle.getAttribute('cy'));
-            // Check if this is an LVSS circle (at the LVSS X position)
-            if (Math.abs(cx - lvssX) < 1) {
-              circle.setAttribute('cy', cy + yDiff);
-            }
-          });
+          if (window.lvssGearGroup) {
+            window.lvssGearGroup.setAttribute('transform', `translate(${lvssX}, ${iacLineY})`);
+          } else {
+            const allCircles = labelsGroup.querySelectorAll('circle');
+            allCircles.forEach(circle => {
+              const cx = parseFloat(circle.getAttribute('cx'));
+              const cy = parseFloat(circle.getAttribute('cy'));
+              // Check if this is an LVSS circle (at the LVSS X position)
+              if (Math.abs(cx - lvssX) < 1) {
+                circle.setAttribute('cy', cy + yDiff);
+              }
+            });
+          }
 
           // Find and move LVSS text
           const allTexts = labelsGroup.querySelectorAll('text');
@@ -7454,16 +7462,16 @@ function initializeDiagram() {
           });
 
           // Move gear paths
-          const allPaths = labelsGroup.querySelectorAll('path');
-          allPaths.forEach(path => {
-            const transform = path.getAttribute('transform') || '';
-            // Check if this path is transformed to LVSS position
-            if (transform.includes(`translate(${lvssX},`)) {
-              // This is the LVSS gear path - update its Y position
-              const newTransform = transform.replace(/translate\([^,]+,\s*([^)]+)\)/, `translate(${lvssX}, ${iacLineY})`);
-              path.setAttribute('transform', newTransform);
-            }
-          });
+          if (!window.lvssGearGroup) {
+            const allPaths = labelsGroup.querySelectorAll('path');
+            allPaths.forEach(path => {
+              const transform = path.getAttribute('transform') || '';
+              if (transform.includes(`translate(${lvssX},`)) {
+                const newTransform = transform.replace(/translate\([^,]+,\s*([^)]+)\)/, `translate(${lvssX}, ${iacLineY})`);
+                path.setAttribute('transform', newTransform);
+              }
+            });
+          }
 
           // Update the LVSS Y for line drawing
           window.lvssPosition.y = iacLineY;
@@ -8210,7 +8218,7 @@ function initializeDiagram() {
             if (window.whiteDotData && window.pexaConveyBoxData) {
               const originalLineEndX = controlX - 30; // Vertical part of the purple line (right end), shifted left to compensate for viewBox shift
               const lineWidth = window.pexaConveyBoxData.width;
-              const lineStartX = originalLineEndX - lineWidth; // Left end
+              const lineStartX = originalLineEndX - lineWidth - 50; // Left end, extended 50px further left
               window.whiteLineStartX = lineStartX; // Store for title alignment
               const lineY = (window.whiteDotData.eftposBottom + window.whiteDotData.pexaConveyTop) / 2;
 
@@ -8263,37 +8271,74 @@ function initializeDiagram() {
               // Upper section: arrow above text
               const upLabelY = lineY - 25;
               const upLabel = createStyledText(lineCenterX, upLabelY, 'Low Value / Retail', {
-                fill: '#ffffff',
+                fill: '#00FF41',
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
                 fontFamily: 'Courier New, monospace'
               });
+              upLabel.style.opacity = '0';
+              upLabel.style.transition = 'opacity 0.5s ease';
               labelsGroup.appendChild(upLabel);
+              if (!window.dividerElements) window.dividerElements = {};
+              window.dividerElements.upLabel = upLabel;
 
               const upArrowY = lineY - 60;
               const upArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               const upArrowPath = `M ${lineCenterX} ${upArrowY} L ${lineCenterX - arrowSize} ${upArrowY + arrowSize} L ${lineCenterX + arrowSize} ${upArrowY + arrowSize} Z`;
               upArrow.setAttribute('d', upArrowPath);
-              upArrow.setAttribute('fill', '#ffffff');
+              upArrow.setAttribute('fill', '#00FF41');
+              upArrow.setAttribute('class', 'bounce-up-arrow');
+              upArrow.style.opacity = '0';
+              upArrow.style.transition = 'opacity 0.5s ease';
+              window.dividerElements.upArrow = upArrow;
+
+              // Add bouncing animation to up arrow
+              const upAnimateY = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+              upAnimateY.setAttribute('attributeName', 'transform');
+              upAnimateY.setAttribute('attributeType', 'XML');
+              upAnimateY.setAttribute('type', 'translate');
+              upAnimateY.setAttribute('values', '0 0; 0 -5; 0 0');
+              upAnimateY.setAttribute('dur', '1.5s');
+              upAnimateY.setAttribute('repeatCount', 'indefinite');
+              upArrow.appendChild(upAnimateY);
+
               labelsGroup.appendChild(upArrow);
 
               // Lower section: text above arrow
               const downLabelY = lineY + 30;
               const downLabel = createStyledText(lineCenterX, downLabelY, 'High Value / Wholesale', {
-                fill: '#ffffff',
+                fill: '#00FF41',
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
                 fontFamily: 'Courier New, monospace'
               });
+              downLabel.style.opacity = '0';
+              downLabel.style.transition = 'opacity 0.5s ease';
               labelsGroup.appendChild(downLabel);
+              window.dividerElements.downLabel = downLabel;
 
               const downArrowY = lineY + 65;
               const downArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               const downArrowPath = `M ${lineCenterX} ${downArrowY} L ${lineCenterX - arrowSize} ${downArrowY - arrowSize} L ${lineCenterX + arrowSize} ${downArrowY - arrowSize} Z`;
               downArrow.setAttribute('d', downArrowPath);
-              downArrow.setAttribute('fill', '#ffffff');
+              downArrow.setAttribute('fill', '#00FF41');
+              downArrow.setAttribute('class', 'bounce-down-arrow');
+              downArrow.style.opacity = '0';
+              downArrow.style.transition = 'opacity 0.5s ease';
+              window.dividerElements.downArrow = downArrow;
+
+              // Add bouncing animation to down arrow
+              const downAnimateY = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+              downAnimateY.setAttribute('attributeName', 'transform');
+              downAnimateY.setAttribute('attributeType', 'XML');
+              downAnimateY.setAttribute('type', 'translate');
+              downAnimateY.setAttribute('values', '0 0; 0 5; 0 0');
+              downAnimateY.setAttribute('dur', '1.5s');
+              downAnimateY.setAttribute('repeatCount', 'indefinite');
+              downArrow.appendChild(downAnimateY);
+
               labelsGroup.appendChild(downArrow);
             }
           }
@@ -8566,7 +8611,7 @@ function initializeDiagram() {
 
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
-        const greenBorderLeftPadding = -25 + 2 - 1 - 3 + 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin - 3px additional trim + 1px increase
+        const greenBorderLeftPadding = -25 + 2 - 1 - 3 + 1 + 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin - 3px additional trim + 1px increase + 1px extra left padding
         const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
         const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1 - 3 + 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin - 3px additional trim + 1px bottom padding
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
@@ -8880,7 +8925,7 @@ const payToText = createStyledText(
   adjustedPayToBoxY + pacsBoxHeight / 2,
   'PayTo',
   {
-    fill: 'rgb(30,20,60)', // Darker purple text
+    fill: '#ffffff', // White text
     fontSize: '11'
   }
 );
@@ -8901,7 +8946,7 @@ const payIdText = createStyledText(
   adjustedPayIdBoxY + pacsBoxHeight / 2,
   'PayID',
   {
-    fill: 'rgb(30,20,60)', // Darker purple text
+    fill: '#ffffff', // White text
     fontSize: '11'
   }
 );
@@ -9414,22 +9459,22 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
   }
 
   // Add title label at the top of the diagram with typewriter effect
-  const titleX = window.dividerLineCenterX || (-600 + (1550 / 2)); // Align left edge with white line center
+  const titleX = (window.dividerLineCenterX || (-600 + (1550 / 2))) - (1550 * 0.05); // Shift 5% left
   const titleY = -148; // Near top of viewBox
-  const fullTitle = 'Reserve Bank Information and Transfer System (RITS)';
+  const fullTitle = 'RITS: Reserve Bank Information & Transfer System';
   const titleText = createStyledText(
     titleX,
     titleY,
     '',
     {
       textAnchor: 'start',
-      fill: '#ffffff',
+      fill: '#00FF41',
       fontSize: '32',
       fontWeight: 'bold',
       fontFamily: 'Courier New, monospace'
     }
   );
-  titleText.setAttribute('letter-spacing', '2');
+  titleText.setAttribute('letter-spacing', '4');
   labelsGroup.appendChild(titleText);
 
   // Typewriter effect
@@ -9440,6 +9485,16 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       titleText.textContent += fullTitle.charAt(charIndex);
       charIndex++;
       setTimeout(typeWriter, typeSpeed);
+    } else {
+      // Title typing complete - fade in divider elements
+      if (window.dividerElements) {
+        setTimeout(() => {
+          if (window.dividerElements.upLabel) window.dividerElements.upLabel.style.opacity = '1';
+          if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
+          if (window.dividerElements.downLabel) window.dividerElements.downLabel.style.opacity = '1';
+          if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
+        }, 200);
+      }
     }
   }
   typeWriter();

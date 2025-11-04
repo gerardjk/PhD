@@ -77,6 +77,19 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
     bigGearBorder.setAttribute('d', path);
     bigGearBorder.setAttribute('transform', `translate(${cx}, ${cyBig})`);
     bigGearBorder.setAttribute('fill-rule', 'evenodd');
+
+    if (!bigGearBorder.querySelector('animateTransform[data-spin="rits-outer"]')) {
+      const rotateAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+      rotateAnim.setAttribute('attributeName', 'transform');
+      rotateAnim.setAttribute('type', 'rotate');
+      rotateAnim.setAttribute('from', '0 0 0');
+      rotateAnim.setAttribute('to', '360 0 0');
+      rotateAnim.setAttribute('dur', '18s');
+      rotateAnim.setAttribute('repeatCount', 'indefinite');
+      rotateAnim.setAttribute('additive', 'sum');
+      rotateAnim.dataset.spin = 'rits-outer';
+      bigGearBorder.appendChild(rotateAnim);
+    }
   }
 
   const bigGear = document.getElementById('big-gear');
@@ -86,6 +99,19 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
     const bigToothHeight = 8;
     bigGear.setAttribute('d', createGearPath(bigGearRadius - bigToothHeight, 16, bigToothHeight, 0.25));
     bigGear.setAttribute('transform', `translate(${cx}, ${cyBig})`);
+
+    if (!bigGear.querySelector('animateTransform[data-spin="rits-inner"]')) {
+      const rotateAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+      rotateAnim.setAttribute('attributeName', 'transform');
+      rotateAnim.setAttribute('type', 'rotate');
+      rotateAnim.setAttribute('from', '0 0 0');
+      rotateAnim.setAttribute('to', '-360 0 0');
+      rotateAnim.setAttribute('dur', '18s');
+      rotateAnim.setAttribute('repeatCount', 'indefinite');
+      rotateAnim.setAttribute('additive', 'sum');
+      rotateAnim.dataset.spin = 'rits-inner';
+      bigGear.appendChild(rotateAnim);
+    }
   }
 
   // Small circle (FSS) gear
@@ -102,6 +128,19 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
     smallGearBorder.setAttribute('d', path);
     smallGearBorder.setAttribute('transform', `translate(${cx}, ${cySmall})`);
     smallGearBorder.setAttribute('fill-rule', 'evenodd');
+
+    if (!smallGearBorder.querySelector('animateTransform[data-spin="fss-outer"]')) {
+      const rotateAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+      rotateAnim.setAttribute('attributeName', 'transform');
+      rotateAnim.setAttribute('type', 'rotate');
+      rotateAnim.setAttribute('from', '0 0 0');
+      rotateAnim.setAttribute('to', '360 0 0');
+      rotateAnim.setAttribute('dur', '12s');
+      rotateAnim.setAttribute('repeatCount', 'indefinite');
+      rotateAnim.setAttribute('additive', 'sum');
+      rotateAnim.dataset.spin = 'fss-outer';
+      smallGearBorder.appendChild(rotateAnim);
+    }
   }
 
   const smallGear = document.getElementById('small-gear');
@@ -110,6 +149,19 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
     const smallToothHeight = 4;
     smallGear.setAttribute('d', createGearPath(smallGearRadius - smallToothHeight, 10, smallToothHeight, 0.25));
     smallGear.setAttribute('transform', `translate(${cx}, ${cySmall})`);
+
+    if (!smallGear.querySelector('animateTransform[data-spin="fss-inner"]')) {
+      const rotateAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+      rotateAnim.setAttribute('attributeName', 'transform');
+      rotateAnim.setAttribute('type', 'rotate');
+      rotateAnim.setAttribute('from', '0 0 0');
+      rotateAnim.setAttribute('to', '-360 0 0');
+      rotateAnim.setAttribute('dur', '12s');
+      rotateAnim.setAttribute('repeatCount', 'indefinite');
+      rotateAnim.setAttribute('additive', 'sum');
+      rotateAnim.dataset.spin = 'fss-inner';
+      smallGear.appendChild(rotateAnim);
+    }
   }
 }
 
@@ -140,6 +192,13 @@ function createLvssCircle(params, labelsGroup) {
     redCircleY = apcsY_ref + hexHeight_ref / 2 + 5;
   }
 
+  const gearTranslateGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  gearTranslateGroup.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
+  lvssGroup.appendChild(gearTranslateGroup);
+
+  const gearRotateGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  gearTranslateGroup.appendChild(gearRotateGroup);
+
   // Create gear border
   const strokeW = 3;
   const outerRadius = redCircleRadius - strokeW * 0.5;
@@ -151,20 +210,28 @@ function createLvssCircle(params, labelsGroup) {
   path += ` M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 0 ${innerRadius} 0`;
 
   const gearBorder = createStyledPath(path, {
-    fill: '#800020', // Maroon
+    fill: '#800040', // Purplish burgundy
     stroke: '#bcc3cf', // Brighter grey outline
     strokeWidth: '1'
   });
-  gearBorder.setAttribute('transform', `translate(${redCircleX}, ${redCircleY})`);
   gearBorder.setAttribute('fill-rule', 'evenodd');
-  lvssGroup.appendChild(gearBorder);
+  gearRotateGroup.appendChild(gearBorder);
+
+  const rotateAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+  rotateAnim.setAttribute('attributeName', 'transform');
+  rotateAnim.setAttribute('type', 'rotate');
+  rotateAnim.setAttribute('from', '0 0 0');
+  rotateAnim.setAttribute('to', '360 0 0');
+  rotateAnim.setAttribute('dur', '12s');
+  rotateAnim.setAttribute('repeatCount', 'indefinite');
+  gearRotateGroup.appendChild(rotateAnim);
 
   // Inner circle
-  const redCircleInner = createStyledCircle(redCircleX, redCircleY, innerRadius, {
-    fill: '#5A0016', // Darker maroon
+  const redCircleInner = createStyledCircle(0, 0, innerRadius, {
+    fill: '#5A0030', // Darker purplish burgundy
     stroke: 'none'
   });
-  lvssGroup.appendChild(redCircleInner);
+  gearRotateGroup.appendChild(redCircleInner);
 
   labelsGroup.appendChild(lvssGroup);
 
@@ -181,6 +248,8 @@ function createLvssCircle(params, labelsGroup) {
     y: redCircleY,
     radius: redCircleRadius
   };
+
+  window.lvssGearGroup = gearTranslateGroup;
 
   // Adjust LVSS position if needed to align with CECS
   adjustLvssPosition(labelsGroup);
@@ -202,15 +271,19 @@ function adjustLvssPosition(labelsGroup) {
   const yDiff = iacLineY - lvssY;
   if (Math.abs(yDiff) <= 1) return; // No adjustment needed
 
-  // Move all LVSS circles
-  const allCircles = labelsGroup.querySelectorAll('circle');
-  allCircles.forEach(circle => {
-    const cx = parseFloat(circle.getAttribute('cx'));
-    const cy = parseFloat(circle.getAttribute('cy'));
-    if (Math.abs(cx - lvssX) < 1) {
-      circle.setAttribute('cy', cy + yDiff);
-    }
-  });
+  if (window.lvssGearGroup) {
+    window.lvssGearGroup.setAttribute('transform', `translate(${lvssX}, ${lvssY + yDiff})`);
+  } else {
+    // Move all LVSS circles (legacy structure)
+    const allCircles = labelsGroup.querySelectorAll('circle');
+    allCircles.forEach(circle => {
+      const cx = parseFloat(circle.getAttribute('cx'));
+      const cy = parseFloat(circle.getAttribute('cy'));
+      if (Math.abs(cx - lvssX) < 1) {
+        circle.setAttribute('cy', cy + yDiff);
+      }
+    });
+  }
 
   // Move LVSS text
   const allTexts = labelsGroup.querySelectorAll('text');
@@ -221,15 +294,17 @@ function adjustLvssPosition(labelsGroup) {
     }
   });
 
-  // Move gear paths
-  const allPaths = labelsGroup.querySelectorAll('path');
-  allPaths.forEach(path => {
-    const transform = path.getAttribute('transform') || '';
-    if (transform.includes(`translate(${lvssX},`)) {
-      const newTransform = transform.replace(/translate\([^,]+,\s*([^)]+)\)/, `translate(${lvssX}, ${iacLineY})`);
-      path.setAttribute('transform', newTransform);
-    }
-  });
+  if (!window.lvssGearGroup) {
+    // Move gear paths in legacy structure
+    const allPaths = labelsGroup.querySelectorAll('path');
+    allPaths.forEach(path => {
+      const transform = path.getAttribute('transform') || '';
+      if (transform.includes(`translate(${lvssX},`)) {
+        const newTransform = transform.replace(/translate\([^,]+,\s*([^)]+)\)/, `translate(${lvssX}, ${iacLineY})`);
+        path.setAttribute('transform', newTransform);
+      }
+    });
+  }
 
   // Update stored position
   window.lvssPosition.y = iacLineY;

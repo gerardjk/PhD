@@ -26,11 +26,6 @@ const tooltipContent = {
     ],
     hours: 'Monday-Friday (RITS operating hours)'
   },
-  'opa-label': {
-    title: 'OPA',
-    subtitle: 'Official Public Account',
-    description: 'Commonwealth government\'s account with the Reserve Bank'
-  },
   'swift-pds-box': {
     title: 'SWIFT PDS',
     subtitle: 'SWIFT Payment Delivery System',
