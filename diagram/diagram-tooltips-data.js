@@ -4,28 +4,177 @@
  */
 
 const tooltipContent = {
-  // RBA and related
+  // ESA box
+  'blue-dots-background': {
+    title: 'ESAs',
+    subtitle: 'Exchange Settlement Accounts',
+    description: 'Accounts held by financial institutions at the Reserve Bank for settling payment obligations',
+    details: [
+      'Used to settle interbank payments',
+      '101 Accounts: 92 ADIs, 8 non-ADIs, and the Reserve Bank',
+      'FSS Participants hold separate FSS balance in addition to RITS balance',
+      'RITS balance earns overnight cash rate'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/esa/'
+  },
+
+  // Group boxes
+  'adi-box': {
+    title: 'ADIs',
+    subtitle: 'Authorised Deposit-taking Institutions',
+    description: 'Financial institutions authorised by APRA to take deposits from the public',
+    details: [
+      'Includes banks, building societies, and credit unions',
+      'Regulated by the Australian Prudential Regulation Authority',
+      'Direct participants in payment systems',
+      '92 ADIs hold Exchange Settlement Accounts'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'non-adis-box': {
+    title: 'Non-ADIs',
+    subtitle: 'Non-Authorised Deposit-taking Institutions',
+    description: 'Financial service providers that do not take deposits but participate in payment systems',
+    details: [
+      'Includes payment service providers and clearing facilities',
+      'Require ADI sponsorship to access payment systems',
+      'Subject to Reserve Bank oversight',
+      '8 non-ADIs hold Exchange Settlement Accounts'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/'
+  },
+
+  'domestic-banks-box': {
+    title: 'Domestic Banks',
+    subtitle: 'Australian-owned banking institutions',
+    description: 'Banks incorporated and headquartered in Australia',
+    details: [
+      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
+      'Regional and smaller Australian banks',
+      'Provide full retail and commercial banking services',
+      'Major participants in all payment systems'
+    ],
+    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
+  },
+
+  'international-banks-box': {
+    title: 'International Banks',
+    subtitle: 'Foreign-owned banking operations in Australia',
+    description: 'Banks with foreign ownership operating in Australia',
+    details: [
+      'Includes both branches and subsidiaries of foreign banks',
+      'Provide wholesale and retail banking services',
+      'Subject to APRA prudential standards',
+      'Participate in Australian payment systems'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'foreign-branches-box': {
+    title: 'Foreign Branches',
+    subtitle: 'Australian branches of foreign banks',
+    description: 'Branches of overseas banks operating in Australia',
+    details: [
+      'Not separate legal entities from parent bank',
+      'Capital and liquidity backed by parent',
+      'Primarily wholesale banking operations',
+      'Subject to APRA supervision'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'foreign-subsidiaries-box': {
+    title: 'Foreign Subsidiaries',
+    subtitle: 'Australian subsidiaries of foreign banks',
+    description: 'Locally incorporated subsidiaries of overseas banks',
+    details: [
+      'Separate legal entities from parent bank',
+      'Must meet Australian capital requirements',
+      'Offer retail and wholesale banking services',
+      'Supervised by APRA as Australian ADIs'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'specialised-adis-box': {
+    title: 'Specialised ADIs',
+    subtitle: 'ADIs with focused business models',
+    description: 'Deposit-taking institutions serving specific market segments',
+    details: [
+      'Payment-focused institutions',
+      'May not offer traditional banking products',
+      'Examples: Wise Australia, Tyro Payments',
+      'Subject to full APRA prudential standards'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'other-adis-box': {
+    title: 'Other ADIs',
+    subtitle: 'Building societies and credit unions',
+    description: 'Customer-owned banking institutions',
+    details: [
+      'Mutual ownership structure',
+      'Primarily retail banking services',
+      'Examples: Indue, CUSCAL, Australian Settlements',
+      'Full ADI regulatory requirements'
+    ],
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+  },
+
+  'psps-box': {
+    title: 'PSPs',
+    subtitle: 'Payment Service Providers',
+    description: 'Non-bank entities providing payment services',
+    details: [
+      'Fintechs and payment platforms',
+      'Require ADI sponsor for payment system access',
+      'Examples: Adyen, First Data Network',
+      'Subject to Reserve Bank oversight'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/'
+  },
+
+  'cs-box': {
+    title: 'CS',
+    subtitle: 'Clearing and Settlement Facilities',
+    description: 'Entities providing post-trade infrastructure services',
+    details: [
+      'ASX Settlement, ASX Clear, LCH',
+      'Licensed under Corporations Act',
+      'Subject to Reserve Bank oversight',
+      'Critical financial market infrastructure'
+    ],
+    link: 'https://www.rba.gov.au/fin-stability/financial-market-infrastructure/'
+  },
+
+  // RBA System
   'dot-0': {
     title: 'RBA',
     subtitle: 'Reserve Bank of Australia',
-    description: 'Central bank responsible for monetary policy and financial system stability',
+    description: 'Central bank responsible for Australian monetary policy and financial system stability',
     details: [
-      'Operates RITS (Reserve Bank Information and Transfer System)',
-      'Provides high-value settlement services',
-      'Oversees payment system stability'
-    ]
+      'Operator of RITS (Reserve Bank Information and Transfer System)',
+      'Supervisor of payment systems and financial market infrastructures',
+      'Manages aggregate Exchange Settlement funds supply',
+      'Producer of Australian banknotes',
+      'FSS participant'
+    ],
+    link: 'https://www.rba.gov.au/about-rba/'
   },
   'opa-box': {
     title: 'OPA',
     subtitle: 'Official Public Account',
-    description: 'Commonwealth government\'s account with the Reserve Bank',
+    description: 'Commonwealth Government\'s account with the Reserve Bank',
     details: [
-      'Holds Australian Government funds',
-      'Used for government payments and receipts',
-      'Managed by Reserve Bank of Australia'
+      'Holds Commonwealth funds prior to disbursement',
+      'Commonwealth is required by law to bank with the Reserve Bank'
     ],
-    hours: 'Monday-Friday (RITS operating hours)'
+    link: 'https://www.finance.gov.au/about-us/glossary/pgpa/term-official-public-account-opa'
   },
+
+
   'swift-pds-box': {
     title: 'SWIFT PDS',
     subtitle: 'SWIFT Payment Delivery System',

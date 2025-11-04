@@ -4,8 +4,6 @@
  */
 
 // Tooltip state
-const IS_FIREFOX = typeof navigator !== 'undefined' && /firefox/i.test((navigator.userAgent || '').toLowerCase());
-
 let currentTooltip = null;
 let currentHighlightedElements = new Set();
 
@@ -15,92 +13,128 @@ let currentHighlightedElements = new Set();
 function createTooltipElement() {
   if (document.getElementById('diagram-tooltip')) return;
 
-  const tooltip = document.createElement('div');
-  tooltip.id = 'diagram-tooltip';
-  tooltip.style.cssText = `
-    position: fixed;
-    background: rgba(12, 12, 12, 0.94);
-    color: white;
-    padding: 8px 9px;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
-    font-size: 9px;
-    line-height: 1.35;
-    letter-spacing: 0.01em;
-    pointer-events: none;
-    z-index: 10000;
-    width: 210px;
-    max-width: 210px;
-    max-height: 170px;
-    overflow-y: auto;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    word-break: break-word;
-    transform-origin: top left;
-  `;
-  if (IS_FIREFOX) {
-    tooltip.style.transform = 'scale(0.72)';
+  // Detect Firefox and DPI scaling
+  const isFirefox = /firefox/i.test(navigator.userAgent);
+  const dpr = window.devicePixelRatio || 1;
+  const scaleFactor = isFirefox ? (2 / dpr) : 1; // Firefox dpr=10, Chrome dpr=2
+
+  // Create wrapper div for scaling (Firefox only)
+  let tooltip;
+  if (isFirefox) {
+    // Outer wrapper handles scaling
+    const wrapper = document.createElement('div');
+    wrapper.id = 'diagram-tooltip';
+    wrapper.dataset.firefoxWrapper = 'true';
+    wrapper.style.position = 'fixed';
+    wrapper.style.transformOrigin = 'top left';
+    wrapper.style.transform = `scale(${scaleFactor})`;
+    wrapper.style.pointerEvents = 'auto';
+    wrapper.style.zIndex = '10000';
+    wrapper.style.opacity = '0';
+    wrapper.style.transition = 'opacity 0.15s ease';
+
+    // Inner div handles content and width (wraps at 320px before scaling)
+    tooltip = document.createElement('div');
+    tooltip.id = 'diagram-tooltip-content';
+    tooltip.style.width = '320px';
+    tooltip.style.background = 'rgba(12, 12, 12, 0.94)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '12px 14px';
+    tooltip.style.borderRadius = '6px';
+    tooltip.style.fontFamily = 'Arial, sans-serif';
+    tooltip.style.fontSize = '13px';
+    tooltip.style.lineHeight = '1.4';
+    tooltip.style.letterSpacing = '0.01em';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+    tooltip.style.cursor = 'pointer';
+    tooltip.style.whiteSpace = 'normal';
+    tooltip.style.overflowWrap = 'break-word';
+
+    wrapper.appendChild(tooltip);
+    document.body.appendChild(wrapper);
   } else {
-    tooltip.style.transform = 'scale(0.85)';
+    // Chrome: simple single div
+    tooltip = document.createElement('div');
+    tooltip.id = 'diagram-tooltip';
+    tooltip.style.position = 'fixed';
+    tooltip.style.background = 'rgba(12, 12, 12, 0.94)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '12px 14px';
+    tooltip.style.borderRadius = '6px';
+    tooltip.style.fontFamily = 'Arial, sans-serif';
+    tooltip.style.fontSize = '13px';
+    tooltip.style.lineHeight = '1.4';
+    tooltip.style.letterSpacing = '0.01em';
+    tooltip.style.pointerEvents = 'auto';
+    tooltip.style.zIndex = '10000';
+    tooltip.style.width = '320px';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+    tooltip.style.opacity = '0';
+    tooltip.style.transition = 'opacity 0.15s ease';
+    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+    tooltip.style.transformOrigin = 'top left';
+    tooltip.style.cursor = 'pointer';
+    tooltip.style.whiteSpace = 'normal';
+    tooltip.style.overflowWrap = 'break-word';
+
+    document.body.appendChild(tooltip);
   }
-  document.body.appendChild(tooltip);
 }
 
 /**
  * Show tooltip for an element
  */
 function showTooltip(elementId, event) {
-  const tooltip = document.getElementById('diagram-tooltip');
-  if (!tooltip) return;
+  const tooltipWrapper = document.getElementById('diagram-tooltip');
+  if (!tooltipWrapper) return;
+
+  // Check if this is Firefox wrapper structure or Chrome single div
+  const isFirefoxWrapper = tooltipWrapper.dataset.firefoxWrapper === 'true';
+  const tooltipContent = isFirefoxWrapper ? document.getElementById('diagram-tooltip-content') : tooltipWrapper;
 
   const content = window.tooltipContent?.[elementId];
   if (!content) {
-    tooltip.style.opacity = '0';
+    tooltipWrapper.style.opacity = '0';
     return;
   }
 
-  // Build tooltip HTML
-  const truncate = (str, max) => (str && str.length > max) ? `${str.slice(0, max - 1)}…` : str || '';
+  // Build tooltip HTML with new design
+  let html = '';
 
-  const titleFontSize = 9;
-  const subtitleFontSize = 8.5;
-  const bodyFontSize = 8;
-  const detailFontSize = 7.8;
-  const hoursFontSize = 8;
+  // Title - larger, white, bold
+  if (content.title) {
+    html += `<div style="font-weight: bold; font-size: 17px; color: white; margin-bottom: 4px;">${content.title}</div>`;
+  }
 
-  let html = `<div style="font-weight: bold; font-size: ${titleFontSize}px; margin-bottom: 1px;">${truncate(content.title, 70)}</div>`;
-
+  // Subtitle - normal size, white
   if (content.subtitle) {
-    html += `<div style="color: #bbb; font-size: ${subtitleFontSize}px; margin-bottom: 2px;">${truncate(content.subtitle, 90)}</div>`;
+    html += `<div style="font-size: 13px; color: white; margin-bottom: 8px;">${content.subtitle}</div>`;
   }
 
+  // Description - smaller, white
   if (content.description) {
-    html += `<div style="margin-bottom: 3px; font-size: ${bodyFontSize}px; line-height: 1.28;">${truncate(content.description, 170)}</div>`;
+    html += `<div style="font-size: 11px; color: white; line-height: 1.45; margin-bottom: 4px;">${content.description}</div>`;
   }
 
+  // Details - each on new line, smaller, grey, no bullet points
   if (content.details && content.details.length > 0) {
-    const maxItems = 3;
-    const detailItems = content.details.slice(0, maxItems);
-    html += `<ul style="margin: 2px 0 0 0; padding-left: 10px; font-size: ${detailFontSize}px; line-height: 1.22;">`;
-    detailItems.forEach(detail => {
-      html += `<li style="margin: 1px 0;">${truncate(detail, 110)}</li>`;
+    content.details.forEach(detail => {
+      html += `<div style="font-size: 11px; color: #aaa; line-height: 1.45;">${detail}</div>`;
     });
-    if (content.details.length > maxItems) {
-      const remaining = content.details.length - maxItems;
-      html += `<li style="margin: 1px 0; color: #bbb;">+ ${remaining} more</li>`;
+  }
+
+  tooltipContent.innerHTML = html;
+
+  // Store link for click handler
+  tooltipContent.dataset.link = content.link || '';
+
+  // Remove old click listeners and add new one
+  tooltipContent.onclick = function() {
+    if (tooltipContent.dataset.link) {
+      window.open(tooltipContent.dataset.link, '_blank', 'noopener,noreferrer');
     }
-    html += '</ul>';
-  }
-
-  if (content.hours) {
-    html += `<div style="margin-top: 3px; padding-top: 2px; border-top: 1px solid rgba(255,255,255,0.2); color: #8cf; font-size: ${hoursFontSize}px;">
-      ⏰ ${truncate(content.hours, 80)}
-    </div>`;
-  }
-
-  tooltip.innerHTML = html;
+  };
 
   // Position tooltip near mouse
   const padding = 15;
@@ -108,7 +142,7 @@ function showTooltip(elementId, event) {
   let y = event.clientY + padding;
 
   // Keep tooltip on screen
-  const rect = tooltip.getBoundingClientRect();
+  const rect = tooltipWrapper.getBoundingClientRect();
   if (x + rect.width > window.innerWidth) {
     x = event.clientX - rect.width - padding;
   }
@@ -116,9 +150,9 @@ function showTooltip(elementId, event) {
     y = event.clientY - rect.height - padding;
   }
 
-  tooltip.style.left = x + 'px';
-  tooltip.style.top = y + 'px';
-  tooltip.style.opacity = '1';
+  tooltipWrapper.style.left = x + 'px';
+  tooltipWrapper.style.top = y + 'px';
+  tooltipWrapper.style.opacity = '1';
 }
 
 /**
@@ -206,10 +240,72 @@ function unhighlightElement(elementId) {
  * Clear all highlights
  */
 function clearHighlights() {
-  currentHighlightedElements.forEach(elementId => {
-    unhighlightElement(elementId);
+  currentHighlightedElements.forEach(item => {
+    // Handle both string IDs and direct element references
+    if (typeof item === 'string') {
+      unhighlightElement(item);
+    } else if (item instanceof Element) {
+      // Directly unhighlight element
+      item.classList.remove('highlighted');
+      if (item.dataset.originalOpacity) {
+        item.style.opacity = item.dataset.originalOpacity;
+      }
+      if (item.dataset.originalFilter) {
+        item.style.filter = item.dataset.originalFilter;
+      }
+      if (item.tagName.toLowerCase() === 'line' && item.dataset.originalStrokeWidth) {
+        item.setAttribute('stroke-width', item.dataset.originalStrokeWidth);
+      }
+    }
   });
   currentHighlightedElements.clear();
+}
+
+/**
+ * Helper function to highlight circles within a box's bounds
+ * @param {string} boxElementId - ID of the box element
+ */
+function highlightCirclesInBox(boxElementId) {
+  const boxElement = document.getElementById(boxElementId);
+  if (!boxElement) return;
+
+  // Get box bounds
+  const boxRect = boxElement.getBBox();
+  const boxLeft = boxRect.x;
+  const boxRight = boxRect.x + boxRect.width;
+  const boxTop = boxRect.y;
+  const boxBottom = boxRect.y + boxRect.height;
+
+  // Find and highlight all circles within the box
+  const allCircles = document.querySelectorAll('circle');
+  allCircles.forEach(circle => {
+    // Skip the RBA black circle (dot-0)
+    if (circle.dataset.interactiveId === 'dot-0') {
+      return;
+    }
+
+    const cx = parseFloat(circle.getAttribute('cx'));
+    const cy = parseFloat(circle.getAttribute('cy'));
+    const r = parseFloat(circle.getAttribute('r'));
+
+    // Only highlight small circles (dots), not the big RITS/FSS circles
+    if (r && r < 20 && cx && cy) {
+      // Check if circle center is within box bounds
+      if (cx >= boxLeft && cx <= boxRight && cy >= boxTop && cy <= boxBottom) {
+        // Apply highlight directly to circle element
+        circle.classList.add('highlighted');
+        if (!circle.dataset.originalOpacity) {
+          circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
+          circle.dataset.originalFilter = circle.style.filter || 'none';
+        }
+        circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        circle.style.opacity = '1';
+
+        // Store reference so we can unhighlight later
+        currentHighlightedElements.add(circle);
+      }
+    }
+  });
 }
 
 /**
@@ -222,12 +318,50 @@ function handleMouseEnter(event) {
   // Show tooltip for this specific element
   showTooltip(elementId, event);
 
-  // Highlight this element and all related elements
-  const relatedElements = window.getRelatedElements?.(elementId) || new Set([elementId]);
+  // Special handling for boxes that should highlight contained dots
+  if (elementId === 'blue-dots-background') {
+    // ESA box - highlight all blue and yellow dots (excluding RBA)
+    highlightElement(elementId);
 
-  relatedElements.forEach(id => {
-    highlightElement(id);
-  });
+    const allCircles = document.querySelectorAll('circle');
+    allCircles.forEach(circle => {
+      if (circle.dataset.interactiveId === 'dot-0') {
+        return;
+      }
+
+      const cx = parseFloat(circle.getAttribute('cx'));
+      const cy = parseFloat(circle.getAttribute('cy'));
+      const r = parseFloat(circle.getAttribute('r'));
+
+      if (r && r < 20 && cx && cy) {
+        circle.classList.add('highlighted');
+        if (!circle.dataset.originalOpacity) {
+          circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
+          circle.dataset.originalFilter = circle.style.filter || 'none';
+        }
+        circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        circle.style.opacity = '1';
+        currentHighlightedElements.add(circle);
+      }
+    });
+  } else if (elementId === 'adi-box' || elementId === 'non-adis-box' ||
+             elementId === 'domestic-banks-box' || elementId === 'international-banks-box' ||
+             elementId === 'foreign-branches-box' || elementId === 'foreign-subsidiaries-box' ||
+             elementId === 'specialised-adis-box' || elementId === 'other-adis-box' ||
+             elementId === 'psps-box' || elementId === 'cs-box') {
+    // Highlight the box itself
+    highlightElement(elementId);
+
+    // Highlight all circles within this box
+    highlightCirclesInBox(elementId);
+  } else {
+    // Normal highlighting - highlight this element and all related elements
+    const relatedElements = window.getRelatedElements?.(elementId) || new Set([elementId]);
+
+    relatedElements.forEach(id => {
+      highlightElement(id);
+    });
+  }
 }
 
 /**
@@ -262,6 +396,19 @@ function handleMouseLeave(event) {
 }
 
 /**
+ * Handle click on an interactive element - open link if available
+ */
+function handleClick(event) {
+  const elementId = event.currentTarget.dataset.interactiveId;
+  if (!elementId) return;
+
+  const content = window.tooltipContent?.[elementId];
+  if (content && content.link) {
+    window.open(content.link, '_blank', 'noopener,noreferrer');
+  }
+}
+
+/**
  * Make an SVG element interactive
  * Call this when creating elements in diagram-core-refactored.js
  */
@@ -274,6 +421,7 @@ function makeInteractive(element, elementId) {
   element.addEventListener('mouseenter', handleMouseEnter);
   element.addEventListener('mousemove', handleMouseMove);
   element.addEventListener('mouseleave', handleMouseLeave);
+  element.addEventListener('click', handleClick);
 }
 
 /**
@@ -296,4 +444,10 @@ if (document.readyState === 'loading') {
 if (typeof window !== 'undefined') {
   window.makeInteractive = makeInteractive;
   window.initializeInteractive = initializeInteractive;
+  window.showTooltip = showTooltip;
+  window.hideTooltip = hideTooltip;
+  window.highlightElement = highlightElement;
+  window.unhighlightElement = unhighlightElement;
+  window.clearHighlights = clearHighlights;
+  window.highlightCirclesInBox = highlightCirclesInBox;
 }

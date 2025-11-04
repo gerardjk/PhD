@@ -328,23 +328,31 @@ function initializeDiagram() {
 
       let path = document.getElementById('npp-to-adi-line');
       if (!path) {
-        path = createStyledPath(pathData, {
-          stroke: '#5dd9b8',
-          strokeWidth: '6',
-          fill: 'none',
-          strokeLinecap: 'round',
+       path = createStyledPath(pathData, {
+         stroke: '#5dd9b8',
+         strokeWidth: '6',
+         fill: 'none',
+          strokeLinecap: 'butt',
           id: 'npp-to-adi-line'
         });
         path.classList.add('thick-line-to-adi');
       }
 
       path.setAttribute('d', pathData);
+      path.setAttribute('stroke-linecap', 'butt');
 
-      const foregroundGroupRef = document.getElementById('foreground-lines');
-      if (foregroundGroupRef) {
-        foregroundGroupRef.appendChild(path);
-      } else if (!path.parentNode) {
-        svg.appendChild(path);
+      const purpleBoxParent = document.getElementById('npp-purple-box') || document.getElementById('npp-box');
+      if (purpleBoxParent && purpleBoxParent.parentNode) {
+        if (path.parentNode !== purpleBoxParent.parentNode || path.nextSibling !== purpleBoxParent) {
+          purpleBoxParent.parentNode.insertBefore(path, purpleBoxParent);
+        }
+      } else {
+        const foregroundGroupRef = document.getElementById('foreground-lines');
+        if (foregroundGroupRef) {
+          foregroundGroupRef.appendChild(path);
+        } else if (!path.parentNode) {
+          svg.appendChild(path);
+        }
       }
 
       window.nppToAdiGeometry = {
@@ -614,9 +622,9 @@ function initializeDiagram() {
           } else {
             blueLinesGroup.appendChild(line);
           }
-          // Make RBA blue line interactive
+          // Make RBA blue line interactive (use RBA tooltip)
           if (typeof makeInteractive === 'function') {
-            makeInteractive(line, 'rba-blue-line');
+            makeInteractive(line, 'dot-0');
           }
         } else {
           // Append to blueLinesGroup so blue lines appear UNDER blue circles
@@ -669,9 +677,9 @@ function initializeDiagram() {
           } else {
             circlesGroup.appendChild(circle);
           }
-          // Make RBA blue dot interactive
+          // Make RBA blue dot interactive (use RBA tooltip)
           if (typeof makeInteractive === 'function') {
-            makeInteractive(circle, 'rba-blue-dot');
+            makeInteractive(circle, 'dot-0');
           }
         } else {
           // For Specialised ADIs and Other ADIs dots, control stacking order
@@ -6415,9 +6423,9 @@ function initializeDiagram() {
           } else {
             orangeLinesGroup.appendChild(orangeLine);
           }
-          // Make RBA yellow line interactive
+          // Make RBA yellow line interactive (use RBA tooltip)
           if (typeof makeInteractive === 'function') {
-            makeInteractive(orangeLine, 'rba-yellow-line');
+            makeInteractive(orangeLine, 'dot-0');
           }
         } else {
           // Store yellow line for later interleaved rendering
@@ -6437,9 +6445,9 @@ function initializeDiagram() {
           } else {
             circlesGroup.appendChild(orangeCircle);
           }
-          // Make RBA yellow dot interactive
+          // Make RBA yellow dot interactive (use RBA tooltip)
           if (typeof makeInteractive === 'function') {
-            makeInteractive(orangeCircle, 'rba-yellow-dot');
+            makeInteractive(orangeCircle, 'dot-0');
           }
         } else {
           // Store yellow circle for later interleaved rendering
@@ -7117,6 +7125,11 @@ function initializeDiagram() {
       );
       labelsGroup.appendChild(esasText2);
 
+      // Make ESA box interactive
+      if (typeof makeInteractive === 'function') {
+        makeInteractive(esaRect, 'blue-dots-background');
+      }
+
       // Store ESAs box dimensions for later use
       window.esasBoxData = {
         x: rectX,
@@ -7529,7 +7542,6 @@ function initializeDiagram() {
           // Lines should stay close together
           // Small vertical offset to keep lines visible but close
           const lineSpacing = 5; // pixels between lines
-          // IAC (index 0) should have no offset to be perfectly horizontal
           const verticalOffset = source.label === 'IAC' ? 0 : (index - 2) * lineSpacing;
 
           // Calculate path that goes slightly above/below LVSS center
@@ -7560,29 +7572,25 @@ function initializeDiagram() {
           const control2X = lvssCenterX + dx2 * 0.4;
           const control2Y = lvssPassY + dy2 * 0.3;
 
-          // Create double line effect like eftpos/pexa
-          const lineGap = 3; // Gap between the two lines
+                    const lineGap = 3; // Gap between the two lines
           const greyColor = '#C0C0C0'; // Silver color
 
-          // Create two parallel paths for double line effect
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
-            // Offset the path perpendicular to its direction
             const angle = Math.atan2(dy1, dx1);
             const offsetX = -Math.sin(angle) * lineOffset;
             const offsetY = Math.cos(angle) * lineOffset;
 
-            // Create offset path data
             const offsetPathData = `M ${source.x + offsetX} ${sourceY + offsetY}
                                    Q ${control1X + offsetX} ${control1Y + offsetY}, ${lvssCenterX + offsetX} ${lvssPassY + offsetY}
                                    Q ${control2X + offsetX} ${control2Y + offsetY}, ${endX + offsetX} ${endY + offsetY}`;
 
             const parallelPath = createStyledPath(offsetPathData, {
               stroke: greyColor,
-              strokeWidth: '2.5', // Thin lines for double effect
+              strokeWidth: '2.5',
               fill: 'none',
               strokeLinecap: 'round'
             });
-            svg.insertBefore(parallelPath, svg.firstChild); // Insert at beginning so lines appear behind everything
+            svg.insertBefore(parallelPath, svg.firstChild);
           }
         });
       }
@@ -7723,9 +7731,15 @@ function initializeDiagram() {
           }
         );
         yellowRect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
+        yellowRect.id = 'international-banks-box';
 
         // Insert after the inner rectangle so it appears on top
         svg.insertBefore(yellowRect, blueLinesGroup);
+
+        // Make International Banks box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(yellowRect, 'international-banks-box');
+        }
 
         // Add "International Banks" text to top right corner of yellow rectangle (two lines)
         const yellowRectX = parseFloat(yellowRect.getAttribute('x'));
@@ -7792,9 +7806,15 @@ function initializeDiagram() {
           }
         );
         greenRect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
+        greenRect.id = 'domestic-banks-box';
 
         // Insert after the yellow rectangle so it appears on top
         svg.insertBefore(greenRect, blueLinesGroup);
+
+        // Make Domestic Banks box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(greenRect, 'domestic-banks-box');
+        }
 
         // Add "Domestic Banks" text to bottom right corner of purple rectangle
         const greenRectX = parseFloat(greenRect.getAttribute('x'));
@@ -7814,6 +7834,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(domesticBanksText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(domesticBanksText, 'domestic-banks-box');
+        }
       }
 
       // Add fifth rectangle for Group 2 (dots 1-44)
@@ -7849,9 +7872,15 @@ function initializeDiagram() {
           }
         );
         group2Rect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
+        group2Rect.id = 'foreign-branches-box';
 
         // Insert on top of other rectangles
         svg.insertBefore(group2Rect, blueLinesGroup);
+
+        // Make Foreign Branches box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(group2Rect, 'foreign-branches-box');
+        }
 
         // Add "Foreign Branches" text to bottom left corner of group 2 box
         const group2RectX = parseFloat(group2Rect.getAttribute('x'));
@@ -7872,6 +7901,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(foreignBranchesText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(foreignBranchesText, 'foreign-branches-box');
+        }
       }
 
       // Add sixth rectangle for Group 3 (dots 45-49)
@@ -7907,9 +7939,15 @@ function initializeDiagram() {
           }
         );
         group3Rect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
+        group3Rect.id = 'foreign-subsidiaries-box';
 
         // Insert on top of other rectangles
         svg.insertBefore(group3Rect, blueLinesGroup);
+
+        // Make Foreign Subsidiaries box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(group3Rect, 'foreign-subsidiaries-box');
+        }
 
         // Add "Foreign Subsidiaries" text to bottom left corner of group 3 box
         const group3RectX = parseFloat(group3Rect.getAttribute('x'));
@@ -7930,6 +7968,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(foreignSubsText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(foreignSubsText, 'foreign-subsidiaries-box');
+        }
       }
 
       // Add seventh rectangle for Group 5a - Specialised ADIs (dots 86, 88)
@@ -7965,9 +8006,15 @@ function initializeDiagram() {
           }
         );
         group5aRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
+        group5aRect.id = 'specialised-adis-box';
 
         // Insert on top of other rectangles
         svg.insertBefore(group5aRect, blueLinesGroup);
+
+        // Make Specialised ADIs box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(group5aRect, 'specialised-adis-box');
+        }
 
         // Add "Specialised ADIs" label to group 5a
         const group5aRectX = parseFloat(group5aRect.getAttribute('x'));
@@ -7988,6 +8035,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(specialisedADIsText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(specialisedADIsText, 'specialised-adis-box');
+        }
       }
 
       // Add eighth rectangle for Group 5b - Other ADIs (dots 84, 85, 87, 89-91)
@@ -8023,9 +8073,15 @@ function initializeDiagram() {
           }
         );
         group5bRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
+        group5bRect.id = 'other-adis-box';
 
         // Insert on top of other rectangles
         svg.insertBefore(group5bRect, blueLinesGroup);
+
+        // Make Other ADIs box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(group5bRect, 'other-adis-box');
+        }
 
         // Add "Other ADIs" label to group 5b
         const group5bRectX = parseFloat(group5bRect.getAttribute('x'));
@@ -8045,6 +8101,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(otherADIsText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(otherADIsText, 'other-adis-box');
+        }
       }
 
       // Add ninth rectangle for entire Group 6 (dots 92-99)
@@ -8268,10 +8327,29 @@ function initializeDiagram() {
               window.dividerLineCenterX = lineCenterX; // Store for title alignment
               const arrowSize = 10;
 
+              if (typeof window.startDividerLabelTypewriter !== 'function') {
+                window.startDividerLabelTypewriter = (element, text, speed = 45) => {
+                  if (!element || !text) return;
+                  element.textContent = '';
+                  let index = 0;
+                  const step = () => {
+                    if (index < text.length) {
+                      element.textContent += text.charAt(index);
+                      index += 1;
+                      window.setTimeout(step, speed);
+                    } else {
+                      element.textContent = text;
+                    }
+                  };
+                  step();
+                };
+              }
+
               // Upper section: arrow above text
               const upLabelY = lineY - 25;
-              const upLabel = createStyledText(lineCenterX, upLabelY, 'Low Value / Retail', {
-                fill: '#00FF41',
+              const upLabelTextValue = 'Low Value / Retail';
+              const upLabel = createStyledText(lineCenterX, upLabelY, '', {
+                fill: '#9BFFCD',
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
@@ -8279,6 +8357,7 @@ function initializeDiagram() {
               });
               upLabel.style.opacity = '0';
               upLabel.style.transition = 'opacity 0.5s ease';
+              upLabel.dataset.fullText = upLabelTextValue;
               labelsGroup.appendChild(upLabel);
               if (!window.dividerElements) window.dividerElements = {};
               window.dividerElements.upLabel = upLabel;
@@ -8287,7 +8366,7 @@ function initializeDiagram() {
               const upArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               const upArrowPath = `M ${lineCenterX} ${upArrowY} L ${lineCenterX - arrowSize} ${upArrowY + arrowSize} L ${lineCenterX + arrowSize} ${upArrowY + arrowSize} Z`;
               upArrow.setAttribute('d', upArrowPath);
-              upArrow.setAttribute('fill', '#00FF41');
+              upArrow.setAttribute('fill', '#9BFFCD');
               upArrow.setAttribute('class', 'bounce-up-arrow');
               upArrow.style.opacity = '0';
               upArrow.style.transition = 'opacity 0.5s ease';
@@ -8307,8 +8386,9 @@ function initializeDiagram() {
 
               // Lower section: text above arrow
               const downLabelY = lineY + 30;
-              const downLabel = createStyledText(lineCenterX, downLabelY, 'High Value / Wholesale', {
-                fill: '#00FF41',
+              const downLabelTextValue = 'High Value / Wholesale';
+              const downLabel = createStyledText(lineCenterX, downLabelY, '', {
+                fill: '#9BFFCD',
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
@@ -8316,6 +8396,7 @@ function initializeDiagram() {
               });
               downLabel.style.opacity = '0';
               downLabel.style.transition = 'opacity 0.5s ease';
+              downLabel.dataset.fullText = downLabelTextValue;
               labelsGroup.appendChild(downLabel);
               window.dividerElements.downLabel = downLabel;
 
@@ -8323,7 +8404,7 @@ function initializeDiagram() {
               const downArrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               const downArrowPath = `M ${lineCenterX} ${downArrowY} L ${lineCenterX - arrowSize} ${downArrowY - arrowSize} L ${lineCenterX + arrowSize} ${downArrowY - arrowSize} Z`;
               downArrow.setAttribute('d', downArrowPath);
-              downArrow.setAttribute('fill', '#00FF41');
+              downArrow.setAttribute('fill', '#9BFFCD');
               downArrow.setAttribute('class', 'bounce-down-arrow');
               downArrow.style.opacity = '0';
               downArrow.style.transition = 'opacity 0.5s ease';
@@ -8363,8 +8444,14 @@ function initializeDiagram() {
             rx: '8' // Same rounded corners as ADI box
           });
           nonAdiRect.setAttribute('fill-opacity', '0.85'); // Made more opaque
+          nonAdiRect.id = 'non-adis-box';
 
           svg.insertBefore(nonAdiRect, blueLinesGroup);
+
+          // Make Non-ADIs box interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(nonAdiRect, 'non-adis-box');
+          }
 
           // Store non-ADI box data for blue line
           if (!window.nonAdiBoxData) window.nonAdiBoxData = {};
@@ -8499,6 +8586,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(nonADIsText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(nonADIsText, 'non-adis-box');
+        }
 
         // Extend ASX blue line to curve into non-ADIs box (mirroring green line)
         if (window.asxLineData && window.nonAdiBoxData) {
@@ -8573,9 +8663,15 @@ function initializeDiagram() {
           }
         );
         redBorderRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
+        redBorderRect.id = 'psps-box';
 
         // Insert on top of nonAdiRect
         svg.insertBefore(redBorderRect, blueLinesGroup);
+
+        // Make PSPs box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(redBorderRect, 'psps-box');
+        }
 
         // Add "PSPs" label to red box
         const redRectX = parseFloat(redBorderRect.getAttribute('x'));
@@ -8594,6 +8690,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(pspsText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(pspsText, 'psps-box');
+        }
       }
 
       // Add eleventh rectangle for green-bordered dots (dots 96-98)
@@ -8634,9 +8733,15 @@ function initializeDiagram() {
           }
         );
         greenBorderRect.setAttribute('fill-opacity', '0.5'); // Reduced opacity
+        greenBorderRect.id = 'cs-box';
 
         // Insert on top of nonAdiRect
         svg.insertBefore(greenBorderRect, blueLinesGroup);
+
+        // Make CS box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(greenBorderRect, 'cs-box');
+        }
 
         // Add "CS" label to green box
         const greenRectX = parseFloat(greenBorderRect.getAttribute('x'));
@@ -8655,6 +8760,9 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(csText);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(csText, 'cs-box');
+        }
       }
 
     // === Adjust how far above/below the arc extends ===
@@ -9428,9 +9536,101 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         }
       );
       adiRect.setAttribute('fill-opacity', '0.65'); // Less opaque
+      adiRect.id = 'adi-box';
 
+      // Insert in original position (right after ESA box)
       const esaRect = document.getElementById('blue-dots-background');
       svg.insertBefore(adiRect, esaRect.nextSibling);
+
+      // Make ADI box interactive
+      if (typeof makeInteractive === 'function') {
+        makeInteractive(adiRect, 'adi-box');
+      }
+
+      // Create invisible overlay for capturing pointer events in gaps
+      const adiOverlay = createStyledRect(
+        minX2 - innerLeftPadding - dotRadius,
+        minY2 - innerTopPadding - dotRadius,
+        (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
+        (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
+        {
+          fill: 'none',
+          stroke: 'none',
+          pointerEvents: 'all'
+        }
+      );
+      adiOverlay.style.pointerEvents = 'all';
+      adiOverlay.id = 'adi-box-overlay'; // Different ID to avoid being highlighted
+
+      // Insert right before the first interior box so overlay is UNDER all interior boxes
+      // This way interior boxes can capture events, but gaps show ADI tooltip
+      const internationalBanksBox = document.getElementById('international-banks-box');
+      const domesticBanksBox = document.getElementById('domestic-banks-box');
+      const firstBox = internationalBanksBox || domesticBanksBox;
+
+      if (firstBox) {
+        svg.insertBefore(adiOverlay, firstBox);
+      } else {
+        // Fallback: insert before blue lines group
+        const blueLinesGroup = document.getElementById('blue-connecting-lines');
+        if (blueLinesGroup) {
+          svg.insertBefore(adiOverlay, blueLinesGroup);
+        } else {
+          svg.appendChild(adiOverlay);
+        }
+      }
+
+      // Make overlay interactive manually - set data attribute but don't call makeInteractive
+      // so it triggers ADI tooltip but doesn't get highlighted (since highlightElement uses data-interactive-id)
+      // Instead we manually add event listeners that reference 'adi-box'
+      adiOverlay.setAttribute('data-interactive-id', 'adi-box-trigger'); // Different ID to prevent highlighting
+      adiOverlay.style.cursor = 'pointer';
+
+      // Manually add event listeners that act as if this is the adi-box
+      adiOverlay.addEventListener('mouseenter', (event) => {
+        if (typeof window.showTooltip === 'function') {
+          window.showTooltip('adi-box', event);
+        }
+        if (typeof window.highlightElement === 'function') {
+          window.highlightElement('adi-box');
+        }
+        if (typeof window.highlightCirclesInBox === 'function') {
+          window.highlightCirclesInBox('adi-box');
+        }
+      });
+
+      adiOverlay.addEventListener('mousemove', (event) => {
+        const tooltip = document.getElementById('diagram-tooltip');
+        if (!tooltip || tooltip.style.opacity === '0') return;
+        const padding = 15;
+        let x = event.clientX + padding;
+        let y = event.clientY + padding;
+        const rect = tooltip.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) {
+          x = event.clientX - rect.width - padding;
+        }
+        if (y + rect.height > window.innerHeight) {
+          y = event.clientY - rect.height - padding;
+        }
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      });
+
+      adiOverlay.addEventListener('mouseleave', () => {
+        if (typeof window.hideTooltip === 'function') {
+          window.hideTooltip();
+        }
+        if (typeof window.clearHighlights === 'function') {
+          window.clearHighlights();
+        }
+      });
+
+      adiOverlay.addEventListener('click', () => {
+        const content = window.tooltipContent?.['adi-box'];
+        if (content && content.link) {
+          window.open(content.link, '_blank', 'noopener,noreferrer');
+        }
+      });
 
       // Store ADI box position for HVCS line
       if (!window.adiBoxData) window.adiBoxData = {};
@@ -9455,6 +9655,9 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         }
       );
       labelsGroup.appendChild(adisText);
+      if (typeof makeInteractive === 'function') {
+        makeInteractive(adisText, 'adi-box');
+      }
     }
   }
 
@@ -9468,7 +9671,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
     '',
     {
       textAnchor: 'start',
-      fill: '#00FF41',
+      fill: '#9BFFCD',
       fontSize: '32',
       fontWeight: 'bold',
       fontFamily: 'Courier New, monospace'
@@ -9483,15 +9686,32 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
   function typeWriter() {
     if (charIndex < fullTitle.length) {
       titleText.textContent += fullTitle.charAt(charIndex);
-      charIndex++;
+      charIndex += 1;
       setTimeout(typeWriter, typeSpeed);
     } else {
-      // Title typing complete - fade in divider elements
+      titleText.textContent = fullTitle;
+      // Fade in divider elements once typing completes
       if (window.dividerElements) {
-        setTimeout(() => {
-          if (window.dividerElements.upLabel) window.dividerElements.upLabel.style.opacity = '1';
+        window.setTimeout(() => {
+          if (window.dividerElements.upLabel) {
+            window.dividerElements.upLabel.style.opacity = '1';
+            const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / Retail';
+            if (typeof window.startDividerLabelTypewriter === 'function') {
+              window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
+            } else {
+              window.dividerElements.upLabel.textContent = fullText;
+            }
+          }
           if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
-          if (window.dividerElements.downLabel) window.dividerElements.downLabel.style.opacity = '1';
+          if (window.dividerElements.downLabel) {
+            window.dividerElements.downLabel.style.opacity = '1';
+            const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Wholesale';
+            if (typeof window.startDividerLabelTypewriter === 'function') {
+              window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
+            } else {
+              window.dividerElements.downLabel.textContent = fullDownText;
+            }
+          }
           if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
         }, 200);
       }
