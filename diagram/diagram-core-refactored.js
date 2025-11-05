@@ -1606,8 +1606,8 @@ function initializeDiagram() {
 
         const cshdBox = createStyledRect(reducedNarrowBoxX, cshdY, reducedNarrowBoxWidth, boxHeight, {
           fill: '#2d5016', // Dark green fill (swapped from border)
-          stroke: '#f1ffcc', // Light yellow-green border (swapped from fill)
-          strokeWidth: '3',
+          stroke: '#c8eb9d', // Lighter green border
+          strokeWidth: '3.5',
           rx: '8',
           ry: '8'
         });
@@ -1632,9 +1632,9 @@ function initializeDiagram() {
           height: boxHeight
         };
         const cecsBox = createStyledRect(reducedNarrowBoxX, cecsY, reducedNarrowBoxWidth, boxHeight, {
-          fill: '#000000', // Black fill (from GABS)
-          stroke: '#ff0000', // Bright red border (from GABS)
-          strokeWidth: '3',
+          fill: '#000000',
+          stroke: '#ff0000',
+          strokeWidth: '3.5',
           rx: '8',
           ry: '8'
         });
@@ -1744,7 +1744,7 @@ function initializeDiagram() {
         const gabsY = gabsBottomY - boxHeight; // Top edge raised to accommodate full height
         const gabsBox = createStyledRect(reducedNarrowBoxX, gabsY, reducedNarrowBoxWidth, boxHeight, {
           fill: '#4b5563', // Darker grey fill
-          stroke: '#e5e7eb', // Light grey border (swapped)
+          stroke: '#e5e7eb', // Light grey border
           strokeWidth: '2.5',
           rx: '8',
           ry: '8'
@@ -3009,7 +3009,7 @@ function initializeDiagram() {
           const boundingPadY = 7 + 2; // Added 2 extra pixels to top/bottom padding
           const stackTopY = atmsY;
           const stackBottomY = visaY + reducedHeight;
-          const topMarginHeight = reducedHeight - 3; // Reserve space equal to one internal box minus 3px
+          const topMarginHeight = reducedHeight - 2; // Reserve space equal to one internal box minus 2px
 
           // Use the full width for the green bounding box to match the Mastercard box
           const stackBoxWidth = boxWidth; // Full width to match Mastercard
@@ -3031,7 +3031,7 @@ function initializeDiagram() {
             stackBoundingHeight,
             {
               fill: '#2d5016', // Dark green fill (matching CECS)
-              stroke: '#f1ffcc', // Light yellow-green border (matching CECS)
+              stroke: '#c8eb9d', // Light yellow-green border (matching CECS)
               strokeWidth: '3',
               rx: '18',
               ry: '18'
@@ -3057,7 +3057,7 @@ function initializeDiagram() {
 
           const stackBoundingLabel = createStyledText(0, 0, 'IAC', {
             fill: '#ffffff', // Light yellow-green text (matching border)
-            fontSize: '14',
+            fontSize: '15',
             fontWeight: 'bold'
           });
           stackBoundingLabel.setAttribute('id', 'direct-entry-stack-label');
@@ -3112,7 +3112,7 @@ function initializeDiagram() {
               : topMarginHeight;
             const centerX = rectLeft + (rectRight - rectLeft) / 2;
             const labelVerticalFactor = 0.75;
-            const labelPixelOffset = 3; // Shift label down by 3 pixels
+            const labelPixelOffset = 2; // Shift label down by 2 pixels
             const labelY = rectTop + topMarginValue * labelVerticalFactor + labelPixelOffset;
 
             label.setAttribute('x', centerX.toFixed(2));
@@ -3145,8 +3145,7 @@ function initializeDiagram() {
               fraction: 0.2,
               offset: 9,
               strokeWidth: 1.5,
-              doubleLine: true,
-              doubleOffset: 3,
+              doubleLine: false,
               horizontalAdjust: -2.5,
               filletMultiplier: 1.2,
               cornerAdjustment: 8
@@ -3558,7 +3557,7 @@ function initializeDiagram() {
 
             // Create double line effect like LVSS
             const lineGap = 3; // Gap between the two lines
-            const lineColor = '#f1ffcc'; // Light yellow-green (matching CECS and IAC box borders)
+            const lineColor = '#c8eb9d'; // Light yellow-green (matching CECS and IAC box borders)
             const lineOffsets = [-lineGap/2, lineGap/2];
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
@@ -5305,7 +5304,7 @@ function initializeDiagram() {
 
               // Position BECN with same gap above IAC
               // Calculate where IAC top is
-              const topMarginHeight = reducedHeight - 3; // Same as IAC box calculation (reduced by 3px)
+              const topMarginHeight = reducedHeight - 2; // Same as IAC box calculation (reduced by 2px)
               const stackTopY = atmsY;
               const stackBoundingTop = stackTopY - boundingPadY - topMarginHeight;
 
@@ -7491,12 +7490,12 @@ function initializeDiagram() {
           lvssY = iacLineY;
         }
 
-        console.log('IAC line Y:', iacLineY, 'LVSS Y:', lvssY);
-        console.log('Difference (IAC - LVSS):', iacLineY - lvssY);
+        console.log('CECS line Y:', iacLineY, 'LVSS Y:', lvssY);
+        console.log('Difference (CECS - LVSS):', iacLineY - lvssY);
         lvssLines.push({
           x: narrowBoxX + narrowBoxWidth,
           y: iacLineY,
-          label: 'IAC',
+          label: 'CECS',
           thickness: 3
         });
 
@@ -7516,20 +7515,20 @@ function initializeDiagram() {
           thickness: 3
         });
 
-        // APCS - thin line
+        // BECS box (visual BECS) - thick line
         lvssLines.push({
           x: narrowBoxX + narrowBoxWidth,
           y: window.lvssBoxPositions.apcsY + boxHeight / 2,
-          label: 'APCS',
-          thickness: 1.5
+          label: 'BECS_BOX',
+          thickness: 3
         });
 
-        // GABS - thick line
+        // APCS box (visual APCS) - thin line
         lvssLines.push({
           x: narrowBoxX + narrowBoxWidth,
           y: window.lvssBoxPositions.gabsY + boxHeight / 2,
-          label: 'GABS',
-          thickness: 3
+          label: 'APCS_BOX',
+          thickness: 1.5
         });
 
         // Draw the lines
@@ -7542,7 +7541,7 @@ function initializeDiagram() {
           // Lines should stay close together
           // Small vertical offset to keep lines visible but close
           const lineSpacing = 5; // pixels between lines
-          const verticalOffset = source.label === 'IAC' ? 0 : (index - 2) * lineSpacing;
+          const verticalOffset = (index - 2) * lineSpacing;
 
           // Calculate path that goes slightly above/below LVSS center
           const lvssPassY = lvssCenterY + verticalOffset;
@@ -7556,13 +7555,14 @@ function initializeDiagram() {
           // Create path that goes through LVSS area with offset
           // First segment: from source to LVSS pass point
           const dx1 = lvssCenterX - source.x;
-          // For IAC, make sure it's perfectly horizontal
-          const sourceY = source.label === 'IAC' ? lvssCenterY : source.y;
-          const dy1 = lvssPassY - sourceY;
+          // For CECS (visual GABS), make sure it's perfectly horizontal
+          const sourceY = source.label === 'CECS' ? lvssCenterY : source.y;
+          const actualLvssPassY = source.label === 'CECS' ? lvssCenterY : lvssPassY;
+          const dy1 = actualLvssPassY - sourceY;
 
-          // Control point for first curve
+          // Control point for first curve - keep horizontal for CECS
           const control1X = source.x + dx1 * 0.6;
-          const control1Y = sourceY + dy1 * 0.3;
+          const control1Y = source.label === 'CECS' ? lvssCenterY : (sourceY + dy1 * 0.3);
 
           // Second segment: from LVSS pass point to blue circle
           const dx2 = endX - lvssCenterX;
@@ -7578,10 +7578,11 @@ function initializeDiagram() {
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
             const angle = Math.atan2(dy1, dx1);
             const offsetX = -Math.sin(angle) * lineOffset;
-            const offsetY = Math.cos(angle) * lineOffset;
+            // For CECS, keep line perfectly horizontal (no vertical offset)
+            const offsetY = source.label === 'CECS' ? lineOffset : Math.cos(angle) * lineOffset;
 
             const offsetPathData = `M ${source.x + offsetX} ${sourceY + offsetY}
-                                   Q ${control1X + offsetX} ${control1Y + offsetY}, ${lvssCenterX + offsetX} ${lvssPassY + offsetY}
+                                   Q ${control1X + offsetX} ${control1Y + offsetY}, ${lvssCenterX + offsetX} ${actualLvssPassY + offsetY}
                                    Q ${control2X + offsetX} ${control2Y + offsetY}, ${endX + offsetX} ${endY + offsetY}`;
 
             const parallelPath = createStyledPath(offsetPathData, {
@@ -9543,94 +9544,95 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       svg.insertBefore(adiRect, esaRect.nextSibling);
 
       // Make ADI box interactive
+      // adiRect.style.pointerEvents = 'all';
       if (typeof makeInteractive === 'function') {
         makeInteractive(adiRect, 'adi-box');
       }
 
-      // Create invisible overlay for capturing pointer events in gaps
-      const adiOverlay = createStyledRect(
-        minX2 - innerLeftPadding - dotRadius,
-        minY2 - innerTopPadding - dotRadius,
-        (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
-        (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
-        {
-          fill: 'none',
-          stroke: 'none',
-          pointerEvents: 'all'
-        }
-      );
-      adiOverlay.style.pointerEvents = 'all';
-      adiOverlay.id = 'adi-box-overlay'; // Different ID to avoid being highlighted
+      // // Create invisible overlay for capturing pointer events in gaps
+      // const adiOverlay = createStyledRect(
+      //   minX2 - innerLeftPadding - dotRadius,
+      //   minY2 - innerTopPadding - dotRadius,
+      //   (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
+      //   (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
+      //   {
+      //     fill: 'none',
+      //     stroke: 'none',
+      //     pointerEvents: 'all'
+      //   }
+      // );
+      // adiOverlay.style.pointerEvents = 'all';
+      // adiOverlay.id = 'adi-box-overlay'; // Different ID to avoid being highlighted
 
-      // Insert right before the first interior box so overlay is UNDER all interior boxes
-      // This way interior boxes can capture events, but gaps show ADI tooltip
-      const internationalBanksBox = document.getElementById('international-banks-box');
-      const domesticBanksBox = document.getElementById('domestic-banks-box');
-      const firstBox = internationalBanksBox || domesticBanksBox;
+      // // Insert right before the first interior box so overlay is UNDER all interior boxes
+      // // This way interior boxes can capture events, but gaps show ADI tooltip
+      // const internationalBanksBox = document.getElementById('international-banks-box');
+      // const domesticBanksBox = document.getElementById('domestic-banks-box');
+      // const firstBox = internationalBanksBox || domesticBanksBox;
 
-      if (firstBox) {
-        svg.insertBefore(adiOverlay, firstBox);
-      } else {
-        // Fallback: insert before blue lines group
-        const blueLinesGroup = document.getElementById('blue-connecting-lines');
-        if (blueLinesGroup) {
-          svg.insertBefore(adiOverlay, blueLinesGroup);
-        } else {
-          svg.appendChild(adiOverlay);
-        }
-      }
+      // if (firstBox) {
+      //   svg.insertBefore(adiOverlay, firstBox);
+      // } else {
+      //   // Fallback: insert before blue lines group
+      //   const blueLinesGroup = document.getElementById('blue-connecting-lines');
+      //   if (blueLinesGroup) {
+      //     svg.insertBefore(adiOverlay, blueLinesGroup);
+      //   } else {
+      //     svg.appendChild(adiOverlay);
+      //   }
+      // }
 
-      // Make overlay interactive manually - set data attribute but don't call makeInteractive
-      // so it triggers ADI tooltip but doesn't get highlighted (since highlightElement uses data-interactive-id)
-      // Instead we manually add event listeners that reference 'adi-box'
-      adiOverlay.setAttribute('data-interactive-id', 'adi-box-trigger'); // Different ID to prevent highlighting
-      adiOverlay.style.cursor = 'pointer';
+      // // Make overlay interactive manually - set data attribute but don't call makeInteractive
+      // // so it triggers ADI tooltip but doesn't get highlighted (since highlightElement uses data-interactive-id)
+      // // Instead we manually add event listeners that reference 'adi-box'
+      // adiOverlay.setAttribute('data-interactive-id', 'adi-box-trigger'); // Different ID to prevent highlighting
+      // adiOverlay.style.cursor = 'pointer';
 
-      // Manually add event listeners that act as if this is the adi-box
-      adiOverlay.addEventListener('mouseenter', (event) => {
-        if (typeof window.showTooltip === 'function') {
-          window.showTooltip('adi-box', event);
-        }
-        if (typeof window.highlightElement === 'function') {
-          window.highlightElement('adi-box');
-        }
-        if (typeof window.highlightCirclesInBox === 'function') {
-          window.highlightCirclesInBox('adi-box');
-        }
-      });
+      // // Manually add event listeners that act as if this is the adi-box
+      // adiOverlay.addEventListener('mouseenter', (event) => {
+      //   if (typeof window.showTooltip === 'function') {
+      //     window.showTooltip('adi-box', event);
+      //   }
+      //   if (typeof window.highlightElement === 'function') {
+      //     window.highlightElement('adi-box');
+      //   }
+      //   if (typeof window.highlightCirclesInBox === 'function') {
+      //     window.highlightCirclesInBox('adi-box');
+      //   }
+      // });
 
-      adiOverlay.addEventListener('mousemove', (event) => {
-        const tooltip = document.getElementById('diagram-tooltip');
-        if (!tooltip || tooltip.style.opacity === '0') return;
-        const padding = 15;
-        let x = event.clientX + padding;
-        let y = event.clientY + padding;
-        const rect = tooltip.getBoundingClientRect();
-        if (x + rect.width > window.innerWidth) {
-          x = event.clientX - rect.width - padding;
-        }
-        if (y + rect.height > window.innerHeight) {
-          y = event.clientY - rect.height - padding;
-        }
-        tooltip.style.left = x + 'px';
-        tooltip.style.top = y + 'px';
-      });
+      // adiOverlay.addEventListener('mousemove', (event) => {
+      //   const tooltip = document.getElementById('diagram-tooltip');
+      //   if (!tooltip || tooltip.style.opacity === '0') return;
+      //   const padding = 15;
+      //   let x = event.clientX + padding;
+      //   let y = event.clientY + padding;
+      //   const rect = tooltip.getBoundingClientRect();
+      //   if (x + rect.width > window.innerWidth) {
+      //     x = event.clientX - rect.width - padding;
+      //   }
+      //   if (y + rect.height > window.innerHeight) {
+      //     y = event.clientY - rect.height - padding;
+      //   }
+      //   tooltip.style.left = x + 'px';
+      //   tooltip.style.top = y + 'px';
+      // });
 
-      adiOverlay.addEventListener('mouseleave', () => {
-        if (typeof window.hideTooltip === 'function') {
-          window.hideTooltip();
-        }
-        if (typeof window.clearHighlights === 'function') {
-          window.clearHighlights();
-        }
-      });
+      // adiOverlay.addEventListener('mouseleave', () => {
+      //   if (typeof window.hideTooltip === 'function') {
+      //     window.hideTooltip();
+      //   }
+      //   if (typeof window.clearHighlights === 'function') {
+      //     window.clearHighlights();
+      //   }
+      // });
 
-      adiOverlay.addEventListener('click', () => {
-        const content = window.tooltipContent?.['adi-box'];
-        if (content && content.link) {
-          window.open(content.link, '_blank', 'noopener,noreferrer');
-        }
-      });
+      // adiOverlay.addEventListener('click', () => {
+      //   const content = window.tooltipContent?.['adi-box'];
+      //   if (content && content.link) {
+      //     window.open(content.link, '_blank', 'noopener,noreferrer');
+      //   }
+      // });
 
       // Store ADI box position for HVCS line
       if (!window.adiBoxData) window.adiBoxData = {};
