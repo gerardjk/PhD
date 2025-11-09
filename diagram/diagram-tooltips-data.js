@@ -173,6 +173,77 @@ const tooltipContent = {
     ],
     link: 'https://www.finance.gov.au/about-us/glossary/pgpa/term-official-public-account-opa'
   },
+  'bdf-box': {
+    title: 'BDF',
+    subtitle: 'Banknote Distribution Framework',
+    description: 'Framework for distributing Australian banknotes from the Reserve Bank to financial institutions',
+    details: [
+      'Four major banks: ANZ, CBA, NAB, and Westpac',
+      'Manage banknote inventory and distribution to branches and ATMs',
+      'Coordinate with RBA for banknote supply and withdrawal'
+    ],
+    link: 'https://www.rba.gov.au/currency/'
+  },
+  'bdf-line-50': {
+    title: 'Domestic Banks',
+    subtitle: 'Australian-owned banking institutions',
+    description: 'Banks incorporated and headquartered in Australia',
+    details: [
+      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
+      'Regional and smaller Australian banks',
+      'Provide full retail and commercial banking services',
+      'Major participants in all payment systems'
+    ],
+    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
+  },
+  'bdf-line-51': {
+    title: 'Domestic Banks',
+    subtitle: 'Australian-owned banking institutions',
+    description: 'Banks incorporated and headquartered in Australia',
+    details: [
+      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
+      'Regional and smaller Australian banks',
+      'Provide full retail and commercial banking services',
+      'Major participants in all payment systems'
+    ],
+    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
+  },
+  'bdf-line-52': {
+    title: 'Domestic Banks',
+    subtitle: 'Australian-owned banking institutions',
+    description: 'Banks incorporated and headquartered in Australia',
+    details: [
+      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
+      'Regional and smaller Australian banks',
+      'Provide full retail and commercial banking services',
+      'Major participants in all payment systems'
+    ],
+    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
+  },
+  'bdf-line-53': {
+    title: 'Domestic Banks',
+    subtitle: 'Australian-owned banking institutions',
+    description: 'Banks incorporated and headquartered in Australia',
+    details: [
+      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
+      'Regional and smaller Australian banks',
+      'Provide full retail and commercial banking services',
+      'Major participants in all payment systems'
+    ],
+    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
+  },
+  'rits-circle': {
+    title: 'RITS',
+    subtitle: 'Reserve Bank Information and Transfer System',
+    description: 'Australia\'s high-value real-time gross settlement system operated by the Reserve Bank',
+    details: [
+      'Settles interbank payments in real-time',
+      'Processes high-value and time-critical payments',
+      'Integrates with FSS (Fast Settlement Service)',
+      'Core infrastructure for Australian payment systems'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/about.html'
+  },
 
 
   'swift-pds-box': {
@@ -414,26 +485,6 @@ const tooltipContent = {
   },
 
   // Participant groups
-  'adi-box': {
-    title: 'ADIs',
-    subtitle: 'Authorised Deposit-taking Institutions',
-    description: 'Banks and other institutions authorized to take deposits',
-    details: [
-      'Regulated by APRA',
-      'Includes banks, building societies, credit unions',
-      'Direct participants in payment systems'
-    ]
-  },
-  'domestic-banks-box': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banks',
-    description: 'Major Australian retail and commercial banks',
-    details: [
-      'Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller banks',
-      'Provide full retail banking services'
-    ]
-  },
   'non-adi-box': {
     title: 'Non-ADIs',
     subtitle: 'Non-bank participants',

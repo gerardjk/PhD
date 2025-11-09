@@ -240,22 +240,47 @@ function sigmoid(x, steepness = 1) {
 // Helper to calculate exact connection point on box edge accounting for stroke width
 // The strokeWidth parameter is the width of the LINE connecting to the box, not the box stroke
 // This ensures the line visually touches the box edge perfectly
-function getBoxEdgePoint(boxData, side, lineStrokeWidth = 0) {
+function getBoxEdgePoint(boxData, side, lineStrokeWidth = 0, lineCap = 'round', approach = 'auto') {
   const halfStroke = lineStrokeWidth / 2;
+  const cap = typeof lineCap === 'string' ? lineCap.toLowerCase() : 'round';
   const { x, y, width, height } = boxData;
 
   switch(side) {
     case 'top':
       // Line coming from above DOWN into box - endpoint goes past edge (upward) so round cap hidden
+      if (cap === 'butt') {
+        return { x: x + width / 2, y };
+      }
       return { x: x + width / 2, y: y - halfStroke };
     case 'bottom':
       // Line coming from below - just touch the edge exactly
+      if (cap === 'butt') {
+        return { x: x + width / 2, y: y + height };
+      }
+      if (approach === 'from-above') {
+        return { x: x + width / 2, y: y + height - halfStroke };
+      }
+      if (approach === 'from-below') {
+        return { x: x + width / 2, y: y + height + halfStroke };
+      }
       return { x: x + width / 2, y: y + height };
     case 'left':
       // Line coming from left - endpoint goes slightly past edge so stroke sits ON edge
+      if (cap === 'butt') {
+        return { x, y: y + height / 2 };
+      }
+      if (approach === 'from-right') {
+        return { x: x + halfStroke, y: y + height / 2 };
+      }
       return { x: x - halfStroke, y: y + height / 2 };
     case 'right':
       // Line coming from right - endpoint goes slightly past edge so stroke sits ON edge
+      if (cap === 'butt') {
+        return { x: x + width, y: y + height / 2 };
+      }
+      if (approach === 'from-left') {
+        return { x: x + width - halfStroke, y: y + height / 2 };
+      }
       return { x: x + width + halfStroke, y: y + height / 2 };
     case 'top-left':
       return { x: x, y: y };

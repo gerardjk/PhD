@@ -37,6 +37,35 @@ const elementRelationships = {
     groups: ['rba-system'],
     related: ['dot-0', 'rba-blue-line', 'rba-yellow-line', 'rba-blue-dot', 'rba-yellow-dot', 'opa-box', 'opa-label']
   },
+
+  // RITS ecosystem - only RITS triggers the group highlight
+  'rits-circle': {
+    groups: ['rits-ecosystem'],
+    related: ['rits-circle', 'blue-connecting-lines', 'rba-blue-line', 'small-group', 'yellow-circles', 'rba-yellow-line', 'lvss-gear-group']
+  },
+
+  // BDF (Banknote Distribution Framework) ecosystem
+  'bdf-box': {
+    groups: ['bdf-system'],
+    related: ['bdf-line-50', 'bdf-line-51', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+  },
+  'bdf-line-50': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-51', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+  },
+  'bdf-line-51': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-50', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+  },
+  'bdf-line-52': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-50', 'bdf-line-51', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+  },
+  'bdf-line-53': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-50', 'bdf-line-51', 'bdf-line-52', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+  },
+
   'swift-pds-box': {
     groups: ['swift-network'],
     related: ['swift-hvcs-box', 'swift-pds-line']

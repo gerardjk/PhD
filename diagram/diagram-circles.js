@@ -175,6 +175,7 @@ function createLvssCircle(params, labelsGroup) {
   const {redCircleX} = params;
 
   const lvssGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  lvssGroup.setAttribute('id', 'lvss-gear-group');
 
   // Calculate LVSS Y position
   const redCircleRadius = 37 * 1.2 * 0.9 * 0.9 * 0.9; // 10% smaller

@@ -7515,7 +7515,7 @@ function initializeDiagram() {
         const innerLeftPadding = 60; // Increased to move left edge left
         const innerTopPadding = 30;
         const innerBottomPadding = 5; // Decreased to raise bottom edge
-        const innerRightPadding = 290;
+        const innerRightPadding = 284;
 
         const adiRect = createStyledRect(
           minX2 - innerLeftPadding - dotRadius,
@@ -7972,7 +7972,7 @@ function initializeDiagram() {
           const innerLeftPadding = 60; // Match the ADI box
           const innerTopPadding = 30;
           const innerBottomPadding = 7; // Match the ADI box
-          const innerRightPadding = 290;
+          const innerRightPadding = 284;
 
           // Calculate ADI box position
           const adiBoxX = minX2 - innerLeftPadding - dotRadius;
@@ -9163,7 +9163,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       const innerLeftPadding = 60; // Increased to move left edge left
       const innerTopPadding = 30;
       const innerBottomPadding = 6; // Slightly increased to add extra bottom padding
-      const innerRightPadding = 290;
+      const innerRightPadding = 284;
 
       const adiRect = createStyledRect(
         minX2 - innerLeftPadding - dotRadius,

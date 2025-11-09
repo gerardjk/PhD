@@ -181,6 +181,10 @@ function initializeDiagram() {
       }
     };
     const bigGroupElement = document.getElementById('big-group');
+    // Make RITS circle interactive
+    if (bigGroupElement && typeof makeInteractive === 'function') {
+      makeInteractive(bigGroupElement, 'rits-circle');
+    }
 
     // Ensure orange connectors render above the RITS circle
     if (svg && orangeLinesGroup && bigGroupElement) {
@@ -192,6 +196,10 @@ function initializeDiagram() {
 
     if (orangeLinesGroup) {
       const bigLabelNode = document.getElementById('big-label');
+      // Make RITS label interactive
+      if (bigLabelNode && typeof makeInteractive === 'function') {
+        makeInteractive(bigLabelNode, 'rits-circle');
+      }
       if (bigLabelNode && bigLabelNode.parentNode === svg) {
         svg.insertBefore(orangeLinesGroup, bigLabelNode);
       } else {
@@ -310,7 +318,7 @@ function initializeDiagram() {
       startY = Math.min(maxInside, requestedY);
 
       // Calculate exact endpoint on ADI box top edge
-      const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
+      const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth, 'butt');
       const endY = adiEdge.y;
       const endX = extendPastNonAdi + 15;
 
@@ -364,7 +372,10 @@ function initializeDiagram() {
         control2X,
         control2Y,
         endX,
-        endY
+        endY,
+        boxTopY: window.adiBoxData ? window.adiBoxData.y : undefined,
+        strokeWidth,
+        lineCap: 'butt'
       };
 
       // XXX-to-ADI line update removed
@@ -3145,6 +3156,7 @@ function initializeDiagram() {
               fraction: 0.2,
               offset: 9,
               strokeWidth: 1.5,
+              lineCap: 'butt',
               doubleLine: false,
               horizontalAdjust: -2.5,
               filletMultiplier: 1.2,
@@ -3156,6 +3168,7 @@ function initializeDiagram() {
               fraction: 0.4,
               offset: 16,
               strokeWidth: 1.5,
+              lineCap: 'butt',
               horizontalAdjust: -9,
               filletMultiplier: 1.1,
               cornerAdjustment: 5
@@ -3166,6 +3179,7 @@ function initializeDiagram() {
               fraction: 0.6,
               offset: 16,
               strokeWidth: 1.5,
+              lineCap: 'butt',
               horizontalAdjust: -8,
               filletMultiplier: 1.1,
               cornerAdjustment: 2
@@ -3176,6 +3190,7 @@ function initializeDiagram() {
               fraction: 0.8,
               offset: 18,
               strokeWidth: 1.5,
+              lineCap: 'butt',
               horizontalAdjust: -10,
               filletMultiplier: 1.1,
               cornerAdjustment: 2
@@ -3251,7 +3266,7 @@ function initializeDiagram() {
               return;
             }
 
-            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0, color, strokeWidth = 0) => {
+            const buildPath = (metrics, fraction, insideOffset, horizontalAdjust = 0, color, strokeWidth = 0, lineCap = 'round') => {
               if (!metrics || !Number.isFinite(fraction) || !Number.isFinite(insideOffset)) return null;
 
               const clampedFraction = Math.min(Math.max(fraction, 0), 1);
@@ -3299,9 +3314,37 @@ function initializeDiagram() {
                 let extendPastReference = referenceRightEdge + 60;
                 let curveStartX = Math.max(horizontalEndX + 80, referenceRightEdge - 80);
                 let endX = extendPastReference + 10;
-                // Calculate exact endpoint accounting for line stroke width
-                const adiEdge = getBoxEdgePoint(adiData, 'top', strokeWidth);
+                // Calculate exact endpoint accounting for line stroke width and cap
+                const referenceGeometry = geometry || window.nppToAdiGeometry || null;
+                const adiEdge = getBoxEdgePoint(adiData, 'top', strokeWidth, lineCap);
                 let endY = adiEdge.y;
+                let contactY = null;
+
+                if (referenceGeometry) {
+                  if (Number.isFinite(referenceGeometry.boxTopY)) {
+                    contactY = referenceGeometry.boxTopY;
+                  } else if (Number.isFinite(referenceGeometry.endY)) {
+                    const refCap = typeof referenceGeometry.lineCap === 'string'
+                      ? referenceGeometry.lineCap.toLowerCase()
+                      : 'round';
+                    const refStroke = Number(referenceGeometry.strokeWidth);
+                    if (refCap === 'round' && Number.isFinite(refStroke)) {
+                      contactY = referenceGeometry.endY + refStroke / 2;
+                    } else {
+                      contactY = referenceGeometry.endY;
+                    }
+                  }
+                }
+
+                if (contactY === null && Number.isFinite(adiData.y)) {
+                  contactY = adiData.y;
+                }
+
+                if (Number.isFinite(contactY)) {
+                  const capAdjustment = lineCap === 'round' ? strokeWidth / 2 : 0;
+                  endY = contactY - capAdjustment;
+                }
+
                 let control1X = curveStartX + 60;
                 const control1Y = horizontalY;
                 let control2X = extendPastReference + 15;
@@ -3336,7 +3379,29 @@ function initializeDiagram() {
                     else if (color === '#5AC8FA') endpointOffset = 16; // Blue - 2px right of yellow
                     endX = geometry.endX + endpointOffset;
                   }
-                  if (Number.isFinite(geometry.endY)) {
+                  const geometryContact = (() => {
+                    if (Number.isFinite(geometry.boxTopY)) {
+                      return geometry.boxTopY;
+                    }
+                    if (Number.isFinite(geometry.endY)) {
+                      const geoCap = typeof geometry.lineCap === 'string'
+                        ? geometry.lineCap.toLowerCase()
+                        : 'round';
+                      const geoStroke = Number(geometry.strokeWidth);
+                      if (geoCap === 'round' && Number.isFinite(geoStroke)) {
+                        return geometry.endY + geoStroke / 2;
+                      }
+                      return geometry.endY;
+                    }
+                    return null;
+                  })();
+
+                  if (Number.isFinite(geometryContact)) {
+                    const capAdjustmentGeom = lineCap === 'round' ? strokeWidth / 2 : 0;
+                    endY = geometryContact - capAdjustmentGeom;
+                    const geomVertical = endY - horizontalY;
+                    control2Y = horizontalY + geomVertical * 0.15;
+                  } else if (Number.isFinite(geometry.endY)) {
                     endY = geometry.endY;
                     const geomVertical = endY - horizontalY;
                     control2Y = horizontalY + geomVertical * 0.15;
@@ -3367,7 +3432,15 @@ function initializeDiagram() {
                   : undefined
               };
 
-              const pathData = buildPath(metrics, entry.fraction, entry.offset, entry.horizontalAdjust || 0, entry.color, entry.strokeWidth || 0);
+              const pathData = buildPath(
+                metrics,
+                entry.fraction,
+                entry.offset,
+                entry.horizontalAdjust || 0,
+                entry.color,
+                entry.strokeWidth || 0,
+                entry.lineCap || 'round'
+              );
               if (pathData && entry.path) {
                 entry.path.setAttribute('d', pathData);
               }
@@ -3375,7 +3448,15 @@ function initializeDiagram() {
                 entry.secondaryPath.forEach((secondary) => {
                   if (!secondary) return;
                   const offsetDelta = Number.parseFloat(secondary.dataset.parallelOffset || '0');
-                  const secondaryData = buildPath(metrics, entry.fraction, entry.offset + offsetDelta, entry.horizontalAdjust || 0, entry.color, entry.strokeWidth || 0);
+                const secondaryData = buildPath(
+                  metrics,
+                  entry.fraction,
+                  entry.offset + offsetDelta,
+                  entry.horizontalAdjust || 0,
+                  entry.color,
+                  entry.strokeWidth || 0,
+                  entry.secondaryLineCap || 'round'
+                );
                   if (secondaryData) {
                     secondary.setAttribute('d', secondaryData);
                   }
@@ -3452,7 +3533,14 @@ function initializeDiagram() {
                   let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    const nonAdiEdgePoint = getBoxEdgePoint(
+                      window.nonAdiBoxData,
+                      'right',
+                      entry.strokeWidth || 0,
+                      entry.lineCap || 'round',
+                      'from-left'
+                    );
+                    nonAdiEntryX = nonAdiEdgePoint.x;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
@@ -3805,9 +3893,37 @@ function initializeDiagram() {
                   const entryOffset = isEftpos ? 25 : 18; // eftpos slightly farther than maroon, Mastercard 2px left of original
                   const endX = baselineEndX + entryOffset;
 
-                  // Calculate exact endpoint accounting for line stroke width
-                  const adiEdge = getBoxEdgePoint(adiData, 'top', 2); // strokeWidth is 2
-                  const endY = adiEdge.y;
+                  const strokeWidth = 2;
+                  const lineCap = 'round';
+                  const referenceGeometryForCards = geometry || window.nppToAdiGeometry || null;
+                  const adiEdge = getBoxEdgePoint(adiData, 'top', strokeWidth, lineCap);
+                  let endY = adiEdge.y;
+                  let contactY = null;
+
+                  if (referenceGeometryForCards) {
+                    if (Number.isFinite(referenceGeometryForCards.boxTopY)) {
+                      contactY = referenceGeometryForCards.boxTopY;
+                    } else if (Number.isFinite(referenceGeometryForCards.endY)) {
+                      const refCap = typeof referenceGeometryForCards.lineCap === 'string'
+                        ? referenceGeometryForCards.lineCap.toLowerCase()
+                        : 'round';
+                      const refStroke = Number(referenceGeometryForCards.strokeWidth);
+                      if (refCap === 'round' && Number.isFinite(refStroke)) {
+                        contactY = referenceGeometryForCards.endY + refStroke / 2;
+                      } else {
+                        contactY = referenceGeometryForCards.endY;
+                      }
+                    }
+                  }
+
+                  if (contactY === null && Number.isFinite(adiData.y)) {
+                    contactY = adiData.y;
+                  }
+
+                  if (Number.isFinite(contactY)) {
+                    const capAdjustment = lineCap === 'round' ? strokeWidth / 2 : 0;
+                    endY = contactY - capAdjustment;
+                  }
 
                   let curveStartX;
                   if (geometry && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
@@ -3967,7 +4083,16 @@ function initializeDiagram() {
                   let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    const branchStrokeWidth = 1; // Matches stroke-width set below
+                    const branchCap = 'butt';
+                    const nonAdiEdgePoint = getBoxEdgePoint(
+                      window.nonAdiBoxData,
+                      'right',
+                      branchStrokeWidth,
+                      branchCap,
+                      'from-left'
+                    );
+                    nonAdiEntryX = nonAdiEdgePoint.x;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
@@ -4350,9 +4475,37 @@ function initializeDiagram() {
             const endX = greyEndX + 10; // 30px to the right of grey line
 
             // Calculate exact endpoint on ADI box top edge
+            let contactY = null;
             const strokeWidth = 4; // Line stroke width (matches actual line stroke-width)
-            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth);
-            const endY = adiEdge.y;
+            const lineCap = 'round';
+            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'top', strokeWidth, lineCap);
+            let endY = adiEdge.y;
+
+            const baseGeometry = window.nppToAdiGeometry || null;
+            if (baseGeometry) {
+              if (Number.isFinite(baseGeometry.boxTopY)) {
+                contactY = baseGeometry.boxTopY;
+              } else if (Number.isFinite(baseGeometry.endY)) {
+                const baseCap = typeof baseGeometry.lineCap === 'string'
+                  ? baseGeometry.lineCap.toLowerCase()
+                  : 'round';
+                const baseStroke = Number(baseGeometry.strokeWidth);
+                if (baseCap === 'round' && Number.isFinite(baseStroke)) {
+                  contactY = baseGeometry.endY + baseStroke / 2;
+                } else {
+                  contactY = baseGeometry.endY;
+                }
+              }
+            }
+
+            if (contactY === null && Number.isFinite(window.adiBoxData.y)) {
+              contactY = window.adiBoxData.y;
+            }
+
+            if (Number.isFinite(contactY)) {
+              const capAdjustment = lineCap === 'round' ? strokeWidth / 2 : 0;
+              endY = contactY - capAdjustment;
+            }
 
             // Control points for smooth downward curve
             const verticalDistance = endY - startY;
@@ -4446,17 +4599,20 @@ function initializeDiagram() {
             }
 
             window.directEntryToAdiGeometry = {
-            startX,
-            startY,
-            curveStartX,
-            extendPastReference,
-            control1X,
-            control1Y,
-            control2X,
-            control2Y,
-            endX,
-            endY
-          };
+              startX,
+              startY,
+              curveStartX,
+              extendPastReference,
+              control1X,
+              control1Y,
+              control2X,
+              control2Y,
+              endX,
+              endY,
+              boxTopY: contactY,
+              strokeWidth,
+              lineCap
+            };
 
           if (typeof window.updateCardLeftLines === 'function') {
             // Rebuild eftpos/Mastercard connectors so they mirror the latest ADI geometry
@@ -6630,6 +6786,7 @@ function initializeDiagram() {
         text.setAttribute('fill', '#ffffff'); // white for all ESA account labels
         text.setAttribute('font-family', 'Arial, sans-serif');
         text.setAttribute('font-size', '10');
+        text.setAttribute('pointer-events', 'none'); // Don't block box hover events
         text.textContent = label;
         labelsGroup.appendChild(text);
       } // End of if (dotLabels[i])
@@ -6702,6 +6859,10 @@ function initializeDiagram() {
         strokeWidth: '3.5'
         // No rx/ry = square corners
       });
+      bdfSquare.setAttribute('id', 'bdf-box');
+      if (typeof makeInteractive === 'function') {
+        makeInteractive(bdfSquare, 'bdf-box');
+      }
       labelsGroup.appendChild(bdfSquare);
 
       const bdfLabel = createStyledText(
@@ -6716,6 +6877,7 @@ function initializeDiagram() {
       );
       bdfLabel.setAttribute('text-anchor', 'middle');
       bdfLabel.setAttribute('dominant-baseline', 'middle');
+      bdfLabel.setAttribute('pointer-events', 'none'); // Don't block hover events
       labelsGroup.appendChild(bdfLabel);
 
       // Add OPA box to the left of RBA dot
@@ -6826,6 +6988,10 @@ function initializeDiagram() {
               fill: 'none'
             }
           );
+          path.setAttribute('id', `bdf-line-${j}`);
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(path, `bdf-line-${j}`);
+          }
           // Insert at beginning so red lines render under label connectors
           labelsGroup.insertBefore(path, labelsGroup.firstChild);
         }
@@ -7441,10 +7607,10 @@ function initializeDiagram() {
         const narrowBoxWidth = window.lvssBoxPositions.narrowBoxWidth;
         const boxHeight = window.lvssBoxPositions.boxHeight;
 
-        // CECS - thick line
+        // GABS box (displays GABS) - thick line
         const iacLineY = window.lvssBoxPositions.cecsY + boxHeight / 2;
 
-        // Force LVSS to be at same Y as CECS
+        // Force LVSS to be at same Y as GABS box
         const yDiff = iacLineY - lvssY;
         if (Math.abs(yDiff) > 1) { // Only adjust if difference is significant
           console.log('Adjusting LVSS Y from', lvssY, 'to', iacLineY, 'diff:', yDiff);
@@ -7490,12 +7656,12 @@ function initializeDiagram() {
           lvssY = iacLineY;
         }
 
-        console.log('CECS line Y:', iacLineY, 'LVSS Y:', lvssY);
-        console.log('Difference (CECS - LVSS):', iacLineY - lvssY);
+        console.log('GABS box line Y:', iacLineY, 'LVSS Y:', lvssY);
+        console.log('Difference (GABS - LVSS):', iacLineY - lvssY);
         lvssLines.push({
           x: narrowBoxX + narrowBoxWidth,
           y: iacLineY,
-          label: 'CECS',
+          label: 'GABS_BOX',
           thickness: 3
         });
 
@@ -7555,14 +7721,14 @@ function initializeDiagram() {
           // Create path that goes through LVSS area with offset
           // First segment: from source to LVSS pass point
           const dx1 = lvssCenterX - source.x;
-          // For CECS (visual GABS), make sure it's perfectly horizontal
-          const sourceY = source.label === 'CECS' ? lvssCenterY : source.y;
-          const actualLvssPassY = source.label === 'CECS' ? lvssCenterY : lvssPassY;
+          // For GABS box, make sure it's perfectly horizontal
+          const sourceY = source.label === 'GABS_BOX' ? lvssCenterY : source.y;
+          const actualLvssPassY = source.label === 'GABS_BOX' ? lvssCenterY : lvssPassY;
           const dy1 = actualLvssPassY - sourceY;
 
-          // Control point for first curve - keep horizontal for CECS
+          // Control point for first curve - keep horizontal for GABS box
           const control1X = source.x + dx1 * 0.6;
-          const control1Y = source.label === 'CECS' ? lvssCenterY : (sourceY + dy1 * 0.3);
+          const control1Y = source.label === 'GABS_BOX' ? lvssCenterY : (sourceY + dy1 * 0.3);
 
           // Second segment: from LVSS pass point to blue circle
           const dx2 = endX - lvssCenterX;
@@ -7578,8 +7744,8 @@ function initializeDiagram() {
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
             const angle = Math.atan2(dy1, dx1);
             const offsetX = -Math.sin(angle) * lineOffset;
-            // For CECS, keep line perfectly horizontal (no vertical offset)
-            const offsetY = source.label === 'CECS' ? lineOffset : Math.cos(angle) * lineOffset;
+            // For GABS box, keep line perfectly horizontal (no vertical offset)
+            const offsetY = source.label === 'GABS_BOX' ? lineOffset : Math.cos(angle) * lineOffset;
 
             const offsetPathData = `M ${source.x + offsetX} ${sourceY + offsetY}
                                    Q ${control1X + offsetX} ${control1Y + offsetY}, ${lvssCenterX + offsetX} ${actualLvssPassY + offsetY}
@@ -7632,7 +7798,7 @@ function initializeDiagram() {
         const innerLeftPadding = 60; // Increased to move left edge left
         const innerTopPadding = 30;
         const innerBottomPadding = 6; // One extra pixel
-        const innerRightPadding = 290;
+        const innerRightPadding = 284;
 
         const adiRect = createStyledRect(
           minX2 - innerLeftPadding - dotRadius,
@@ -7647,6 +7813,10 @@ function initializeDiagram() {
           }
         );
         adiRect.setAttribute('fill-opacity', '0.9'); // More opaque
+        adiRect.setAttribute('id', 'adi-box');
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(adiRect, 'adi-box');
+        }
 
         // Insert after the background rectangle so it appears above it
         const esaRect = document.getElementById('blue-dots-background');
@@ -8141,7 +8311,7 @@ function initializeDiagram() {
           const innerLeftPadding = 60; // Match the ADI box
           const innerTopPadding = 30;
           const innerBottomPadding = 7; // Match the ADI box
-          const innerRightPadding = 290;
+          const innerRightPadding = 284;
 
           // Calculate ADI box position
           const adiBoxX = minX2 - innerLeftPadding - dotRadius;
@@ -9522,7 +9692,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       const innerLeftPadding = 60; // Increased to move left edge left
       const innerTopPadding = 30;
       const innerBottomPadding = 6; // Slightly increased to add extra bottom padding
-      const innerRightPadding = 290;
+      const innerRightPadding = 284;
 
       const adiRect = createStyledRect(
         minX2 - innerLeftPadding - dotRadius,

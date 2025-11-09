@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>ISO 37120 — Sustainable Cities Indicators Tree</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  :root {
+    --bg:#fff;
+    --fg:#111;
+    --muted:#6b7280;
+  }
+
+  body {
+    margin:24px;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--fg);
+    background:var(--bg);
+  }
+
+  h1 { margin-bottom:4px; }
+  .hint { color:var(--muted); font-style:italic; margin:4px 0 12px; }
+
+  svg { width:100%; height:auto; max-width:1920px; display:block; margin:20px auto; }
+
+  .panel {
+    margin:10px 0 18px;
+    padding:8px 10px;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    font-size:13px;
+    background:#fafafa;
+  }
+
+  /* Phylogenetic tree styles */
+  .link {
+    fill:none;
+    stroke-width:1.5;
+    stroke-linecap:round;
+    vector-effect:non-scaling-stroke;
+  }
+
+  .theme-label {
+    font-weight:700;
+    font-size:16px;
+    dominant-baseline:middle;
+    user-select:none;
+    cursor:pointer;
+  }
+
+  .indicator-label {
+    font-size:13px;
+    dominant-baseline:middle;
+    user-select:none;
+  }
+
+  .root-label {
+    font-weight:700;
+    font-size:20px;
+    dominant-baseline:middle;
+  }
+
+  .core-indicator { fill:#dc2626; }
+  .supporting-indicator { fill:#059669; }
+
+  /* Tooltip */
+  #tooltip {
+    position:fixed;
+    pointer-events:none;
+    background:#111;
+    color:#fff;
+    font-size:12px;
+    line-height:1.4;
+    padding:8px 10px;
+    border-radius:6px;
+    opacity:0;
+    transition:opacity .15s ease-out;
+    max-width:320px;
+    z-index:999;
+  }
+
+  #tooltip.visible { opacity:1; }
+
+  .tooltip-title { font-weight:600; margin-bottom:4px; }
+  .tooltip-section { color:#94a3b8; font-size:10px; margin-bottom:2px; }
+</style>
+</head>
+<body>
+  <h1>ISO 37120 — Sustainable Cities Indicators</h1>
+  <p class="hint">Horizontal tree optimized for landscape PowerPoint slides (1920×1080). Left to right: ISO 37120 → 17 Themes → 100 Indicators.</p>
+
+  <div id="info" class="panel">Hover over branches to see details.</div>
+  <div id="chart"></div>
+  <div id="tooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script>
+  const WIDTH = 1920;   // 16:9 landscape
+  const HEIGHT = 1080;
+  const MARGIN = {top: 20, right: 400, bottom: 20, left: 150};
+
+  // Theme colors (17 distinct colors for 17 themes)
+  const THEME_COLORS = {
+    "5": "#2563eb",   // Economy - blue
+    "6": "#16a34a",   // Education - green
+    "7": "#f59e0b",   // Energy - amber
+    "8": "#ef4444",   // Environment - red
+    "9": "#7c3aed",   // Finance - violet
+    "10": "#0891b2",  // Fire - cyan
+    "11": "#ea580c",  // Governance - orange
+    "12": "#0ea5e9",  // Health - sky
+    "13": "#22c55e",  // Recreation - lime
+    "14": "#a855f7",  // Safety - purple
+    "15": "#60a5fa",  // Shelter - blue-400
+    "16": "#10b981",  // Solid Waste - emerald
+    "17": "#eab308",  // Telecom - yellow
+    "18": "#ec4899",  // Transportation - pink
+    "19": "#14b8a6",  // Urban Planning - teal
+    "20": "#8b5cf6",  // Wastewater - violet-500
+    "21": "#06b6d4"   // Water - cyan-500
+  };
+
+  const data = {"version":"1.0","standard":"ISO 37120","description":"Sustainable cities and communities — Indicators for city services and quality of life","themes":[{"code":"5","name":"Economy","indicators":[{"section":"5.1","name":"Unemployment Rate","description":"City's unemployment rate","type":"Core","unit":"%"},{"section":"5.2","name":"Commercial and Industrial Property Values","description":"Assessed value of commercial and industrial properties as a percentage of total assessed value of all properties","type":"Core","unit":"%"},{"section":"5.3","name":"Population Living in Poverty","description":"Percentage of city population living in poverty","type":"Core","unit":"%"},{"section":"5.4","name":"Full-time Employment","description":"Percentage of persons in fulltime employment","type":"Supporting","unit":"%"},{"section":"5.5","name":"Youth Unemployment Rate","description":"Youth unemployment rate","type":"Supporting","unit":"%"},{"section":"5.6","name":"Number of Businesses","description":"Number of businesses per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"5.7","name":"Number of New Patents","description":"Number of new patents per 100 000 population per year","type":"Supporting","unit":"/100 000/yr"}]},{"code":"6","name":"Education","indicators":[{"section":"6.1","name":"Female Student Enrolment","description":"Percentage of female school-aged population enrolled in school","type":"Core","unit":"%"},{"section":"6.2","name":"Primary Education Completion","description":"Percentage of students completing primary education: Survival rate","type":"Core","unit":"%"},{"section":"6.3","name":"Secondary Education Completion","description":"Percentage of students completing secondary education: Survival rate","type":"Core","unit":"%"},{"section":"6.4","name":"Student/Teacher Ratio","description":"Primary education student/teacher ratio","type":"Core","unit":""},{"section":"6.5","name":"Male Student Enrolment","description":"Percentage of male school-aged population enrolled in school","type":"Supporting","unit":"%"},{"section":"6.6","name":"Total Student Enrolment","description":"Percentage of school-aged population enrolled in school","type":"Supporting","unit":"%"},{"section":"6.7","name":"Higher Education Degrees","description":"Number of higher education degrees per 100 000 population","type":"Supporting","unit":"/100 000"}]},{"code":"7","name":"Energy","indicators":[{"section":"7.1","name":"Residential Electrical Use","description":"Total residential electrical energy use per capita (kWh/year)","type":"Core","unit":"kWh/yr/capita"},{"section":"7.2","name":"Authorized Electrical Service","description":"Percentage of city population with authorized electrical service","type":"Core","unit":"%"},{"section":"7.3","name":"Public Building Electricity Use","description":"Energy (electricity) consumption of public buildings per year (kWh/m²)","type":"Core","unit":"kWh/m²"},{"section":"7.4","name":"Electricity from Renewable Sources","description":"Percentage of total energy derived from renewable sources, as a share of the city's total energy consumption","type":"Core","unit":"%"},{"section":"7.5","name":"Total Electrical Use","description":"Total electrical energy use per capita (kWh/year)","type":"Supporting","unit":"kWh/yr/capita"},{"section":"7.6","name":"Electrical Interruptions","description":"Average number of electrical interruptions per customer per year","type":"Supporting","unit":"/customer/yr"},{"section":"7.7","name":"Electrical Interruption Length","description":"Average length of electrical interruptions (in hours)","type":"Supporting","unit":"hours"}]},{"code":"8","name":"Environment","indicators":[{"section":"8.1","name":"PM2.5 Concentration","description":"Fine Particulate Matter (PM2.5) concentration","type":"Core","unit":"μg/m³"},{"section":"8.2","name":"PM10 Concentration","description":"Particulate Matter (PM10) concentration","type":"Core","unit":"μg/m³"},{"section":"8.3","name":"GHG Emissions","description":"Greenhouse gas emissions measured in tonnes per capita","type":"Core","unit":"t/capita"},{"section":"8.4","name":"NO2 Concentration","description":"NO₂ (nitrogen dioxide) concentration","type":"Supporting","unit":"μg/m³"},{"section":"8.5","name":"SO2 Concentration","description":"SO₂ (sulphur dioxide) concentration","type":"Supporting","unit":"μg/m³"},{"section":"8.6","name":"O3 Concentration","description":"O₃ (ozone) concentration","type":"Supporting","unit":"μg/m³"},{"section":"8.7","name":"Noise Pollution","description":"Noise pollution","type":"Supporting","unit":"%"},{"section":"8.8","name":"Change in Native Species","description":"Percentage change in number of native species","type":"Supporting","unit":"%"}]},{"code":"9","name":"Finance","indicators":[{"section":"9.1","name":"Debt Service Ratio","description":"Debt service ratio (debt service expenditure as a percentage of a municipality's own-source revenue)","type":"Core","unit":"%"},{"section":"9.2","name":"Capital Spending","description":"Capital spending as a percentage of total expenditures","type":"Supporting","unit":"%"},{"section":"9.3","name":"Own-Source Revenues","description":"Own-source revenue as a percentage of total revenues","type":"Supporting","unit":"%"},{"section":"9.4","name":"Taxes Collected","description":"Tax collected as percentage of tax billed","type":"Supporting","unit":"%"}]},{"code":"10","name":"Fire and Emergency Response","indicators":[{"section":"10.1","name":"Number of Firefighters","description":"Number of firefighters per 100 000 population","type":"Core","unit":"/100 000"},{"section":"10.2","name":"Number of Fire-Related Deaths","description":"Number of fire related deaths per 100 000 population","type":"Core","unit":"/100 000/yr"},{"section":"10.3","name":"Natural Disaster-Related Deaths","description":"Number of natural disaster related deaths per 100 000 population","type":"Core","unit":"/100 000/yr"},{"section":"10.4","name":"Volunteer Firefighters","description":"Number of volunteer and part-time firefighters per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"10.5","name":"Emergency Response Time","description":"Response time for emergency response services from initial call","type":"Supporting","unit":"min"},{"section":"10.6","name":"Fire Response Time","description":"Response time for fire department from initial call","type":"Supporting","unit":"min"}]},{"code":"11","name":"Governance","indicators":[{"section":"11.1","name":"Voter Participation Rate","description":"Voter participation in last municipal election (as a percentage of eligible voters)","type":"Core","unit":"%"},{"section":"11.2","name":"Women Elected to Office","description":"Women as a percentage of total elected to city-level office","type":"Core","unit":"%"},{"section":"11.3","name":"Women Employed in City Government","description":"Percentage of women employed in the city government workforce","type":"Supporting","unit":"%"},{"section":"11.4","name":"Number of Corruption Convictions","description":"Number of convictions for corruption and/or bribery by city officials per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"11.5","name":"Citizen Representation","description":"Citizens' representation: number of local officials elected to office per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"11.6","name":"Number of Registered Voters","description":"Number of registered voters as a percentage of the voting age population","type":"Supporting","unit":"%"}]},{"code":"12","name":"Health","indicators":[{"section":"12.1","name":"Life Expectancy","description":"Average life expectancy","type":"Core","unit":"years"},{"section":"12.2","name":"In-Patient Hospital Beds","description":"Number of in-patient hospital beds per 100 000 population","type":"Core","unit":"/100 000"},{"section":"12.3","name":"Number of Physicians","description":"Number of physicians per 100 000 population","type":"Core","unit":"/100 000"},{"section":"12.4","name":"Under Age Five Mortality Rate","description":"Under age five mortality per 1 000 live births","type":"Core","unit":"/1000 live births"},{"section":"12.5","name":"Number of Nurses/Midwives","description":"Number of nursing and midwifery personnel per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"12.6","name":"Number of Mental Health Practitioners","description":"Number of mental health practitioners per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"12.7","name":"Suicide Rate","description":"Suicide rate per 100 000 population","type":"Supporting","unit":"/100 000"}]},{"code":"13","name":"Recreation","indicators":[{"section":"13.1","name":"Indoor Recreation Space","description":"Square metres of public indoor recreation space per capita","type":"Supporting","unit":"m²/capita"},{"section":"13.2","name":"Outdoor Recreation Space","description":"Square metres of public outdoor recreation space per capita","type":"Supporting","unit":"m²/capita"}]},{"code":"14","name":"Safety","indicators":[{"section":"14.1","name":"Number of Police Officers","description":"Number of police officers per 100 000 population","type":"Core","unit":"/100 000/yr"},{"section":"14.2","name":"Number of Homicides","description":"Number of homicides per 100 000 population","type":"Core","unit":"/100 000/yr"},{"section":"14.3","name":"Number of Property Crimes","description":"Crimes against property per 100 000 population","type":"Supporting","unit":"/100 000/yr"},{"section":"14.4","name":"Police Response Time","description":"Response time for police department from initial call","type":"Supporting","unit":"min"},{"section":"14.5","name":"Number of Violent Crimes","description":"Violent crime rate per 100 000 population","type":"Supporting","unit":"/100 000/yr"}]},{"code":"15","name":"Shelter","indicators":[{"section":"15.1","name":"Population Living in Slums","description":"Percentage of city population living in slums","type":"Core","unit":"%"},{"section":"15.2","name":"Number of Homeless","description":"Number of homeless per 100 000 population","type":"Supporting","unit":"/100 000"},{"section":"15.3","name":"Unregistered Households","description":"Percentage of households that exist without registered legal titles","type":"Supporting","unit":"%"}]},{"code":"16","name":"Solid Waste","indicators":[{"section":"16.1","name":"Residential Solid Waste Collection","description":"Percentage of city population with regular solid waste collection (residential)","type":"Core","unit":"%"},{"section":"16.2","name":"Solid Waste Collected","description":"Total collected municipal solid waste per capita","type":"Core","unit":"t/capita"},{"section":"16.3","name":"Solid Waste Recycled","description":"Percentage of the city's solid waste that is recycled","type":"Core","unit":"%"},{"section":"16.4","name":"Disposal by Landfill","description":"Percentage of the city's solid waste that is disposed of in a sanitary landfill","type":"Supporting","unit":"%"},{"section":"16.5","name":"Disposal by Incinerator","description":"Percentage of the city's solid waste that is disposed of in an incinerator","type":"Supporting","unit":"%"},{"section":"16.6","name":"Disposal by Burning Openly","description":"Percentage of the city's solid waste that is burned openly","type":"Supporting","unit":"%"},{"section":"16.7","name":"Disposal by Open Dump","description":"Percentage of the city's solid waste that is disposed of in an open dump","type":"Supporting","unit":"%"},{"section":"16.8","name":"Disposal by Other","description":"Percentage of the city's solid waste that is disposed of by other means","type":"Supporting","unit":"%"},{"section":"16.9","name":"Hazardous Waste Generated","description":"Hazardous waste generation per capita","type":"Supporting","unit":"t/capita"},{"section":"16.1","name":"Hazardous Waste Recycled","description":"Percentage of city's hazardous waste that is recycled","type":"Supporting","unit":"%"}]},{"code":"17","name":"Telecommunication and Innovation","indicators":[{"section":"17.1","name":"Internet Connections","description":"Number of internet connections per 100 000 population","type":"Core","unit":"/100 000"},{"section":"17.2","name":"Cell Phone Connections","description":"Number of cell phone connections per 100 000 population","type":"Core","unit":"/100 000"},{"section":"17.3","name":"Landline Connections","description":"Number of landline phone connections per 100 000 population","type":"Supporting","unit":"/100 000"}]},{"code":"18","name":"Transportation","indicators":[{"section":"18.1","name":"High-Capacity Public Transit","description":"Kilometres of high capacity public transport system per 100 000 population","type":"Core","unit":"km/100 000"},{"section":"18.2","name":"Light Passenger Public Transit","description":"Kilometres of light passenger public transport system per 100 000 population","type":"Core","unit":"km/100 000"},{"section":"18.3","name":"Public Transit Trips","description":"Annual number of public transport trips per capita","type":"Core","unit":"capita/yr"},{"section":"18.4","name":"Number of Automobiles","description":"Number of personal automobiles per capita","type":"Core","unit":"/capita"},{"section":"18.5","name":"Mode Share","description":"Percentage of commuters using a travel mode to work other than a personal vehicle","type":"Supporting","unit":"%"},{"section":"18.6","name":"Number of 2-Wheeled Vehicles","description":"Number of two-wheel motorized vehicles per capita","type":"Supporting","unit":"/capita"},{"section":"18.7","name":"Bicycle Paths","description":"Kilometres of bicycle paths and lanes per 100 000 population","type":"Supporting","unit":"km/100 000"},{"section":"18.8","name":"Transportation Fatalities","description":"Transportation fatalities per 100 000 population","type":"Supporting","unit":"/100 000/yr"},{"section":"18.9","name":"Commercial Air Connectivity","description":"Commercial air connectivity","type":"Supporting","unit":"/yr"}]},{"code":"19","name":"Urban Planning","indicators":[{"section":"19.1","name":"Green Area","description":"Green area (hectares) per 100 000 population","type":"Core","unit":"ha/100 000"},{"section":"19.2","name":"Trees Planted","description":"Annual number of trees planted per 100 000 population","type":"Supporting","unit":"/100 000/yr"},{"section":"19.3","name":"Informal Settlements","description":"Areal size of informal settlements as a percentage of city area","type":"Supporting","unit":"%"},{"section":"19.4","name":"Jobs/Housing Ratio","description":"Jobs/housing ratio","type":"Supporting","unit":""}]},{"code":"20","name":"Wastewater","indicators":[{"section":"20.1","name":"Wastewater Collection","description":"Percentage of city population served by wastewater collection","type":"Core","unit":"%"},{"section":"20.2","name":"No Wastewater Treatment","description":"Percentage of the city's wastewater that has received no treatment","type":"Core","unit":"%"},{"section":"20.3","name":"Primary Wastewater Treatment","description":"Percentage of the city's wastewater receiving primary treatment","type":"Core","unit":"%"},{"section":"20.4","name":"Secondary Wastewater Treatment","description":"Percentage of the city's wastewater receiving secondary treatment","type":"Core","unit":"%"},{"section":"20.5","name":"Tertiary Wastewater Treatment","description":"Percentage of the city's wastewater receiving tertiary treatment","type":"Core","unit":"%"}]},{"code":"21","name":"Water and Sanitation","indicators":[{"section":"21.1","name":"Potable Water Service","description":"Percentage of city population with potable water supply service","type":"Core","unit":"%"},{"section":"21.2","name":"Improved Water Access","description":"Percentage of city population with sustainable access to an improved water source","type":"Core","unit":"%"},{"section":"21.3","name":"Improved Sanitation Access","description":"Percentage of population with access to improved sanitation","type":"Core","unit":"%"},{"section":"21.4","name":"Domestic Water Consumption","description":"Total domestic water consumption per capita (litres/day)","type":"Core","unit":"L/d/capita"},{"section":"21.5","name":"Total Water Consumption","description":"Total water consumption per capita (litres/day)","type":"Supporting","unit":"L/d/capita"},{"section":"21.6","name":"Water Service Interruptions","description":"Average annual hours of water service interruptions per household","type":"Supporting","unit":"hrs/yr/household"},{"section":"21.7","name":"Water Loss","description":"Percentage of water loss (unaccounted for water)","type":"Supporting","unit":"%"}]}]};
+
+  buildHorizontalTree();
+
+  function buildHorizontalTree() {
+    // Build hierarchical structure
+    const root = {
+      name: "ISO 37120",
+      children: data.themes.map(theme => ({
+        name: theme.name,
+        code: theme.code,
+        color: THEME_COLORS[theme.code] || '#999',
+        children: theme.indicators.map(indicator => ({
+          name: indicator.name,
+          section: indicator.section,
+          description: indicator.description,
+          type: indicator.type,
+          unit: indicator.unit,
+          theme: theme.name,
+          color: THEME_COLORS[theme.code] || '#999'
+        }))
+      }))
+    };
+
+    const hierarchy = d3.hierarchy(root);
+    const treeWidth = WIDTH - MARGIN.left - MARGIN.right;
+    const treeHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
+    const treeLayout = d3.tree().size([treeHeight, treeWidth]);
+    treeLayout(hierarchy);
+
+    const mount = d3.select('#chart');
+    const svg = mount.append('svg')
+      .attr('viewBox', [0, 0, WIDTH, HEIGHT])
+      .attr('width', WIDTH)
+      .attr('height', HEIGHT);
+
+    const g = svg.append('g').attr('transform', `translate(${MARGIN.left}, ${MARGIN.top})`);
+
+    // Draw links
+    g.append('g')
+      .selectAll('path')
+      .data(hierarchy.links())
+      .join('path')
+      .attr('class', 'link')
+      .attr('stroke', d => d.target.data.color || '#999')
+      .attr('d', d3.linkHorizontal()
+        .x(d => d.y)
+        .y(d => d.x)
+      )
+      .on('mouseenter', function(event, d) {
+        if (d.target.depth === 1) {
+          showTooltip(event, `<div class="tooltip-title">${d.target.data.name}</div>`);
+        } else if (d.target.depth === 2) {
+          showTooltip(event, `
+            <div class="tooltip-section">${d.target.data.section} — ${d.target.data.theme}</div>
+            <div class="tooltip-title">${d.target.data.name}</div>
+            <div>${d.target.data.description}</div>
+            ${d.target.data.unit ? `<div style="margin-top:4px; color:#94a3b8;">Unit: ${d.target.data.unit}</div>` : ''}
+            <div style="margin-top:4px; color:#94a3b8;">${d.target.data.type}</div>
+          `);
+        }
+      })
+      .on('mouseleave', hideTooltip);
+
+    // Draw nodes (themes and indicators)
+    const node = g.append('g')
+      .selectAll('g')
+      .data(hierarchy.descendants())
+      .join('g')
+      .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    // Root label (depth 0)
+    node.filter(d => d.depth === 0)
+      .append('text')
+      .attr('class', 'root-label')
+      .attr('x', -10)
+      .attr('dy', '0.31em')
+      .attr('text-anchor', 'end')
+      .text(d => d.data.name);
+
+    // Theme labels (depth 1)
+    node.filter(d => d.depth === 1)
+      .append('text')
+      .attr('class', 'theme-label')
+      .attr('x', 10)
+      .attr('dy', '-0.5em')
+      .attr('fill', d => d.data.color)
+      .text(d => d.data.name)
+      .on('mouseenter', function(event, d) {
+        showTooltip(event, `<div class="tooltip-title">${d.data.name}</div>`);
+      })
+      .on('mouseleave', hideTooltip);
+
+    // Indicator labels (depth 2)
+    node.filter(d => d.depth === 2)
+      .append('text')
+      .attr('class', d => `indicator-label ${d.data.type.toLowerCase()}-indicator`)
+      .attr('x', 10)
+      .attr('dy', '-0.5em')
+      .text(d => d.data.name)
+      .on('mouseenter', function(event, d) {
+        showTooltip(event, `
+          <div class="tooltip-section">${d.data.section} — ${d.data.theme}</div>
+          <div class="tooltip-title">${d.data.name}</div>
+          <div>${d.data.description}</div>
+          ${d.data.unit ? `<div style="margin-top:4px; color:#94a3b8;">Unit: ${d.data.unit}</div>` : ''}
+          <div style="margin-top:4px; color:#94a3b8;">${d.data.type}</div>
+        `);
+      })
+      .on('mouseleave', hideTooltip);
+
+    // Info panel
+    const totalIndicators = data.themes.reduce((sum, t) => sum + t.indicators.length, 0);
+    const coreCount = data.themes.reduce((sum, t) =>
+      sum + t.indicators.filter(i => i.type === 'Core').length, 0);
+    const supportingCount = totalIndicators - coreCount;
+
+    d3.select('#info').html(`
+      <strong>ISO 37120</strong> contains ${data.themes.length} themes with
+      ${totalIndicators} total indicators
+      (<span style="color:#dc2626">${coreCount} Core</span>,
+      <span style="color:#059669">${supportingCount} Supporting</span>).
+    `);
+  }
+
+  // Tooltip functions
+  const tooltip = d3.select('#tooltip');
+
+  function showTooltip(event, html) {
+    tooltip.html(html)
+      .classed('visible', true)
+      .style('left', event.pageX + 'px')
+      .style('top', (event.pageY - 10) + 'px');
+  }
+
+  function hideTooltip() {
+    tooltip.classed('visible', false);
+  }
+  </script>
+</body>
+</html>

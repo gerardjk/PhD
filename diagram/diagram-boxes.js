@@ -387,7 +387,7 @@ function createGroupBoundingBoxes(dotPositions, dotRadius, svg, labelsGroup, blu
     const innerLeftPadding = 60;
     const innerTopPadding = 30;
     const innerBottomPadding = 6;
-    const innerRightPadding = 290;
+    const innerRightPadding = 284;
 
     boxes.adi = createStyledRect(
       minX - innerLeftPadding - dotRadius,

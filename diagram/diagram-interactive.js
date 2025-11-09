@@ -91,7 +91,7 @@ function showTooltip(elementId, event) {
 
   // Check if this is Firefox wrapper structure or Chrome single div
   const isFirefoxWrapper = tooltipWrapper.dataset.firefoxWrapper === 'true';
-  const tooltipContent = isFirefoxWrapper ? document.getElementById('diagram-tooltip-content') : tooltipWrapper;
+  const tooltipContentElement = isFirefoxWrapper ? document.getElementById('diagram-tooltip-content') : tooltipWrapper;
 
   const content = window.tooltipContent?.[elementId];
   if (!content) {
@@ -124,15 +124,17 @@ function showTooltip(elementId, event) {
     });
   }
 
-  tooltipContent.innerHTML = html;
+  tooltipContentElement.innerHTML = html;
 
   // Store link for click handler
-  tooltipContent.dataset.link = content.link || '';
+  tooltipContentElement.dataset.link = content.link || '';
 
   // Remove old click listeners and add new one
-  tooltipContent.onclick = function() {
-    if (tooltipContent.dataset.link) {
-      window.open(tooltipContent.dataset.link, '_blank', 'noopener,noreferrer');
+  tooltipContentElement.onclick = function() {
+    if (tooltipContentElement.dataset.link) {
+      const newWindow = window.open(tooltipContentElement.dataset.link, '_blank', 'noopener,noreferrer');
+      if (newWindow) newWindow.blur();
+      window.focus();
     }
   };
 
@@ -171,9 +173,96 @@ function hideTooltip() {
  */
 function highlightElement(elementId) {
   const elements = document.querySelectorAll(`[data-interactive-id="${elementId}"]`);
+
+  // Special handling for dots (e.g., dot-50, dot-51, etc.)
+  if (!elements.length && elementId.startsWith('dot-')) {
+    const dotIndex = parseInt(elementId.replace('dot-', ''));
+    if (window.dotPositions && window.dotPositions[dotIndex]) {
+      const dotPos = window.dotPositions[dotIndex];
+      // Find circles at this position (both blue and yellow)
+      const allCircles = document.querySelectorAll('circle');
+      allCircles.forEach(circle => {
+        const cx = parseFloat(circle.getAttribute('cx'));
+        const cy = parseFloat(circle.getAttribute('cy'));
+        const r = parseFloat(circle.getAttribute('r'));
+
+        // Check if circle is at this dot's position (within small tolerance)
+        if (r && r < 20 && Math.abs(cx - dotPos.x) < 1 && Math.abs(cy - dotPos.y) < 1) {
+          circle.classList.add('highlighted');
+          if (!circle.dataset.originalOpacity) {
+            circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
+            circle.dataset.originalFilter = circle.style.filter || 'none';
+          }
+          circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+          circle.style.opacity = '1';
+          currentHighlightedElements.add(circle);
+        }
+      });
+    }
+    return;
+  }
+
+  // Special handling for group elements by ID (e.g., blue-connecting-lines, small-group, etc.)
+  if (!elements.length) {
+    const groupElement = document.getElementById(elementId);
+    if (groupElement) {
+      // Special case: blue-connecting-lines and yellow-circles contain lines (and possibly dots)
+      // Highlight only lines/paths, not circles, and treat them consistently
+      if (elementId === 'blue-connecting-lines' || elementId === 'yellow-circles') {
+        const lines = groupElement.querySelectorAll('line, path');
+        lines.forEach(line => {
+          line.classList.add('highlighted');
+          if (!line.dataset.originalOpacity) {
+            line.dataset.originalOpacity = line.style.opacity || getComputedStyle(line).opacity || '1';
+            line.dataset.originalFilter = line.style.filter || 'none';
+          }
+          if (line.tagName.toLowerCase() === 'line') {
+            if (!line.dataset.originalStrokeWidth) {
+              line.dataset.originalStrokeWidth = line.getAttribute('stroke-width') || '1';
+            }
+            const currentWidth = parseFloat(line.dataset.originalStrokeWidth);
+            line.setAttribute('stroke-width', (currentWidth * 2.5).toString());
+            line.style.filter = 'brightness(1.8) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.9))';
+          } else {
+            line.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+          }
+          line.style.opacity = '1';
+          currentHighlightedElements.add(line);
+        });
+        return;
+      }
+
+      groupElement.classList.add('highlighted');
+      if (!groupElement.dataset.originalOpacity) {
+        groupElement.dataset.originalOpacity = groupElement.style.opacity || '1';
+        groupElement.dataset.originalFilter = groupElement.style.filter || 'none';
+      }
+      groupElement.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+      groupElement.style.opacity = '1';
+      currentHighlightedElements.add(groupElement);
+      return;
+    }
+  }
+
   if (!elements.length) return;
 
   elements.forEach(element => {
+    // Special handling for RITS circle - highlight children instead of group
+    if (elementId === 'rits-circle' && element.id === 'big-group') {
+      const children = element.querySelectorAll('circle, path');
+      children.forEach(child => {
+        child.classList.add('highlighted');
+        if (!child.dataset.originalOpacity) {
+          child.dataset.originalOpacity = child.style.opacity || getComputedStyle(child).opacity || '1';
+          child.dataset.originalFilter = child.style.filter || 'none';
+        }
+        child.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        child.style.opacity = '1';
+        currentHighlightedElements.add(child);
+      });
+      return;
+    }
+
     element.classList.add('highlighted');
 
     // Store original styles if not already stored
@@ -266,7 +355,9 @@ function clearHighlights() {
  * @param {string} boxElementId - ID of the box element
  */
 function highlightCirclesInBox(boxElementId) {
-  const boxElement = document.getElementById(boxElementId);
+  const boxElement =
+    document.getElementById(boxElementId) ||
+    document.querySelector(`[data-interactive-id="${boxElementId}"]`);
   if (!boxElement) return;
 
   // Get box bounds
@@ -288,8 +379,9 @@ function highlightCirclesInBox(boxElementId) {
     const cy = parseFloat(circle.getAttribute('cy'));
     const r = parseFloat(circle.getAttribute('r'));
 
-    // Only highlight small circles (dots), not the big RITS/FSS circles
-    if (r && r < 20 && cx && cy) {
+    // Only highlight dots (including CLS), not the huge RITS/FSS gearwheels
+    // CLS dot is large (~30-50 radius), RITS/FSS are much larger (>100 radius)
+    if (r && r < 70 && cx && cy) {
       // Check if circle center is within box bounds
       if (cx >= boxLeft && cx <= boxRight && cy >= boxTop && cy <= boxBottom) {
         // Apply highlight directly to circle element
@@ -404,7 +496,9 @@ function handleClick(event) {
 
   const content = window.tooltipContent?.[elementId];
   if (content && content.link) {
-    window.open(content.link, '_blank', 'noopener,noreferrer');
+    const newWindow = window.open(content.link, '_blank', 'noopener,noreferrer');
+    if (newWindow) newWindow.blur();
+    window.focus();
   }
 }
 
@@ -422,6 +516,26 @@ function makeInteractive(element, elementId) {
   element.addEventListener('mousemove', handleMouseMove);
   element.addEventListener('mouseleave', handleMouseLeave);
   element.addEventListener('click', handleClick);
+}
+
+/**
+ * Make an SVG element interactive for highlighting only (no tooltip)
+ * Use this for elements that should trigger group highlights but not show tooltips
+ */
+function makeInteractiveHighlightOnly(element, elementId) {
+  if (!element || !elementId) return;
+
+  element.setAttribute('data-interactive-id', elementId);
+  element.style.cursor = 'pointer';
+
+  // Custom handler that only does highlighting, no tooltip
+  element.addEventListener('mouseenter', (event) => {
+    const relatedElements = window.getRelatedElements?.(elementId) || new Set([elementId]);
+    relatedElements.forEach(id => {
+      highlightElement(id);
+    });
+  });
+  element.addEventListener('mouseleave', handleMouseLeave);
 }
 
 /**
@@ -443,6 +557,7 @@ if (document.readyState === 'loading') {
 // Export for use in other modules
 if (typeof window !== 'undefined') {
   window.makeInteractive = makeInteractive;
+  window.makeInteractiveHighlightOnly = makeInteractiveHighlightOnly;
   window.initializeInteractive = initializeInteractive;
   window.showTooltip = showTooltip;
   window.hideTooltip = hideTooltip;
