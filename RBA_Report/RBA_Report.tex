@@ -1,0 +1,91 @@
+% ---------------------------------------------------------------
+% ---------------------------------------------------------------
+% This template was developed for the working paper series of 
+% the Interdisciplinary Laboratory of Computational Social Science (iLCSS)
+% at the University of Maryland, College Park
+
+% The template was built based on  the PNAS Latex model. 
+
+% Adjustments were made by Tiago Ventura, Ph.D. Candidate in Political Science at UMD, and researcher at the iLCSS.
+
+\documentclass[9pt,twocolumn,twoside]{ilcss}
+
+\templatetype{ilcssworkingpaper} % Choose template 
+
+\title{\textbf{AUSTRALIA PAYMENTS PLUS}}	
+\subtitle{\textbf{Project Acacia Phase 2 Report to the Reserve Bank of Australia}}
+\subsubtitle{\textbf{\large ELEMENTS OF A FUTURE PAYMENTS SCHEME}\\[6pt]{\normalsize\color{headingblue} DECEMBER 2025}}
+
+\author{}
+
+% Please give the surname of the lead author for the running footer
+\leadauthor{Lead author last name} 
+
+% Please add here a significance statement to explain the relevance of your work
+\significancestatement{}
+
+% Please include corresponding author, author contribution and author declaration information
+\authorcontributions{}
+\authordeclaration{}
+\equalauthors{}
+\correspondingauthor{}
+
+
+
+\begin{abstract}
+This report describes findings from three use cases developed by Australia Payments Plus for the second phase of Project Acacia. The use cases explore a proposed national Payments Scheme featuring value transfer between bank deposits and digital ledgers, a multilateral money-token interchange synchronised to the central bank, and a settlement coordination service for tokenised asset markets. Two of these use cases were completed with AP+ as lead entity, and one with Imperium Markets as lead entity and AP+ as collaborating entity.
+\end{abstract}
+
+\dates{}
+
+% You can change the link on the footer here
+
+\doi{\url{http://ilcss.umd.edu/}}
+\additionalelement{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{firststyle}
+\ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
+
+% If your first paragraph (i.e. with the \dropcap) contains a list environment (quote, quotation, theorem, definition, enumerate, itemize...), the line after the list may have some extra indentation. If this is the case, add \parshape=0 to the end of the list environment.
+
+\vspace{12pt}
+\section{\textcolor{headingblue}{Introduction}}
+
+ \textbf{Australia Payments Plus} (\textbf{AP+}) is the national payments and banking industry body that operates Australia's domestic retail Payment Schemes.\footnote{The New Payments Platform (NPP), eftpos and BPAY.} For the second phase of Project Acacia, AP+ developed three use cases designed to highlight the elements of a \textbf{Future Payments Scheme}---an industry-operated utility and multilateral governance framework connecting tokenised financial markets with Australia's existing banking and payments architecture.
+
+Each use case focuses on a necessary component of such a scheme:
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+    \item \textbf{NPP Token Service:} a facility that supports direct value transfers between digital tokens on public ledgers and conventional Australian dollar deposit accounts (Coin-to-Account / Account-to-Coin) via the 24/7 RTGS New Payments Platform.
+    \item \textbf{Token Interchange Service:} an on-chain facility for multilateral atomic conversion between privately issued money tokens (including stablecoins and deposit tokens) using a common interchange token that represents token issuers' off-chain central-bank money balances.
+    \item \textbf{Settlement Coordinator Services:} services that support on-chain marketplaces for tokenised financial instruments, including identity, compliance, and scheme administration functions.
+\end{enumerate}
+
+The scheme enforces fungibility among privately issued Australian-currency tokens by requiring their exchange to be intermediated through a multilateral interchange token that mirrors off-chain public-money balances. Doing so addresses the currency-singleness issues and the public/private money role distinctions flagged in the 2024 Project Acacia Consultation Report.
+
+\newpage
+\section*{\textcolor{headingblue}{Overview}}
+
+\textbf{Use Case 1}---the NPP Token Service---was run as a desktop study led by AP+ in collaboration with \textbf{Cuscal} (settlement service provider) and \textbf{SWIFT}, the New Payments Platform infrastructure vendor.
+
+\textbf{Use Case 2}---the Token Interchange Service---was a live pilot delivered with \textbf{AUDD Digital}, \textbf{Forte AUD}, and \textbf{Macropod} (formerly Catena) acting as token issuers, and \textbf{Cuscal} acting both as issuer and as settlement agent for other issuers. The pilot demonstrated:
+
+\begin{itemize}
+    \item deployment of a token-interchange smart-contract facility to support multilateral conversion between Australian-dollar money tokens on the permissioned public ledger \textbf{Hedera};
+    \item minting and circulation of pilot wholesale CBDC on a separate permissioned private network (an instance of \textbf{HashSphere});
+    \item deployment of a \textbf{synchroniser} that allowed the public-network token-interchange settlement asset to mirror private-network wholesale CBDC balances; and
+    \item deployment of a \textbf{cross-chain bridge} between Hedera and the permissionless public Ethereum network.
+\end{itemize}
+
+\textbf{Use Case 3}---the Settlement Coordinator Service---defines supporting services and scheme rules for NPP token integration and token interchange, including digital identity, Know Your Customer/Know Your Business, proof of reserves, and key management for participants in tokenised financial markets. The proof of concept originally positioned AP+ as lead entity working with \textbf{Imperium Markets} on a tokenised money-market pilot.
+
+\textbf{Imperium Markets}, itself a Project Acacia lead entity, is developing use cases covering tokenised wholesale money-market instruments. Participation in AP+ Use Case 3 led Imperium Markets to adopt Hedera as its token ledger for exploring tokenised term deposits, negotiable certificates of deposit, and annuities. 
+
+In October the RBA merged that work with AP+ Use Case 3, naming Imperium Markets the lead entity. Although the technical solution originated with Use Case 3, the pilot now focuses on generic real-world-asset tokenisation and Settlement Coordinator services rather than on specific money-market instruments.
+
+This document answers the questions set out in the RBA--DFCRC \textbf{Research Information Guidelines for Lead Entities} with reference to all three use cases and to the broader proposal for an Australian industry-operated Future Payments Scheme.
+
+\end{document}
