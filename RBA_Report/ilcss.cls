@@ -66,7 +66,7 @@
 \newcommand{\subsubtitlefont}{\color{color0}\sffamily\mdseries\fontsize{12pt}{14pt}\selectfont}
 \newcommand{\dropcapfont}{\color{color0}\sffamily\bfseries\fontsize{26pt}{28pt}\selectfont}
 \newcommand{\datesfont}{\normalfont\rmfamily\fontsize{7}{8}\selectfont}
-\newcommand{\absfont}{\normalfont\rmfamily\itshape\fontsize{8}{11}\selectfont}
+\newcommand{\absfont}{\normalfont\rmfamily\bfseries\itshape\fontsize{8}{11}\selectfont}
 \newcommand{\keywordsfont}{\normalfont\rmfamily\fontsize{7}{10}\selectfont}
 \newcommand{\copyrightfont}{\normalfont\rmfamily\fontsize{6}{8}\selectfont}
 
@@ -214,8 +214,10 @@
 
 %% Section/subsection/paragraph set-up
 \RequirePackage[explicit]{titlesec}
-\setcounter{secnumdepth}{0}
-\renewcommand{\thesubsection}{\Alph{subsection}}
+\setcounter{secnumdepth}{3}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
 
 \titleformat{\section}
   {\large\rmfamily\bfseries}
@@ -286,7 +288,7 @@ THE ABSTRACT\vskip12pt}\let\go\relax\fi
 % Define an environment with abstract content and styling
 \newcommand{\abscontent}{
 \vskip24pt%
- {\noindent\absfont \theabstract\par}
+{\noindent\absfont \theabstract\par}
 \vskip6pt%
 }
 
