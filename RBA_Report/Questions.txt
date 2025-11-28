@@ -56,3 +56,5 @@
 5.2.2 How did your use case design promote at par convertibility of different forms of public and private money denominated in Australian dollars?
 5.3.1 In what way(s) did your use case provide research evidence about how asset tokenisation and/or new forms of public or private money may promote competition in the development of new markets and settlement infrastructure services? For example, did your use case demonstrate if barriers to new entry or service development can be lowered or bypassed, and if so how?
 5.3.2 Were there barriers that prevented you from structuring your use case in a way that may have provided more information on this question, and if so what were those barriers?
+
+r9KDxQn6

@@ -1,0 +1,43 @@
+\contentsline {section}{\numberline {1}Purpose, Positioning, and Scope}{1}{}%
+\contentsline {subsection}{\numberline {1.1}High-Level Aim}{1}{}%
+\contentsline {subsection}{\numberline {1.2}What We Mean by ``Digital Liquidity''}{1}{}%
+\contentsline {subsection}{\numberline {1.3}Intended Contributions}{2}{}%
+\contentsline {section}{\numberline {2}Position in the Thesis and Paper Arc}{2}{}%
+\contentsline {subsection}{\numberline {2.1}Role as Opening Thesis Chapter}{2}{}%
+\contentsline {subsection}{\numberline {2.2}Relationship to the Other Papers}{2}{}%
+\contentsline {paragraph}{Paper 2 -- Liquidity Calculus.}{2}{}%
+\contentsline {paragraph}{Paper 3 -- Stylised Facts of Tokenised Markets.}{2}{}%
+\contentsline {paragraph}{Paper 4 -- Collateral Instruments as Settlement Assets.}{3}{}%
+\contentsline {section}{\numberline {3}Background and Related Work (Outline)}{3}{}%
+\contentsline {section}{\numberline {4}BSTE: Balance-State Transition Event}{3}{}%
+\contentsline {subsection}{\numberline {4.1}Economic Owner Abstraction}{3}{}%
+\contentsline {subsection}{\numberline {4.2}Primitive Event Types}{4}{}%
+\contentsline {subsection}{\numberline {4.3}Canonical BSTE Schema}{4}{}%
+\contentsline {section}{\numberline {5}Pending Events (PBSTE)}{6}{}%
+\contentsline {section}{\numberline {6}Global Invariants and Bridging Semantics}{6}{}%
+\contentsline {subsection}{\numberline {6.1}Per-Ledger Supply and Encumbrance}{6}{}%
+\contentsline {subsection}{\numberline {6.2}Primitive-Level Constraints}{7}{}%
+\contentsline {subsection}{\numberline {6.3}Atomic Sets}{7}{}%
+\contentsline {subsection}{\numberline {6.4}Bridging Invariants}{7}{}%
+\contentsline {section}{\numberline {7}Digital Liquidity Stack (Core and Extended)}{7}{}%
+\contentsline {subsection}{\numberline {7.1}Core Dimensions}{7}{}%
+\contentsline {subsection}{\numberline {7.2}Extended Dimensions}{8}{}%
+\contentsline {section}{\numberline {8}Tokenised vs Non-Tokenised vs Hybrid}{8}{}%
+\contentsline {subsection}{\numberline {8.1}Non-Tokenised Systems}{8}{}%
+\contentsline {subsection}{\numberline {8.2}Tokenised Systems}{8}{}%
+\contentsline {subsection}{\numberline {8.3}Hybrid Systems}{9}{}%
+\contentsline {section}{\numberline {9}Taxonomy of Liquidity Mechanisms}{9}{}%
+\contentsline {subsection}{\numberline {9.1}Credit and Funding}{9}{}%
+\contentsline {subsection}{\numberline {9.2}Encumbrances and Collateral}{9}{}%
+\contentsline {subsection}{\numberline {9.3}Clearing and Netting}{9}{}%
+\contentsline {subsection}{\numberline {9.4}Channels and Off-Chain Mechanisms}{9}{}%
+\contentsline {subsection}{\numberline {9.5}PvP, DvP, PoP, and Bridges}{9}{}%
+\contentsline {section}{\numberline {10}Representative Case Studies}{10}{}%
+\contentsline {section}{\numberline {11}Design Space and Discussion}{10}{}%
+\contentsline {section}{\numberline {12}Research Agenda and Link to Later Papers}{11}{}%
+\contentsline {subsection}{\numberline {12.1}Towards a Liquidity Calculus (Paper 2)}{11}{}%
+\contentsline {subsection}{\numberline {12.2}Stylised Facts of Tokenised Markets (Paper 3)}{11}{}%
+\contentsline {subsection}{\numberline {12.3}Collateral as Settlement Asset (Paper 4)}{11}{}%
+\contentsline {section}{\numberline {13}Writing Plan: Article vs Thesis Chapter}{11}{}%
+\contentsline {subsection}{\numberline {13.1}Journal Article (Condensed Version)}{11}{}%
+\contentsline {subsection}{\numberline {13.2}Thesis Chapter (Extended Version)}{12}{}%

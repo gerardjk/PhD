@@ -6,6 +6,9 @@
 
 \documentclass[9pt,twocolumn,twoside]{ilcss}
 
+% Override default font size to 8.7pt with 11pt line spacing
+\renewcommand{\normalsize}{\fontsize{8.7}{11}\selectfont}
+
 \templatetype{ilcssworkingpaper} % Choose template 
 
 \title{\textbf{AUSTRALIA PAYMENTS PLUS}}	
@@ -29,7 +32,7 @@
 \renewcommand{\thefootnote}{\arabic{footnote}}
 
 \begin{abstract}
-This report describes findings from three use cases developed by Australia Payments Plus for the second phase of Project Acacia. The use cases explore a proposed national payments scheme featuring bi-directional value transfer between conventional deposits and programmable ledgers, a money-token interchange synchronised to central bank currency balances, and a coordination service supporting tokenised money and asset transactions (PvP and DvP) with near-real-time settlement. Two of these use cases were completed with AP+ as lead entity, and one with Imperium Markets as lead entity and AP+ as collaborating entity.
+This report describes findings from three use cases developed by Australia Payments Plus for the second phase of Project Acacia. The use cases explore a proposed national payments scheme featuring bi-directional value transfer between conventional deposits and programmable ledgers, a token interchange synchronised to off-ledger balances, and a coordination service supporting transactions in tokenised money and assets (PvP and DvP) with near-real-time settlement. Two of these use cases were completed with AP+ as lead entity, and one with Imperium Markets as lead entity and AP+ as collaborating entity.
 \end{abstract}
 
 \dates{}
@@ -62,11 +65,11 @@ This report describes findings from three use cases developed by Australia Payme
   \nobreak\@afterheading
 }
 
-\renewcommand{\subsubsection}[1]{% 
+\renewcommand{\subsubsection}[1]{%
   \refstepcounter{subsubsection}%
   \addcontentsline{toc}{subsubsection}{\protect\numberline{\thesubsubsection}#1}%
   \par\addvspace{2.0ex plus 2pt minus 1pt}%
-  {\normalfont\bfseries\itshape\color{headingblue}\fontsize{9}{11}\selectfont\thesubsubsection\hspace{0.75em}#1\par}%
+  {\normalfont\bfseries\itshape\color{headingblue}\fontsize{8.7}{11}\selectfont\thesubsubsection\hspace{0.75em}#1\par}%
   \nobreak\@afterheading
 }
 
@@ -93,7 +96,7 @@ This report describes findings from three use cases developed by Australia Payme
 
 \section*{\textcolor{headingblue}{Introduction}}
 
- \textbf{Australia Payments Plus} (\textbf{AP+}) is the national payments and banking industry body that operates Australia's domestic retail Payment Schemes.\footnote{The New Payments Platform (NPP), eftpos and BPAY.} For the second phase of Project Acacia, AP+ developed three use cases designed to highlight the elements of a \textbf{Future Payments Scheme} - an industry-operated utility that would link Australia's existing banking and payments infrastructure with programmable platforms for tokenised financial markets under a multilateral governance framework.
+ \textbf{Australia Payments Plus} (\textbf{AP+}) is the national payments and banking industry body that operates Australia's domestic retail Payment Schemes.\footnote{The New Payments Platform (NPP), eftpos, and BPAY.} For the second phase of Project Acacia, AP+ developed three use cases designed to highlight the core elements of a \textbf{Future Payments Scheme} - an industry-operated utility linking Australia's existing banking and payments infrastructure with tokenised financial markets under a multilateral governance framework.
 
 Each use case focuses on a necessary scheme component:
 
@@ -103,7 +106,7 @@ Each use case focuses on a necessary scheme component:
     \item \textbf{Settlement Coordinator Service:} a service supporting on-chain marketplaces for tokenised financial instruments, including DvP settlement, identity and compliance, and scheme administration.
 \end{enumerate}
 
-The scheme would require exchange of privately-issued Australian currency money tokens to be intermediated through a multilateral interchange token mirroring off-chain public-money balances. This would enable competition between private issuers of money tokens while ensuring these tokens' fungibility. In doing so, the scheme would addresses concerns regarding currency-singleness and the distinct roles of public and private money raised in the 2024 Project Acacia Consultation Report.
+Under the proposed scheme, on-ledger exchange of privately-issued Australian money tokens would be intermediated through a multilateral interchange token mirroring off-ledger public-money balances. This would enable competition between private issuers of money tokens while ensuring these tokens' fungibility with each other and with commercial bank deposits. In doing so, the scheme would addresses concerns regarding currency-singleness and the distinct roles of public and private money raised in the 2024 Project Acacia Consultation Report.
 
 \section*{\textcolor{headingblue}{Overview}}
 

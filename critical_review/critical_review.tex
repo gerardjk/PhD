@@ -1,0 +1,62 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{parskip}
+\setlength{\parindent}{15pt}
+\setstretch{1.5}
+\begin{document}
+
+\noindent{\Large\textbf{GSOE9400 Critical Article Review}} \\
+\textbf{Gerard Kelly (z5709962)} \hfill \textbf{25 November 2025}
+
+\vspace{0.5em}
+\noindent
+A.~Capponi and R.~Jia, ``Liquidity Provision on Blockchain-Based Decentralised Exchanges,''
+\textit{Review of Financial Studies}, vol.~38, no.~10, pp.~3040--3085, 2025.
+
+\vspace{0.5em}
+\noindent\textbf{Introduction}
+
+Capponi and Jia (2025) examine the how the infrastructure of decentralised exchanges affect providers of liquidity for Automated Market Makers (AMMs).The paper argues that blockchain transaction sequencing and gas-fee competition creates a "tragedy of the commons" among liquidity providers (LPs), where arbitrage-induced losses are shared but withdrawal costs are borne individually, allowing validators to capture most arbitrage rents. The analysis introduces a formal model supported by an empirical event study of the Uniswap decentralised exchange during the 2023 Silicon Valley Bank (SVB) crisis.
+
+\vspace{0.5em}
+\noindent\textbf{Summary}
+
+Capponi and Jia develop a three-period model where LPs supply token pairs, traders execute swaps, and arbitrageurs exploit price deviations. Because miners sequence transactions by gas fees, almost all arbitrage profits are bidded away to validators. LPs bear adverse selection costs: when prices move, arbitrageurs rebalance the pool at LPs' expense. No individual LP has incentive to withdraw early, since unilateral withdrawal realises individual loss while non-withdrawal spreads losses across all LPs. This collective-action problem sustains liquidity despite poor LP payoffs.
+
+The authors evaluate mitigation mechanisms including faster block times, alternative sequencing, and concentrated liquidity provision, but find that none meaningfully reduce rent extraction. Empirically, they compare two Uniswap stablecoin pools during the SVB collapse as a natural experiment, with LPs in the volatile pool withdrawing or widening ranges, consistent with predictions about adverse-selection risk. The median arbitrageur pays roughly 96\% of revenue in gas fees, confirming that validators capture most rents.
+
+\vspace{0.5em}
+\noindent\textbf{Critique}
+
+Capponi and Jia's core contribution is clarifying how blockchain constraints - specifically gas auctions and miner extractable value (MEV) - impact AMM liquidity provision. The ``tragedy of the commons" argument references the equilibrium analysis of Lehar and Parlour (2025) equilibrium analysis of arbitrage behaviour but show how blockchain sequencing results in arbitrageurs' profits being bid away to validators, such that adverse selection hurts LPs without benefiting arbitrageurs.
+
+This demonstrates AMM inefficiencies arise from decentralised exchange infrastructure. This is a complement to the market-making analysis of Cartea, Drissi and Monga (2025)  which shows how execution priority and competition shape liquidity costs. Capponi and Jia describe a similar dynamic with arbitrageurs bidding for blockspace, rather than High Frequency Traders racing to submit orders. Their analysis extends traditional market microstructure to the specific characteristics of blockchain-based infrastructure. 
+
+The article integrates theoretical and empirical results. The three-period model isolates LP and arbitrageur incentives, demonstrating how collective-action failures arise. The theoretical modelling assumptions are limited in realism, with LPs treated as homogeneous and passive whereas in practice they differ in strategy and timing. Competitiveness of arbitrage is assumed, with gas bidding eliminating profits - strongly simplifying the model in comparison to real marketplaces.
+
+The SVB collapse provides a rare real-world test corroborating key predictions. One limitation is the empirical focus on a single event, with idiosyncratic stablecoin pairs rather than more representative volatile assets. The empirical design is limited in generality, limiting causal inference strength.
+
+My research will examine liquidity in token-interchange mechanisms—systems allowing liquidity to shift across token pairs. The article is directly relevant for two reasons. First, liquidity is highly sensitive to volatility shocks. LPs withdraw when adverse-selection risk rises, implying token-interchange systems must anticipate liquidity changes. Second, infrastructure frictions (gas fees, sequencing) dominate AMM economics. Any token-interchange mechanism must consider how validators extract rents from arbitrage. Cartea shows execution priority creates costs for liquidity suppliers. Integrating these insights helps identify where liquidity fragments, how arbitrage responds, and how interchange protocols might adjust fees or sequencing to retain liquidity during stress.
+
+\vspace{0.5em}
+\noindent\textbf{Conclusion}
+
+Capponi and Jia provide a valuable examination of AMM liquidity under the constraints of blockchain infrastructure. Their identification of LP collective-action problems and validator rent extraction deepens understanding of decentralised exchange dynamics. While the model simplifies behavioural heterogeneity and empirical evidence is narrow, the article offers meaningful insights for AMM design and liquidity management. Future research should broaden empirical contexts and explore sequencing mechanisms that can mitigate rent extraction. Overall, the article offers a meaningful contribution to knowledge of token-interchange liquidity and decentralised trading design.
+
+\vspace{0.5em}
+\noindent\textbf{References}
+
+\noindent
+A.~Capponi and R.~Jia, ``Liquidity Provision on Blockchain-Based Decentralised Exchanges,''
+\textit{Review of Financial Studies}, vol.~38, no.~10, pp.~3040--3085, 2025.
+
+\noindent
+A.~Lehar and C.~A.~Parlour, ``Decentralised Exchange: The Uniswap Automated Market Maker,''
+\textit{Journal of Finance}, vol.~80, no.~1, pp.~321--374, 2025.
+
+\noindent
+Á.~Cartea, F.~Drissi, and M.~Monga, ``Market Making: Execution and Speculation,''
+\textit{Journal of Economic Behavior \& Organization}, 2025.
+
+\end{document}

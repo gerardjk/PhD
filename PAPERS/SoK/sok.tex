@@ -1,0 +1,643 @@
+\documentclass[12pt]{article}
+\usepackage{enumitem}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Systemisation of Knowledge: Digital Liquidity}
+%  \large Planning Document for Thesis Chapter \& Journal Article}
+%\author{(Planning Outline -- No References Yet)}
+%\date{}
+
+\begin{document}
+\maketitle
+
+%\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Purpose and Positioning}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{High-Level Aims}
+
+A unified, event-centric framework for
+\emph{digital liquidity} across both legacy and tokenised infrastructures.
+
+%Core aim:
+\begin{itemize}[noitemsep]
+  \item Provide a \textbf{minimal, machine-checkable event model} (BSTE) for balance-state transitions.
+  \item Define a \textbf{Digital Liquidity Stack} that captures money nature, ledger technology, clearing, settlement, finality, credit, encumbrance, and interoperability.
+  \item Use this to systematically classify payment systems, FMIs, and tokenised systems (RTGS, ACH/DNS, card schemes, CLS, CCP cash, stablecoins, CBDCs, bridges, AMMs, unified ledgers).
+  \item Surface \textbf{patterns and failure modes} in digital liquidity management.
+\end{itemize}
+
+\subsection{Meaning of ``Digital Liquidity''}
+
+Liqudity has multiple meanings:
+
+\begin{enumerate}[label=(\alph*), noitemsep]
+  \item \textbf{Market liquidity}: order-book depth, bid--ask spreads, price impact, AMM slippage.
+  \item \textbf{Funding and settlement liquidity}: ability of institutions and infrastructures to obtain and deploy cash/collateral to meet obligations on time.
+\end{enumerate}
+
+In this work:
+
+\begin{quote}
+\textbf{Digital liquidity} means the \emph{capacity of digital infrastructures and participants to execute balance-state transitions} (our BSTEs)---to make obligations good in the right asset, on the right ledger, at the right time.
+\end{quote}
+
+We \emph{explicitly} do \textbf{not} attempt to survey or systematise market microstructure (order books, AMM curve design, price impact).
+Those questions are treated as upper-layer phenomena and will be the subject of subsequent work.
+
+\subsection{Intended Contributions}
+
+The chapter / article delivers:
+
+\begin{enumerate}[label=(C\arabic*), leftmargin=2cm]
+  \item \textbf{BSTE model}: a minimal, compositional event representation for digital value movements.
+  \item \textbf{Digital Liquidity Stack}: a 10-dimension core classification plus extended attributes to locate any system in a design space.
+  \item \textbf{Mechanism taxonomy}: a systematic description of holds, locks, collateralisation, credit, queues, netting, LSM, PvP/DvP/PoP, channels, and bridges as compositions of BSTEs.
+  \item \textbf{Comparative mapping}: worked classifications of representative legacy rails and tokenised systems.
+  \item \textbf{Research agenda}: a bridge from this plumbing-level SoK to (i) formal optimisation (Paper~2) and (ii) empirical market stylised facts (Paper~3).
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section{Position in the Thesis and Paper Arc}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \subsection{Role as Opening Thesis Chapter}
+
+% Within the PhD thesis, this chapter:
+
+% \begin{itemize}[noitemsep]
+%   \item Establishes the \textbf{core vocabulary and IR} (intermediate representation) for all later chapters.
+%   \item Sets out the systematisation of \emph{instruments} and \emph{infrastructures} at the settlement layer.
+%   \item Frames the thesis-wide research questions around digital liquidity, not just ``blockchain vs banks''.
+% \end{itemize}
+
+% \subsection{Relationship to the Other Papers}
+
+% \paragraph{Paper 2 -- Liquidity Calculus.}
+% Takes BSTE + stack and develops:
+
+% \begin{itemize}[noitemsep]
+%   \item graph-theoretic models of multi-ledger liquidity,
+%   \item scheduling and routing problems for BSTEs,
+%   \item worst-case encumbrance cost measures and optimisation algorithms.
+% \end{itemize}
+
+% \paragraph{Paper 3 -- Stylised Facts of Tokenised Markets.}
+% Uses BSTE encoding and stack classifications to:
+
+% \begin{itemize}[noitemsep]
+%   \item measure settlement latencies, failure modes, and flows,
+%   \item study collateralisation patterns and cross-venue fragmentation,
+%   \item connect observed market behaviour to underlying plumbing constraints.
+% \end{itemize}
+
+% \paragraph{Paper 4 -- Collateral Instruments as Settlement Assets.}
+% Builds on the SoK to discuss:
+
+% \begin{itemize}[noitemsep]
+%   \item repo-native money, tokenised collateral as settlement assets,
+%   \item governance and legal finality aspects encoded in the stack.
+% \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Scope of Background Review}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The following topics are in scope: %section will \emph{not} be fully fleshed in the planning doc, but will outline what needs to be covered:
+
+\begin{itemize}
+  \item Classical payment systems and FMI literature:
+    \begin{itemize}[noitemsep]
+      \item RTGS design, LSM and gridlock-resolution algorithms.
+      \item ACH/DNS systems, netting, risk management.
+      \item CCPs and CLS (PvP systems), liquidity implications.
+    \end{itemize}
+  \item CBDC and unified-ledger architecture papers.
+  \item Stablecoins, tokenised deposits, and tokenised collateral networks.
+  \item DeFi systems: AMMs, lending protocols, cross-chain bridges.
+  \item Existing ``stacks'' or taxonomies (e.g., generic blockchain stacks, CBDC design taxonomies).
+  \item SoK methodology references (how SoK papers are typically structured).
+\end{itemize}
+
+The focus is \textbf{not} on exhaustive survey, but on situating this work among:
+\begin{itemize}[noitemsep]
+  \item payment/FMI engineering,
+  \item tokenisation / DLT infrastructure,
+  \item SoK literature on distributed systems and crypto.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{BSTE: Balance-State Transition Event}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Economic Owner Abstraction}
+
+Introduce a conceptual mapping:
+\[
+  \mathrm{econ\_owner}(account) \to \text{beneficial owner (bank, customer, CCP, etc.)} .
+\]
+
+This allows us to distinguish:
+
+\begin{itemize}[noitemsep]
+  \item movements that change who owns the claim,
+  \item movements that only change how an owner’s claim is encumbered.
+\end{itemize}
+
+\subsection{Primitive Event Types}
+
+\subsubsection*{Primitive P1: OWNERSHIP\_TRANSFER}
+
+\begin{itemize}
+  \item Economic owner multiset changes.
+  \item Supply $S$ on the ledger is unchanged.
+  \item Examples:
+    \begin{itemize}[noitemsep]
+      \item RTGS credit from bank A to bank B.
+      \item On-chain ERC20 transfer.
+      \item AMM swap legs where users receive tokens and AMM pool balances change.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Primitive P2: ENCUMBRANCE\_ADJUST}
+
+\begin{itemize}
+  \item Economic owner set \emph{unchanged}, but claims move between:
+    \begin{itemize}[noitemsep]
+      \item free balance (\texttt{available}),
+      \item encumbered buckets (holds, collateral, escrow, channels, etc.).
+    \end{itemize}
+  \item Constraint: $\mathrm{econ\_owner}(\mathrm{src\_account}) = \mathrm{econ\_owner}(\mathrm{dst\_account})$.
+  \item Examples:
+    \begin{itemize}[noitemsep]
+      \item Card pre-authorisation: available $\to$ reservation.
+      \item Central bank collateralisation: available $\to$ collateral.
+      \item HTLC lock: available $\to$ channel or bridge\_lock.
+      \item Release of a hold: reservation $\to$ available.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{Primitive P3: SUPPLY\_ADJUST}
+
+\begin{itemize}
+  \item Net change in recognised supply $S$.
+  \item Exactly one of \verb|src_account|, \verb|dst_account| equals
+        \verb|EXTERNAL_SOURCE| or \verb|EXTERNAL_SINK|.
+  \item Examples:
+    \begin{itemize}[noitemsep]
+      \item Central bank monetary operations in reserves.
+      \item Stablecoin mint/burn.
+      \item Protocol base-fee burn.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Canonical BSTE Schema}
+
+We adopt the following design choices:
+
+\begin{itemize}[noitemsep]
+  \item \verb|amount| is strictly positive.
+  \item No structural \texttt{NULL}; use explicit sentinels.
+  \item Encumbrance is derived from bucket types; no \verb|lock_delta|.
+\end{itemize}
+
+\subsubsection*{Identity and Ordering}
+
+\begin{enumerate}[label=\arabic*.]
+  \item \verb|event_id| : unique identifier.
+  \item \verb|ledger_id| : authoritative balance-record; may be CB-RTGS, bank core, scheme settlement file, or DLT state machine.
+  \item \verb|asset_code| : identifies the asset.
+  \item \verb|op_kind| : \{OWNERSHIP\_TRANSFER, ENCUMBRANCE\_ADJUST, SUPPLY\_ADJUST\}.
+  \item \verb|t_occurred| : logical posting time.
+  \item \verb|event_seq| : per-ledger total order index.
+\end{enumerate}
+
+\subsubsection*{Accounts and Balance Types}
+
+\begin{enumerate}[label=\arabic*.]
+  \setcounter{enumi}{6}
+  \item \verb|src_account| : string, or \verb|EXTERNAL_SOURCE|.
+  \item \verb|src_balance_type| : \{available, reservation, collateral, escrow, channel, internal\_pending, bridge\_lock, other\}.
+  \item \verb|dst_account| : string, or \verb|EXTERNAL_SINK|.
+  \item \verb|dst_balance_type| : same enum.
+\end{enumerate}
+
+Encumbered buckets are those with \verb|balance_type| $\neq$ \texttt{available} (but we may specify the exact list).
+
+\subsubsection*{Supply and Economic Role}
+
+\begin{enumerate}[label=\arabic*.]
+  \setcounter{enumi}{10}
+  \item \verb|supply_delta| : signed change to supply on the ledger.
+  \item \verb|economic_role| : \{principal, fee, tax, interest, margin, collateral\_movement, other\}.
+  \item \verb|tax_subtype| : optional detail for \texttt{economic\_role = tax}.
+\end{enumerate}
+
+All fees/taxes are represented as ordinary BSTEs with appropriate \verb|economic_role|.
+
+\subsubsection*{Grouping and Atomic Sets}
+
+\begin{enumerate}[label=\arabic*.]
+  \setcounter{enumi}{13}
+  \item \verb|group_id| : business group (FX trade, batch, clearing cycle).
+  \item \verb|link_id| : groups events into an atomic or quasi-atomic set.
+\end{enumerate}
+
+Atomic semantics are kept in a separate table \texttt{atomic\_sets}, keyed by \verb|link_id|, with fields:
+
+\begin{itemize}[noitemsep]
+  \item \verb|atomic_pattern| : none, PvP, DvP, PoP.
+  \item \verb|atomic_mechanism| : single\_ledger\_tx, central\_novation, htlc, escrow\_agent, optimistic\_with\_fraud\_proof, trusted\_coordinator.
+  \item \verb|atomic_params| : JSON (timeout heights, hashlocks, etc.).
+  \item \verb|fx_rate| and \verb|price_reference| : optional for cross-asset sets.
+\end{itemize}
+
+\subsubsection*{Evidence, Expiry, Notes}
+
+\begin{enumerate}[label=\arabic*.]
+  \setcounter{enumi}{15}
+  \item \verb|message_ref| : upstream messages/logs (ISO20022, ISO8583, tx hashes).
+  \item \verb|purpose_code| : business purpose.
+  \item \verb|expiry_time| : for encumbrances with timeouts (HTLCs, auth holds, etc.).
+  \item \verb|notes| : free text.
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Pending Events}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Introduce Pending-BSTE (PBSTE) as an operational extension:
+
+\begin{itemize}
+  \item Structural fields mirror BSTE.
+  \item Additional fields:
+    \begin{itemize}[noitemsep]
+      \item \verb|t_proposed|,
+      \item \verb|status| $\in$ \{pending, accepted, rejected, cancelled\}.
+    \end{itemize}
+\end{itemize}
+
+PBSTEs do not affect:
+\begin{itemize}[noitemsep]
+  \item supply $S(t)$,
+  \item encumbrance $K(t)$,
+  \item free balances in the canonical historical accounting.
+\end{itemize}
+
+They do affect projected liquidity:
+\[
+  F_{\mathrm{projected}}(t)
+  = F_{\mathrm{posted}}(t)
+    - \sum_{\text{pending outflows}} \mathrm{amount} .
+\]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Global Invariants and Bridging Semantics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Per-Ledger Supply and Encumbrance}
+
+For each (\texttt{ledger\_id}, \texttt{asset\_code}):
+
+\begin{itemize}
+  \item Supply:
+    \[
+      S(t) = S(t_0) + \sum_{\text{events }\le t} \mathrm{supply\_delta} .
+    \]
+  \item Encumbered quantity:
+    \[
+      K(t) = \sum_{\text{accounts, encumbered buckets}} \mathrm{balance}(t) .
+    \]
+  \item Free balance per account:
+    \[
+      \mathrm{FreeBalance}(t) \ge 0.
+    \]
+\end{itemize}
+
+\subsection{Primitive-Level Constraints}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{P1 OWNERSHIP\_TRANSFER}: \verb|supply_delta = 0|.
+  \item \textbf{P2 ENCUMBRANCE\_ADJUST}: \verb|supply_delta = 0| and
+        $\mathrm{econ\_owner}(\mathrm{src}) = \mathrm{econ\_owner}(\mathrm{dst})$.
+  \item \textbf{P3 SUPPLY\_ADJUST}: exactly one endpoint is external.
+\end{itemize}
+
+\subsection{Atomic Sets}
+
+For each \verb|link_id|, there is an entry in \texttt{atomic\_sets} describing the intended pattern and mechanism.
+
+Invariants include:
+
+\begin{itemize}[noitemsep]
+  \item For PvP: no leg should settle in isolation (interpretation depends on mechanism).
+  \item For DvP: cash and security legs are coupled.
+  \item For HTLCs: encumbrances must be released by either success or timeout.
+\end{itemize}
+
+\subsection{Bridging Invariants}
+
+For lock-and-mint bridges:
+
+\begin{itemize}
+  \item Backing ledger uses \verb|bridge_lock| buckets for locked units.
+  \item Wrapped asset ledger mints new tokens via \textbf{SUPPLY\_ADJUST}.
+\end{itemize}
+
+A simple invariant for one-to-one lock-mint:
+
+\[
+  S_{\mathrm{wrapped}}(t) \le K_{\mathrm{backing, bridge\_lock}}(t)
+\]
+(equality up to fees/slippage).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Digital Liquidity Stack (Core and Extended)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Core Dimensions}
+
+These are the 10 core fields used for classification tables.
+
+\begin{enumerate}[label=\textbf{D\arabic*}.]
+  \item \textbf{asset\_nature}:
+    cb\_reserve, cb\_cash, commercial\_deposit, e\_money, stablecoin\_fiat,
+    stablecoin\_crypto, token\_native, security\_cash, other.
+  \item \textbf{legal\_form}:
+    balance\_sheet\_claim, trust\_unit, fund\_share, bearer\_instrument,
+    synthetic\_derivative, cb\_direct.
+  \item \textbf{representation\_model}:
+    native\_account, native\_token, wrapped\_mirror, synthetic.
+  \item \textbf{ledger\_tech}:
+    cb\_rtgs, bank\_core, ccp\_cash\_ledger, cls\_pvp,
+    dlt\_public, dlt\_permissioned, scheme\_internal, channel\_state, other.
+  \item \textbf{account\_model}:
+    account\_balances, utxo, smart\_contract\_state, hybrid.
+  \item \textbf{scheme\_type}:
+    rtgs\_operator, instant\_payments, ach\_dns, card\_scheme,
+    correspondent\_network, dex\_protocol, bridge\_protocol,
+    mobile\_money\_scheme, other.
+  \item \textbf{access\_model}:
+    direct, indirect, retail, wholesale, permissionless, permissioned.
+  \item \textbf{clearing\_mechanism}:
+    none\_gross, bilateral\_net, multilateral\_net, queue\_lsm,
+    continuous\_net, offchain\_channels.
+  \item \textbf{settlement\_mode}:
+    gross, bilateral\_net\_batch, multilateral\_net\_batch,
+    hybrid\_queue\_lsm, onchain\_gross, onchain\_batch.
+  \item \textbf{finality\_kind} and \textbf{consistency\_model}:
+    deterministic / deterministic\_deferred / probabilistic vs
+    eventual\_reconciliation / consensus\_atomic / hybrid.
+\end{enumerate}
+
+\subsection{Extended Dimensions}
+
+Extended fields that can be used in deeper analysis or thesis-only tables:
+
+\begin{itemize}
+  \item custody\_model, authorisation\_model, freeze\_authority.
+  \item credit\_sources, encumbrance\_eligibility, allows\_negative\_balances.
+  \item optimisation\_style, optimisation\_scope.
+  \item messaging\_standards, addressing\_scheme, id\_scheme.
+  \item privacy\_model, replay\_guard.
+  \item governance\_model, legal\_finality\_basis.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tokenised vs Non-Tokenised vs Hybrid}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Non-Tokenised Systems}
+
+Common characteristics:
+
+\begin{itemize}[noitemsep]
+  \item representation\_model = native\_account,
+  \item ledger\_tech = cb\_rtgs / bank\_core / scheme\_internal,
+  \item consistency\_model = eventual\_reconciliation,
+  \item execution is message-driven, core state is opaque during processing.
+\end{itemize}
+
+\subsection{Tokenised Systems}
+
+Common characteristics:
+
+\begin{itemize}[noitemsep]
+  \item representation\_model $\in$ \{native\_token, wrapped\_mirror\},
+  \item ledger\_tech = dlt\_public or dlt\_permissioned,
+  \item consistency\_model = consensus\_atomic,
+  \item programmability: smart contracts see state and update in the same transaction.
+\end{itemize}
+
+\subsection{Hybrid Systems}
+
+Examples:
+
+\begin{itemize}[noitemsep]
+  \item Tokenised deposits that sit atop bank cores but expose a token interface.
+  \item RLN / unified-ledger designs with central-bank and commercial-bank tiers.
+  \item Card schemes or PSPs that mirror balances onto a DLT sub-ledger.
+\end{itemize}
+
+Discussion will emphasise:
+\begin{itemize}[noitemsep]
+  \item how hybrid systems occupy intermediate coordinates in the stack,
+  \item distinct failure modes and liquidity behaviours.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Taxonomy of Liquidity Mechanisms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}
+
+This section classifies mechanisms as compositions of BSTEs at specific stack coordinates.
+
+\subsection{Credit and Funding}
+
+\begin{itemize}[noitemsep]
+  \item Intraday central-bank credit (RTGS).
+  \item Overdrafts and bilateral credit lines.
+  \item Repo-based liquidity provision.
+\end{itemize}
+
+\subsection{Encumbrances and Collateral}
+
+\begin{itemize}[noitemsep]
+  \item Holds (card, instant payments).
+  \item CCP margin and haircuts.
+  \item Collateralisation at central bank / CCP / DLT-based vaults.
+\end{itemize}
+
+\subsection{Clearing and Netting}
+
+\begin{itemize}[noitemsep]
+  \item Bilateral and multilateral netting.
+  \item LSM / gridlock resolution.
+  \item DNS transfer cycles and settlement windows.
+\end{itemize}
+
+\subsection{Channels and Off-Chain Mechanisms}
+
+\begin{itemize}[noitemsep]
+  \item Payment channels (Lightning and analogues).
+  \item State channels, rollups with periodic settlement.
+\end{itemize}
+
+\subsection{PvP, DvP, PoP, and Bridges}
+
+\begin{itemize}[noitemsep]
+  \item PvP FX legs across RTGS or DLTs.
+  \item DvP securities settlement vs cash.
+  \item PoP patterns where obligations are offset.
+  \item Bridge designs: custodial lock-mint, burn-and-mint, synthetic representations.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Representative Case Studies}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This section will contain 3--5 in-depth examples, each with:
+
+\begin{itemize}[noitemsep]
+  \item stack coordinates,
+  \item BSTE sequences for typical flows,
+  \item encumbrance and credit implications.
+\end{itemize}
+
+Candidate case studies:
+
+\begin{enumerate}
+  \item \textbf{Central-bank RTGS with LSM}.  
+        Show queued payments, LSM runs, BSTE-level effect.
+  \item \textbf{Card scheme + DNS}.  
+        Auth holds, clearing batches, RTGS settlement, chargebacks.
+  \item \textbf{Instant retail system (e.g., NPP-like)}.  
+        Real-time credits with holds and CB RTGS backing.
+  \item \textbf{DeFi AMM swap + cross-chain bridge}.  
+        Multi-leg on-chain bundles, HTLCs, finality and latency.
+  \item \textbf{Tokenised deposit / unified ledger}.  
+        Hybrid consistency, legal form, governance.
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Design Space and Discussion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}
+
+Here the chapter synthesises:
+
+\begin{itemize}
+  \item How different systems cluster in the 10-dimensional core space.
+  \item Trade-offs:
+    \begin{itemize}[noitemsep]
+      \item pre-funded vs credit-backed,
+      \item gross vs net settlement,
+      \item centralised vs consensus-based finality,
+      \item transparency vs privacy,
+      \item simplicity vs programmability.
+    \end{itemize}
+  \item Failure modes:
+    \begin{itemize}[noitemsep]
+      \item reconciliation drift,
+      \item reorg risk,
+      \item stuck encumbrances (e.g., HTLC timeouts, unresolved holds),
+      \item bridge misconfigurations and backing failures.
+    \end{itemize}
+\end{itemize}
+
+This section also positions emerging designs (RLN, unified ledgers, tokenised collateral networks) in the space.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Subsequent Papers Overview}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}
+
+
+
+\subsection{Stylised Facts of Tokenised Real World Asset Markets (Paper 2)}
+
+Explain how:
+
+\begin{itemize}[noitemsep]
+  \item BSTE encoding allows uniform extraction of transaction and settlement data.
+  \item Stack coordinates inform:
+    \begin{itemize}[noitemsep]
+      \item which systems are comparable,
+      \item where latencies and failures originate.
+    \end{itemize}
+  \item Empirical stylised facts can then be tied explicitly to plumbing choices.
+\end{itemize}
+
+\subsection{Collateral as Settlement Asset (Paper 3)}
+
+Show how:
+
+\begin{itemize}[noitemsep]
+  \item legal\_form, governance\_model, and encumbrance semantics in the stack
+        become central to designing repo-native money and collateral tokens.
+  \item invariants from the SoK constrain safe designs for yield-bearing settlement assets.
+\end{itemize}
+
+\subsection{Agentic Liquidity (Paper 4)}
+
+Outline how the BSTE + stack model supports:
+
+\begin{itemize}[noitemsep]
+  \item Formal graph representations of multi-ledger liquidity.
+  \item Problem statements of the form: \\
+        ``Given required OWNERSHIP\_TRANSFER BSTEs, 
+        find ENCUMBRANCE\_ADJUST and routing decisions that minimise
+        a cost functional such as $\int K(t)\, dt$ subject to constraints.''
+  \item Integration of LSM/queueing, MILP/MPC, RL agents.
+\end{itemize}
+
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section{Writing Plan: Article vs Thesis Chapter}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}
+
+% \subsection{Journal Article (Condensed Version)}
+
+% For a 15--20 page SoK article (e.g., JSys):
+
+% \begin{itemize}
+%   \item Include:
+%     \begin{itemize}[noitemsep]
+%       \item Introduction \& definition of digital liquidity.
+%       \item BSTE model and core invariants.
+%       \item 10-dimension core stack.
+%       \item Mechanism taxonomy (compressed).
+%       \item 3--4 representative case studies.
+%       \item Design space \& research agenda.
+%     \end{itemize}
+%   \item Keep extended attributes (governance, privacy, etc.) light but present.
+% \end{itemize}
+
+% \subsection{Thesis Chapter (Extended Version)}
+
+% The thesis chapter can include:
+
+% \begin{itemize}
+%   \item Richer related-work section.
+%   \item Full extended stack tables (governance, legal finality, privacy).
+%   \item More detailed case studies and diagrams.
+%   \item Methodological notes on how systems were selected \& classified.
+%   \item Explicit cross-references to subsequent thesis chapters.
+% \end{itemize}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section*{Status}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}
+
+% This document is a \emph{planning outline}.  
+% Next steps:
+% \begin{itemize}[noitemsep]
+%   \item Turn each section into full prose.
+%   \item Add references and citations.
+%   \item Design classification tables and small diagrams based on this skeleton.
+% \end{itemize}
+
+\end{document}
