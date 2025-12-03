@@ -5,7 +5,9 @@
 \usepackage[T1]{fontenc}
 \usepackage{geometry}
 \geometry{left=1in, right=1in, top=1in, bottom=1in}
-\usepackage{times}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{newpxtext,newpxmath}
 \usepackage{microtype} % Essential for dense technical text
 \usepackage{titlesec}
 \usepackage{enumitem}
@@ -13,8 +15,6 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{booktabs}
-\usepackage{amsmath}
-\usepackage{amssymb}
 \usepackage{multicol}
 
 % --- Configuration ---
@@ -44,45 +44,47 @@
 
 % --- Macros for Case Studies ---
 \newcommand{\citem}[2]{\textbf{#1}: \texttt{#2}\\}
-\newcommand{\profile}[3]{
+\newcommand{\profile}[3]{%
+    \par\vspace{0.3em}%
+    \noindent\begin{minipage}{\columnwidth}
     \subsection*{#1: #2}
-    \begin{multicols}{2}
-    \small
+    \scriptsize
     #3
-    \end{multicols}
-    \vspace{0.5em}
+    \vspace{0.2em}
     \hrule
-    \vspace{0.5em}
+    \end{minipage}%
+    \vspace{0.3em}%
 }
 
 % --- Title ---
 \title{\textbf{SoK: Digital Liquidity}\\
 \large \textit{State-Machine and Type-System Ontology}}
 \author{}
-\date{\today}
+\date{}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-Digital liquidity today spans central-bank RTGS systems, ACH/card schemes, commercial-bank cores, super-app wallets, public blockchains, L2s, DeFi protocols, stablecoins, tokenised MMFs, and multi-CBDC platforms. Each comes with its own terminology and risk model. Systems researchers see ``RTGS vs DeFi vs CBDC vs stablecoins'' as qualitatively different beasts, and lack a unified way to compare them, build tools over them, or formally reason about their behaviour.
+Digital liquidity today spans central-bank RTGS systems, ACH/card schemes, commercial-bank cores, super-app wallets, public blockchains, L2s, DeFi protocols, stablecoins, tokenised MMFs, and multi-CBDC platforms. Each comes with its own terminology and risk model. Systems researchers see ``RTGS vs DeFi vs CBDC vs stablecoins'' as qualitatively distinct systems, and lack a unified way to compare them, build tools over them, or formally reason about their behaviour.
 
-This paper defines a \textbf{Systematisation of Knowledge (SoK)} for \textit{digital liquidity instruments and infrastructures} aimed at a computer-systems audience. Its core contributions are:
+This paper defines a \textbf{Systematisation of Knowledge (SoK)} for digital liquidity that addresses this fragmentation. Its core contributions are:
 
 \begin{enumerate}
     \item A \textbf{Balance-State Transition Event (BSTE)} model: A universal, event-level state-machine model for monetary ledgers, with three irreducible primitives: \textbf{OWNERSHIP\_TRANSFER (P1)}, \textbf{ENCUMBRANCE\_ADJUST (P2)}, and \textbf{SUPPLY\_ADJUST (P3)}.
     \item A \textbf{Core Digital Liquidity Profile (C1--C20)}: A finite feature space that classifies any instrument--infrastructure pair along asset, ledger, access, trust, privacy, ordering, and failure dimensions.
-    \item An explicit \textbf{alignment with Basel III, PFMI, ISO 20022, and ISO 4217}, showing how existing standards map into this state-centric view.
+    \item An explicit \textbf{alignment with Basel III, PFMI, and ISO 20022}, showing how existing standards map into this state-centric view.
     \item A view of the SoK as a \textbf{state-machine type system} for smart contracts and protocols: given a contract's SoK type, we can derive obligations and verify them with formal methods.
-    \item A formal approach to \textbf{Liquidity Calculus}, providing mathematical definitions for digital LCR/NSFR and optimization costs.
+    \item A formal approach to \textbf{Liquidity Calculus}, providing mathematical definitions for digital LCR/NSFR and optimisation costs.
     \item A comprehensive library of \textbf{20 case mappings} (Fedwire, ACH, Bitcoin, Tornado Cash, etc.) with the full 20-dimensional profile for each.
 \end{enumerate}
 
-The result is a \textbf{computational ontology} and \textbf{front-end semantic type system for digital liquidity state machines}, designed to plug into monitoring, optimisation, protocol design, and formal verification workflows.
+The result is a \textbf{computational ontology} and \textbf{front-end semantic type system for \textit{digital liquidity instruments and infrastructures}}, designed to plug into monitoring, optimisation, protocol design, and formal verification workflows.
 \end{abstract}
 
 \newpage
+\setcounter{tocdepth}{1}
 \tableofcontents
 \newpage
 
@@ -105,7 +107,7 @@ From a systems perspective, there are three core problems:
 
 \begin{enumerate}
     \item \textbf{No common event model:} ISO 20022 and SWIFT provide rich messaging schemas, but they are \textit{not} ledger state models. On-chain systems have tx logs, but semantics differ (account vs UTXO vs smart-contract state). We want a single event-level abstraction that covers RTGS, ACH, DeFi, and Lightning.
-    \item \textbf{No shared feature space:} We lack a finite set of dimensions that capture what matters for digital liquidity — not only asset nature, but privacy models, ordering mechanisms (MEV), and failure modes.
+    \item \textbf{No shared feature space:} We lack a finite set of dimensions that capture what matters for digital liquidity - not only asset nature, but privacy models, ordering mechanisms (MEV), and failure modes.
     \item \textbf{No ``type system'' for contract behaviour:} Languages like Solidity or Rust tell you \textit{how} a contract is implemented. They do not tell you \textit{what kind of instrument or rail it is supposed to be} (e.g., fully-reserved stablecoin vs unsecured credit token) nor what invariants that implies.
 \end{enumerate}
 
@@ -115,7 +117,7 @@ This paper addresses these problems by defining a universal \textbf{Balance-Stat
 \section{Background and Requirements}
 
 \subsection{Digital Liquidity and Instruments}
-We use ``digital liquidity'' as a broadly umbrella for the short-horizon, transactional layer of modern finance:
+We use ``digital liquidity'' as an umbrella term for the short-horizon, transactional layer of modern finance:
 \begin{itemize}
     \item monetary claims used as \textbf{settlement assets} (central-bank reserves, CBDCs, tokenised MMFs),
     \item \textbf{payment instruments} (bank deposits, e-money, stablecoins, platform balances),
@@ -130,7 +132,7 @@ At the highest level, a \textbf{ledger} is a \textbf{state machine}:
     \item \textbf{Transitions}: events that update this state.
 \end{itemize}
 
-Different technologies give different encodings (Account vs UTXO vs ZK-Commitment). By contrast, systems like SWIFT + ISO 20022 are primarily \textbf{messaging networks}. They define messages, but not a canonical `State`. Our SoK treats each ledger as a state machine with a BSTE log.
+Different technologies give different encodings (Account vs UTXO vs ZK-Commitment). By contrast, systems like SWIFT + ISO 20022 are primarily \textbf{messaging networks}. They define messages, but not a canonical `State'. Our SoK treats each ledger as a state machine with a BSTE log.
 
 % =============================================================================
 \section{Balance-State Transition Event (BSTE) Model}
@@ -141,7 +143,9 @@ A \textbf{Balance-State Transition Event (BSTE)} is a single \textbf{atomic chan
 \subsection{Unified Logical Schema}
 This schema merges the rigorous data requirements of ISO 20022 with the privacy and ordering primitives required for distributed ledger technology (DLT) and ZK systems.
 
-\begin{lstlisting}[language=Python]
+\begin{center}
+\begin{minipage}{0.85\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\scriptsize]
 struct BSTE:
     # --- Identity & Time ---
     event_id: string        # UUID, TxHash, or UETR
@@ -158,11 +162,11 @@ struct BSTE:
     # --- Asset & Privacy ---
     asset_code: string      # ISO 4217, ISIN, or Contract Address
     privacy_mode: enum { TRANSPARENT, CONFIDENTIAL_AMT, SHIELDED }
-    
+
     # If transparent:
     amount_scalar: decimal
     # If confidential (ZK):
-    amount_commitment: bytes 
+    amount_commitment: bytes
     proof_ref: string
 
     # --- Accounts & Buckets ---
@@ -185,6 +189,8 @@ struct BSTE:
     message_ref: json or NULL  # References to pacs/pain/camt or SWIFT MT
     purpose_code: string       # ISO 20022 <Purp> (e.g., "SALA", "COLL")
 \end{lstlisting}
+\end{minipage}
+\end{center}
 
 \subsection{Three Irreducible Primitives}
 Every BSTE is exactly one of three primitives:
@@ -213,7 +219,9 @@ Increase or decrease total recognised supply of a given asset on a given ledger 
 % =============================================================================
 \section{Core Digital Liquidity Profile (C1--C20)}
 
-The Profile constitutes a \textbf{domain ontology} defined by a finite feature space of 20 fields. Each instrument or infrastructure is defined by a unique tuple in this space.
+The Profile constitutes a \textbf{domain ontology} defined by a finite feature space of 20 fields. Each instrument or infrastructure is defined by a unique tuple in this space. 
+
+A core contribution of this profile is the formalisation of \textbf{trust}. Rather than labeling systems broadly as ``trusted" or ``trustless", the C1–C20 dimensions decompose trust into specific vectors: \textit{Solvency Trust} (C1–C3), \textit{Custodial Trust} (C9, C20), \textit{Operational Trust} (C12–C14), and \textit{Governance Trust} (C10, C18). This allows researchers to quantify exactly \textit{what} a user must trust in any given system-e.g., trusting a stablecoin issuer's solvency (C3) but not their ability to reverse settled transactions (C6).
 
 \subsection{Asset Layer (C1--C3)}
 \begin{description}
@@ -275,18 +283,18 @@ The Profile constitutes a \textbf{domain ontology} defined by a finite feature s
     \textit{Values:} \texttt{offledger\_messages} (ISO 20022), \texttt{onchain\_transactions}, \texttt{hybrid}.
 \end{description}
 
-\subsection{Liquidity \& Power (C17--C20)}
+\subsection{Credit and Systemic Control (C17--C20)}
 \begin{description}
-    \item[C17. Credit Sources:] Where does liquidity come from?
+    \item[C17. Credit Sources:] Where does funding elasticity come from?
     \textit{Values:} \texttt{prefunded}, \texttt{intraday\_credit}, \texttt{flash\_loan}, \texttt{repo}, \texttt{retail\_credit}.
     
-    \item[C18. Upgrade Timelock:] How fast can logic change?
+    \item[C18. Upgrade Timelock:] How fast can the system rules change?
     \textit{Values:} \texttt{none}, \texttt{time\_delay}, \texttt{immutable}.
     
-    \item[C19. Censorship Boundary:] Where can transactions be blocked?
+    \item[C19. Censorship Boundary:] At what layer can transactions be blocked?
     \textit{Values:} \texttt{network\_edge} (IP blocking), \texttt{builder} (Tx exclusion), \texttt{contract} (Blacklist logic).
     
-    \item[C20. Sanction Capability:] What can the operator do?
+    \item[C20. Sanction Capability:] What coercive actions can the operator take?
     \textit{Values:} \texttt{freeze\_account}, \texttt{freeze\_asset}, \texttt{none}.
 \end{description}
 
@@ -331,14 +339,14 @@ Languages like Solidity define implementation; the SoK defines the \textit{inten
     
     \item \textbf{Map Primitives:} Map the contract's behavioral surface (functions like \texttt{deposit}, \texttt{swap}) to sequences of P1/P2/P3 events.
     
-    \item \textbf{Verify (Model Checking):} Encode the state machine and obligations in a formalism (e.g., TLA+, Alloy) to check if the primitives satisfy the obligations under all reachable states.
+    \item \textbf{Verify (Model Checking):} Encode the state machine and obligations in a formalism (e.g., TLA+) to check if the primitives satisfy the obligations under all reachable states.
     
     \item \textbf{Compare:} Evaluate designs that share the same type but differ in governance or ordering risks (e.g., two stablecoins with different \texttt{sanction\_capability}).
 \end{enumerate}
 
 \subsection{Conceptual TLA+ Mapping}
 
-While full code is outside the scope of this SoK, the BSTE model maps naturally to TLA+ (Temporal Logic of Actions):
+The BSTE model is able to be mapped naturally to TLA+ (Temporal Logic of Actions):
 \begin{itemize}
     \item \textbf{Variables:} \texttt{balance[account]}, \texttt{supply}, \texttt{reserve}.
     \item \textbf{Actions:} 
@@ -369,7 +377,7 @@ For example, a Stablecoin is a subtype of `Commercial Deposit` only if it mainta
 By instrumenting systems to emit BSTEs, we can build cross-rail observatories. A central bank could monitor $Supply(USD)$ across RTGS, Tokenised Deposits, and Stablecoins in real-time, detecting leaks or unbacked credit expansion.
 
 \subsection{Liquidity Calculus and Optimisation}
-The BSTE stream allows us to define rigorous metrics for digital liquidity optimization.
+The BSTE stream allows us to define rigorous metrics for digital liquidity optimisation.
 
 \subsubsection{Digital LCR/NSFR}
 For participant $i$ and asset $a$:
@@ -383,10 +391,37 @@ For liquidity saving mechanisms (LSMs), we can define the cost of encumbrance fo
 \[
 \text{Cost}_i = \int K_{i}(t) \, dt
 \]
-where $K$ is the encumbered quantity. The optimization problem then becomes: Find a sequence of P1/P2/P3 events that satisfies all payment obligations while minimizing $\int K(t) dt$.
+where $K$ is the encumbered quantity. The optimisation problem then becomes: Find a sequence of P1/P2/P3 events that satisfies all payment obligations while minimizing $\int K(t) dt$.
+
+\subsection{Decomposing Representation Risk and the Synchronisation Operator}
+
+A critical ambiguity in digital finance is the distinction between ``native'' assets (which live on the ledger) and ``tokenised'' representations of off-chain value (RWAs). The SoK resolves this by formalising the role of the \textbf{Synchronisation Operator} - the entity responsible for maintaining consistency between the on-chain state and the external reality.
+
+\subsubsection{General Case: Tokenised Representation}
+Industry terminology often conflates the asset with its record. The SoK forces a structural distinction via \texttt{representation\_model} (C2):
+\begin{itemize}
+    \item \textbf{\texttt{native\_token}:} The ledger state is the definitive reality (e.g., Bitcoin, Ether). No external synchronisation is required; the asset is \texttt{autonomous} (C13).
+    \item \textbf{\texttt{tokenised\_representation}:} The ledger is a shadow record of an external state (e.g., Tokenised MMFs, Real Estate, Corporate Bonds).
+\end{itemize}
+
+Classifying an instrument as a \texttt{tokenised\_representation} logically implies the existence of a Synchronisation Operator. This creates a specific \textbf{Safety Invariant} that the system must satisfy, yet cannot enforce via protocol logic alone:
+\[
+\forall t, \quad \text{Supply}_{\text{onchain}}(t) \le \text{ProvenBalance}_{\text{offchain}}(t)
+\]
+Consequently, any system with \texttt{C2: tokenised\_representation} must fundamentally accept \texttt{operator\_dependent} liveness (C13). Even if the blockchain is functional, the asset loses its peg or redeemability if the off-chain operator fails to synchronise the ledger with the external custodian.
+
+\subsubsection{Special Case: Synthetic CBDC}
+This general theory resolves the confusion between \textbf{True Wholesale CBDC} and \textbf{Synthetic CBDC}. While both aim to provide risk-free settlement assets, the SoK reveals a fundamental ontological difference:
+
+\begin{enumerate}
+    \item \textbf{True Wholesale CBDC:} Defined as $\langle \text{C1:}\texttt{cb\_reserve}, \text{C2:}\texttt{native\_token}, \text{C13:}\texttt{autonomous} \rangle$. The asset \textbf{is} the central bank liability. The ledger constitutes the definitive legal settlement; no external synchronisation is required.
+    \item \textbf{Synthetic CBDC:} Defined as $\langle \text{C1:}\texttt{e\_money}, \text{C2:}\texttt{wrapped\_mirror}, \text{C3:}\texttt{fully\_reserved} \rangle$. The asset is a private claim \textbf{backed} by central bank reserves.
+\end{enumerate}
+
+By exposing the \texttt{tokenised\_representation} attribute, the framework highlights that the Synthetic CBDC is structurally identical to a Tokenised RWA. It relies on a private operator to atomically lock reserves in the RTGS when minting tokens on-chain (\texttt{cross\_ledger\_pattern: lock\_mint}). This framework implies that ``Synthetic CBDC'' is a misnomer: it is simply a highly-secure stablecoin that reintroduces the counterparty and operational risks (via the Synchronisation Operator) that a native CBDC is designed to eliminate.
 
 \subsection{Power: Messaging vs. Shared Ledgers}
-The framework clarifies where \textbf{power} resides—specifically the power to censor.
+The framework clarifies where \textbf{power} resides-specifically the power to censor.
 
 \subsubsection{SWIFT (Messaging)}
 \begin{itemize}
@@ -409,6 +444,7 @@ This shift from \textit{messaging coalitions} to \textit{ledger coalitions} repr
 
 This appendix provides the full 20-dimensional mapping for 20 diverse digital liquidity systems.
 
+\begin{multicols}{2}
 % -----------------------------------------------------------------------------
 \profile{A.1}{Fedwire (US RTGS)}{
     \citem{C1 Asset}{cb\_reserve}
@@ -869,5 +905,72 @@ This appendix provides the full 20-dimensional mapping for 20 diverse digital li
     \citem{C19 Censor}{builder}
     \citem{C20 Sanct}{none}
 }
+\end{multicols}
+
+\newpage
+\section{Appendix B: Semantic Formalisation Strategy}
+\label{sec:appendix_b}
+
+While the Core Digital Liquidity Profile (C1--C20) provides a conceptual ontology for distinguishing instruments and infrastructures, formalising this structure into the Web Ontology Language (OWL 2) offers significant advantages for automated verification and interoperability. This appendix outlines the motivation and mapping strategy for translating the semi-formal SoK into a machine-readable artifact.
+
+\subsection{Motivation for an OWL Artifact}
+
+Defining the SoK as a formal OWL ontology enables three capabilities that are not possible with a textual taxonomy alone:
+
+\begin{enumerate}
+    \item \textbf{Automated Consistency Checking:} By defining constraints using Description Logic (DL), off-the-shelf reasoners (e.g., HermiT, Pellet) can automatically detect logical contradictions. For example, a system that declares itself as \texttt{ledger\_tech: dlt\_public} but claims \texttt{finality\_kind: deterministic} would flag a logical inconsistency if the ontology defines public chains as inherently probabilistic.
+    \item \textbf{Subsumption and Classification:} We can formally define instrument types (e.g., ``Valid Stablecoin'') as classes with specific restrictions. The reasoner can then automatically classify specific instances (e.g., \textit{USDC}) based on their properties, validating whether they truly meet the criteria of their claimed type.
+    \item \textbf{Interoperability and Querying:} An OWL representation allows the risk profile of financial infrastructures to be queried using SPARQL, integrating this data into broader Knowledge Graphs used by regulators or risk-management dashboards.
+\end{enumerate}
+
+\subsection{Mapping Strategy}
+
+The transition from the tabular SoK profile to OWL primitives follows a direct structural mapping. The domain of discourse is divided into \textit{Classes} (the entities), \textit{Object Properties} (the dimensions), and \textit{Named Individuals} (the values and case studies).
+
+\subsubsection{Structural Mapping Table}
+
+The proposed mapping between the SoK components and OWL 2 primitives is defined as follows:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{SoK Component} & \textbf{OWL 2 Primitive} & \textbf{Description} \\ \midrule
+\textbf{System / Instrument} & \texttt{owl:Class} & The top-level concepts (e.g., \textit{DigitalInstrument}, \textit{Infrastructure}). \\
+\textbf{Dimensions (C1--C20)} & \texttt{owl:ObjectProperty} & The relationships connecting an instrument to its attributes (e.g., \textit{hasAssetNature}, \textit{hasFinalityKind}). \\
+\textbf{Dimension Values} & \texttt{owl:NamedIndividual} & The specific enumerated values allowed for each dimension (e.g., \textit{fully\_reserved}, \textit{dlt\_public}). \\
+\textbf{Case Studies} & \texttt{owl:NamedIndividual} & Concrete instances of systems (e.g., \textit{Fedwire}, \textit{TornadoCash}) instantiating the classes. \\
+\textbf{Type Obligations} & \texttt{owl:Restriction} & Logical constraints that define necessary conditions for a class (e.g., ``A Stablecoin must be fully reserved''). \\
+\bottomrule
+\end{tabular}
+\caption{Mapping Strategy from SoK Profile to OWL 2 DL}
+\label{tab:owl_mapping}
+\end{table}
+
+\subsection{Encoding Invariants as Restrictions}
+
+The ``Type System'' aspect of this SoK is realised in OWL through \texttt{owl:equivalentClass} and property restrictions. This allows us to formalise the obligations derived in Section 6.
+
+For example, to enforce the invariant that a ``True Stablecoin'' must be fully reserved, we define the class not merely as a label, but as a logical restriction:
+
+\begin{lstlisting}[language=Python, caption={Conceptual Turtle Syntax for Type Definition}]
+:ValidStablecoin rdf:type owl:Class ;
+    owl:equivalentClass [
+        rdf:type owl:Class ;
+        owl:intersectionOf (
+            :DigitalInstrument
+            [ rdf:type owl:Restriction ;
+              owl:onProperty :hasAssetNature ;
+              owl:hasValue :stablecoin_fiat ]
+            [ rdf:type owl:Restriction ;
+              owl:onProperty :hasLiquidityBacking ;
+              owl:hasValue :fully_reserved ]
+        )
+    ] .
+\end{lstlisting}
+
+Under this formalisation, if a case study instance (e.g., \textit{AlgorithmicCoin}) is instantiated with \texttt{hasAssetNature: stablecoin\_fiat} but \texttt{hasLiquidityBacking: unsecured}, the reasoner will correctly infer that it is \textit{not} a member of the \texttt{:ValidStablecoin} class, regardless of its marketing labels.
+
+This formalisation strategy ensures that the ``Core Digital Liquidity Profile'' acts as a rigorous semantic standard rather than a subjective classification scheme.
 
 \end{document}
