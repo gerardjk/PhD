@@ -1,0 +1,65 @@
+\documentclass[aspectratio=169]{beamer}
+
+% Enlarge the physical slide size so macOS Preview can fill the display
+\makeatletter
+\setlength{\beamer@paperwidth}{16in}
+\setlength{\beamer@paperheight}{9in}
+\makeatother
+\geometry{papersize={16in,9in}}
+\setlength{\paperwidth}{16in}
+\setlength{\paperheight}{9in}
+\setlength{\textwidth}{\paperwidth}
+\setlength{\textheight}{\paperheight}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\setlength{\topmargin}{0pt}
+\setlength{\headheight}{0pt}
+\setlength{\headsep}{0pt}
+\setlength{\footskip}{0pt}
+\setlength{\hoffset}{0pt}
+\setlength{\voffset}{0pt}
+\setlength{\pdfpagewidth}{\paperwidth}
+\setlength{\pdfpageheight}{\paperheight}
+
+\usetheme{Frankfurt}
+\usecolortheme{beaver}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% Remove margins
+\setbeamersize{text margin left=0pt,text margin right=0pt}
+
+% Make title bold Latin Modern Sans (like academic papers)
+\setbeamerfont{frametitle}{family=\sffamily,series=\bfseries,size=\Large}
+
+% Make the header strip thinner
+\makeatletter
+\setbeamertemplate{headline}
+{%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=8.25ex,dp=1.5ex]{section in head/foot}
+    \insertsectionnavigationhorizontal{\paperwidth}{}{\hskip0pt plus1filll}
+  \end{beamercolorbox}
+}
+\makeatother
+
+\title{Computer Science Research}
+\subtitle{Advanced Topics in Computing}
+\author{Your Name, PhD}
+\institute{Department of Computer Science}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\frametitle{Research Overview}
+
+\begin{itemize}
+    \item Algorithmic complexity and optimization
+    \item Distributed systems architecture
+    \item Machine learning applications
+    \item Theoretical foundations of computing
+\end{itemize}
+
+\end{frame}
+
+\end{document}
