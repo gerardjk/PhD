@@ -1,0 +1,11 @@
+\documentclass[tikz]{standalone}
+\begin{document}
+\begin{tikzpicture}[every node/.style={circle,fill=red!70,minimum size=6pt,inner sep=0pt}]
+\foreach \i/\x/\y in {1/0/0,2/1/0.2,3/0.8/0.9,4/0.2/0.8,5/0.9/0.6}{
+  \node (n\i) at (\x,\y) {};
+}
+\foreach \i/\j in {1/2,1/3,2/3,2/4,3/4,3/5,4/5,1/5}{
+  \draw[red!40,line width=1pt] (n\i) -- (n\j);
+}
+\end{tikzpicture}
+\end{document}

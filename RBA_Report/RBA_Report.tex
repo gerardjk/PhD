@@ -1,0 +1,377 @@
+% ---------------------------------------------------------------
+% This template was developed for the working paper series of 
+% the Interdisciplinary Laboratory of Computational Social Science (iLCSS)
+% at the University of Maryland, College Park
+% ---------------------------------------------------------------
+
+\documentclass[9pt,twocolumn,twoside]{ilcss}
+
+% Override default font size to 8.7pt with 11pt line spacing
+\renewcommand{\normalsize}{\fontsize{8.7}{11}\selectfont}
+
+\templatetype{ilcssworkingpaper} % Choose template 
+
+\title{\textbf{AUSTRALIA PAYMENTS PLUS}}	
+\subtitle{\textbf{Project Acacia Phase 2 Report to the Reserve Bank of Australia}}
+\subsubtitle{\textbf{\large ELEMENTS OF A FUTURE PAYMENTS SCHEME}\\[6pt]{\normalsize DECEMBER 2025}}
+
+\author{}
+\leadauthor{Lead author last name} 
+\significancestatement{}
+\authorcontributions{}
+\authordeclaration{}
+\equalauthors{}
+\correspondingauthor{}
+
+% Force abstract to be bold AND italic
+\makeatletter
+\renewcommand{\absfont}{\fontfamily{qhv}\fontseries{b}\fontshape{it}\fontsize{8}{11}\selectfont}
+\makeatother
+
+% Use numbered footnotes instead of symbols
+\renewcommand{\thefootnote}{\arabic{footnote}}
+
+\begin{abstract}
+This report describes findings from three use cases developed by Australia Payments Plus for the second phase of Project Acacia. The use cases explore a proposed national payments scheme featuring bi-directional value transfer between conventional deposits and programmable ledgers, a token interchange synchronised to off-ledger balances, and a coordination service supporting transactions in tokenised money and assets (PvP and DvP) with near-real-time settlement. Two of these use cases were completed with AP+ as lead entity, and one with Imperium Markets as lead entity and AP+ as collaborating entity.
+\end{abstract}
+
+\dates{}
+\doi{\url{http://ilcss.umd.edu/}}
+\additionalelement{}
+
+% =========================================
+%  FORMATTING FIXES
+% =========================================
+
+% 1. Reset counters to standard numbers (1, 1.1, 1.1.1)
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+
+% 2. Section/subsection formatting helpers
+\titleformat{\section}
+  {\color{headingblue}\bfseries\Large}
+  {\thesection}
+  {1em}
+  {#1}
+
+% Custom block-style subsection headings with explicit numbering
+\makeatletter
+\renewcommand{\subsection}[1]{%
+  \refstepcounter{subsection}%
+  \addcontentsline{toc}{subsection}{\protect\numberline{\thesubsection}#1}%
+  \par\addvspace{2.5ex plus 3pt minus 2pt}%
+  {\rmfamily\bfseries\large\color{headingblue}\thesubsection\hspace{0.75em}#1\par}%
+  \nobreak\@afterheading
+}
+
+\renewcommand{\subsubsection}[1]{%
+  \refstepcounter{subsubsection}%
+  \addcontentsline{toc}{subsubsection}{\protect\numberline{\thesubsubsection}#1}%
+  \par\addvspace{2.0ex plus 2pt minus 1pt}%
+  {\normalfont\bfseries\itshape\color{headingblue}\fontsize{8.7}{11}\selectfont\thesubsubsection\hspace{0.75em}#1\par}%
+  \nobreak\@afterheading
+}
+
+\newcommand{\subsectiontopic}[1]{%
+  \par\addvspace{2.0ex plus 2pt minus 1pt}%
+  {\rmfamily\bfseries\large\color{headingblue}#1\par}%
+  \nobreak\@afterheading
+}
+\makeatother
+
+% Bullet points - use scalebox to enlarge and raisebox to adjust vertical position
+\setlist[itemize,1]{label={\raisebox{-0.5pt}{\scalebox{1.3}{\textbullet}}}}
+\setlist[itemize,2]{label={\raisebox{-0.5pt}{\scalebox{1.3}{\textbullet}}}}
+
+% =========================================
+%  END FORMATTING FIXES
+% =========================================
+
+\begin{document}
+
+\maketitle
+\thispagestyle{firststyle}
+\ifthenelse{\boolean{shortarticle}}{\ifthenelse{\boolean{singlecolumn}}{\abscontentformatted}{\abscontent}}{}
+
+\section*{\textcolor{headingblue}{Introduction}}
+
+ \textbf{Australia Payments Plus} (\textbf{AP+}) is the national payments and banking industry body that operates Australia's domestic retail Payment Schemes.\footnote{The New Payments Platform (NPP), eftpos, and BPAY.} For the second phase of Project Acacia, AP+ developed three use cases designed to highlight the core elements of a \textbf{Future Payments Scheme} - an industry-operated utility linking Australia's existing banking and payments infrastructure with tokenised financial markets under a multilateral governance framework.
+
+Each use case focuses on a necessary scheme component:
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+    \item \textbf{NPP Token Service:} a facility that supports direct value transfers between digital tokens on public ledgers and conventional Australian dollar deposit accounts (Coin-to-Account / Account-to-Coin) via the New Payments Platform (NPP)
+    \item \textbf{Token Interchange Service:} an on-chain facility for multilateral atomic conversion between privately issued money tokens (including stablecoins and deposit tokens) using a common interchange token representing token issuers' off-chain public money balances
+    \item \textbf{Settlement Coordinator Service:} a service supporting on-chain marketplaces for tokenised financial instruments, including DvP settlement, identity and compliance, and scheme administration.
+\end{enumerate}
+
+Under the proposed scheme, on-ledger exchange of privately-issued Australian money tokens would be intermediated through a multilateral interchange token mirroring off-ledger public-money balances. This would enable competition between private issuers of money tokens while ensuring these tokens' fungibility with each other and with commercial bank deposits. In doing so, the scheme would addresses concerns regarding currency-singleness and the distinct roles of public and private money raised in the 2024 Project Acacia Consultation Report.
+
+\section*{\textcolor{headingblue}{Overview}}
+
+\textbf{Use Case 1} - the NPP Token Service - was run as a desktop study led by AP+ in collaboration with \textbf{Cuscal} (settlement service provider) and \textbf{SWIFT}, the New Payments Platform infrastructure vendor.
+
+\textbf{Use Case 2} - the Token Interchange Service - was a live pilot delivered with \textbf{AUDD Digital}, \textbf{Forte AUD}, and \textbf{Macropod} (formerly Catena) acting as token issuers, and \textbf{Cuscal} acting both as issuer and as settlement agent for other issuers. The pilot demonstrated:
+
+\begin{itemize}
+    \item deployment of a token-interchange smart-contract facility to support multilateral conversion between Australian-dollar money tokens on the permissioned public ledger \textbf{Hedera}
+    \item minting and circulation of pilot wholesale CBDC on a separate permissioned private network (an instance of \textbf{HashSphere})
+    \item deployment of a \textbf{synchroniser} that allowed the public-network token-interchange settlement asset to mirror private-network wholesale Central Bank Digital Currency (wCBDC) balances, and
+    \item deployment of a \textbf{cross-chain bridge} between Hedera and the permissionless public Ethereum network.
+\end{itemize}
+
+\textbf{Use Case 3} - the Settlement Coordinator Service - defines supporting services and scheme administration for NPP token integration, token interchange, and tokenised asset market settlement, including digital identity, KYC/KYB, Proof of Reserves, and key management. The proof of concept originally positioned AP+ as lead entity, in collaboration with \textbf{Imperium Markets} as operator of a tokenised wholesale debenture market supported by the Service.
+
+Participation in AP+ Use Case 3 led Imperium Markets -- itself a Project Acacia lead entity -- to adopt Hedera as ledger platform its own use case exploring tokenised term deposits, Negotiable Certificates of Deposit, and annuities. The RBA subsequently merged the two use cases, naming Imperium Markets as the lead entity. As the reassignment occurred late in the Project and relied on the technical solution originating with Use Case 3, the pilot retains a focus on generic ``Real World Asset" tokenisation and settlement coordination, rather than on the tokenisation of specific money-market instruments.
+
+This document answers the questions set out in the RBA--DFCRC \textbf{Research Information Guidelines for Lead Entities} with reference to all three use cases and to the broader proposal for an Australian industry-operated Future Payments Scheme.
+
+\newpage
+\section*{\textcolor{headingblue}{Research Information Guideline Questions}}
+
+\setcounter{section}{0}
+
+% ------------------------------------------------------------------------
+% CRITICAL: This turns the numbering back ON. 
+% Without this, the labels defined above will not print.
+% ------------------------------------------------------------------------
+\setcounter{secnumdepth}{3}
+
+\section{Overall findings}
+
+\textbf{What is the most significant learning or insight gained from the experimentation about each of the following:}
+
+\subsection{The opportunities \& challenges of asset tokenisation in wholesale markets}
+
+The experiments establish the technical feasability of developing a settlement utility for a new national digital fginancial market infrastructures.  would  indicate that a domestic industry consortium could feasibly establish a settlement utility integrating tokenised money and asset markets with 24/7 Real Time Gross Settlement while preserving financial stability.
+
+\subsectiontopic{Opportunities}
+
+\begin{enumerate}
+    \item \textbf{Competition and Innovation in Clearing \& Settlement Services}
+    The experiments revealed that domestic industry participants have the resources to...
+    
+    \item \textbf{Wholesale Market Utilisation of the Fast Settlement Service (FSS) and 24/7 Liquidity}
+    Distributed Ledger Technology (DLT) was the previously the subject of a costly...
+
+    \item \textbf{Extending Settlement Finality to Tokenised Markets Without (Necessarily) Introducing Central Bank Digital Currency}
+    Project Acacia has excluded retail CBDC from its scope...
+
+    \item \textbf{Preserving Currency Singleness and Monetary Sovereignty Through a Domestic Industry Scheme}
+    In doing so, the scheme would enable the various innovations...
+
+    \item \textbf{Supporting Platform Interoperability as the Basis for a Global Value Layer}
+    Distributed Ledger Technology (DLT) was...
+
+    \item \textbf{Advancing Federated Digital Identity Technology}
+    Distributed Ledger Technology (DLT) was...
+\end{enumerate}
+
+\subsectiontopic{Challenges}
+
+\begin{enumerate}
+    \item \textbf{Liquidity Fragmentation}
+    Distributed Ledger Technology (DLT)...
+
+    \item \textbf{Legal and Regulatory Novelty}
+    Distributed Ledger Technology (DLT)...
+
+    \item \textbf{Privacy of Market Activity}
+    Distributed Ledger Technology (DLT)...
+
+    \item \textbf{Defining Trust Assumptions}
+    Distributed Ledger Technology (DLT)...
+
+    \item \textbf{Platform Selection and Maturity}
+    Distributed Ledger Technology (DLT)...
+
+    \item \textbf{Scope of Organisational Objectives...}
+    Distributed Ledger Technology (DLT)...
+\end{enumerate}
+
+\subsection{The settlement model(s) explored and the benefits, limitations and trade-offs associated with them}
+
+The 2024 Project Acacia Consultation Paper outlined five basic models of settlement for token transactions. Those Models distinguish technical on-chain atomic settlement (using a settlement money token) from conventional final settlement using the Reserve Bank Information and Transfer System (RITS). The models also distinguish on-chain settlement with public money tokens from on-chain settlement with private money tokens. The settlement model explored in the AP+ experiments is distinct from any of these models but can be compared to each of them.
+
+\paragraph{Model A:} aaa
+
+\paragraph{Model B:} bbb
+
+\paragraph{Model C:} ccc
+
+\paragraph{Model D:} dddd
+
+\paragraph{Model E:} eeee
+
+\subsection{The capabilities or attributes that central bank and/or privately issued money would need to have to realise the potential of tokenisation in wholesale markets}
+
+FINALITY OF SETTLEMENT \& FUNGIBILITY
+
+\newpage
+\section{Business motivation and economic impact}
+
+\subsection{Business problem assessment}
+
+\subsubsection{What did you learn through your experimentation about the business problem(s) that you set out to explore in your use case?}
+
+\subsubsection{Did your experimentation confirm or change your view about whether and how the business problem(s) can be solved?}
+
+\subsubsection{Did your experimentation reveal any business problems not initially considered?}
+
+\subsection{Costs and benefits analysis}
+
+\subsubsection{What evidence did your experimentation provide about the costs and benefits involved in solving the business problem(s) that you set out to explore?}
+
+\subsubsection{How did your experimentation demonstrate one or more of: risk reduction, capital efficiency, increased liquidity (e.g. in trading the asset), operational efficiency (e.g. automation), new markets, products or services?}
+
+\subsubsection{What is your estimate of the costs and benefits (this might be at firm-level or industry-wide)?}
+
+\subsubsection{What new costs (e.g. increased liquidity requirements from pre-funding) or risks (e.g. operational risks, outsourcing management, conflicts of interest) might arise?}
+
+\subsection{Suitability of settlement and interchange assets}
+
+\subsubsection{Did your experimentation confirm or change your view about the suitability of the settlement asset (and, if relevant, interchange asset) that was used?}
+
+\subsubsection{How, if at all, did the settlement or interchange asset contribute to solving the business problem(s) that you explored and the benefits obtained?}
+
+\subsubsection{Did you encounter any technical or operational limitations with the settlement or interchange asset?}
+
+\subsubsection{What evidence did your experimentation provide about the scalability of the settlement model?}
+
+\subsection{Future Adoption}
+
+\subsubsection{What key enablers or blockers of broader adoption did your experimentation highlight or reveal?}
+
+\subsubsection{If you utilised or simulated existing settlement infrastructure (e.g. NPP or RITS) as part of your use case, what did your experimentation reveal about changes or enhancements to that infrastructure (or supporting account structures or access policies) that may be required to better support tokenised asset markets?}
+
+\newpage
+\section{Technology and design}
+
+\subsection{Design choices}
+
+\subsubsection{What major design choices were you faced with in the project, and how did you resolve them?}
+
+\subsubsection{To what extent were your design choices driven by the scale and nature of the pilot project?}
+
+\subsubsection{Were your design choices validated by your experimentation?}
+
+\subsubsection{How, if at all, would you change your design choices if you were to start over?}
+
+\subsubsection{What were the most resource-intensive or problematic aspects of your design to implement as part of the project, and why?}
+
+\subsection{Network selection}
+
+\subsubsection{What were your key motivations for your choice of blockchain network?}
+
+\subsubsection{How did the public or private, permissioned or permissionless nature of the network factor into your decision?}
+
+\subsubsection{What legal, regulatory, governance or other challenges (if any) did you experience or do you anticipate with future use of the selected network?}
+
+\subsubsection{If relevant, what additional research benefits could your use case have generated if it was executed on a public permissionless network?}
+
+\subsubsection{What barriers (if any) may prevent you from using a public permissionless network for your use case?}
+
+\subsection{Automation and programmability}
+
+\subsubsection{What did you learn through your experimentation about automation (e.g. smart contracts, automated, conditional payments) beyond straight through processing?}
+
+\subsubsection{Was the level of automation or programmability achieved in your use case affected by the chosen settlement asset or settlement model?}
+
+\subsubsection{How did you ensure compliance and auditability given the automation and programmability in your use case?}
+
+\subsection{Interoperability and integration with external systems}
+
+\subsubsection{What interoperability challenges (e.g. between tokenised asset systems and settlement systems) did you face in the project and how did you overcome them?}
+
+\subsubsection{What principles guided you to the outcomes achieved, and what did you learn?}
+
+\subsubsection{If your use case involved using data oracles, interoperability bridges or any other similar smart contract arrangements that were dependent on external systems, what technical, operational, regulatory or other risks did you identify with those arrangements and how did you mitigate those risks?}
+
+\subsection{Technical performance and integrity}
+
+\subsubsection{What latency and throughput results did you observe in your experimentation and how did they compare to your expectations?}
+
+\subsubsection{What measures or strategies did you implement to give you confidence in your selected network's ability to maintain transactional integrity?}
+
+\subsubsection{What measures did you implement to mitigate the risks associated with failed or delayed (slower) transactions or an increased cost of transactions during periods of increased network congestion?}
+
+\subsection{Central bank digital currency design and deployment}
+
+\subsubsection{If you used CBDC in your experimentation, what functionality of the CBDC smart contract enhanced your use case?}
+
+\subsubsection{What challenges did you face using the RBA's pilot CBDC smart contract?}
+
+\subsubsection{How could a CBDC smart contract be improved to support safe and efficient settlement?}
+
+\subsubsection{Did using CBDC bring you the target benefits that you expected, were there any unexpected benefits and/or costs, and could the target benefits have been achieved with an alternative settlement asset?}
+
+\newpage
+\section{Legal, regulatory and risk management}
+
+\subsection{Legal rights and liabilities}
+
+\subsubsection{How did you ensure legal certainty and enforceability of token ownership and transfer?}
+
+\subsubsection{How did you ensure that settlements were final and irrevocable?}
+
+\subsubsection{What (if any) legal issues created uncertainty for the structuring or execution of your experimentation, and how did you resolve these uncertainties?}
+
+\subsection{Regulatory}
+
+\subsubsection{What regulatory challenges did you encounter when piloting your use case?}
+
+\subsubsection{What (if any) regulatory barriers would prevent you from undertaking your use case outside of Project Acacia (i.e. absent the project-level relief provided by ASIC)?}
+
+\subsection{Operational risk management}
+
+\subsubsection{What risk management processes and controls were implemented in support of your use case to address operational resilience and information security risks?}
+
+\subsubsection{How did you manage the risks of smart contract failure or system downtime?}
+
+\subsection{AML/CTF compliance}
+
+\subsubsection{Did you identify any challenges regarding compliance with AML/CTF or sanctions laws within a tokenised ecosystem?}
+
+\subsubsection{Were you able to leverage any of the benefits of tokenisation, such as programmability (i.e. to embed compliance processes), to address these challenges?}
+
+\subsection{Liquidity risk management}
+
+\subsubsection{What liquidity risks (e.g. from pre-funding of the cash settlement leg, or splitting available settlement funds across different settlement venues) did you identify in your experimentation?}
+
+\subsubsection{What risk management processes and controls were implemented, or could be implemented, to address those risks?}
+
+\subsubsection{Did your experimentation reveal any tools or mechanisms that could help with the management of liquidity?}
+
+\subsection{Auditability}
+
+\subsubsection{What did you learn through your experimentation about the effect of programmability on the auditability and verifiability of compliance with regulatory requirements?}
+
+\subsubsection{Are there specific technological or procedural gaps that need to be addressed to improve regulatory auditability?}
+
+\newpage
+\section{Public interest}
+
+\subsection{Controlling risk in the financial system}
+
+\subsubsection{In what way(s) would the design of your use case (e.g. your selection of settlement asset or blockchain network) assist in controlling systemic risk (i.e. the risk that a problem in one institution may trigger instability across the financial system)?}
+
+\subsubsection{In what way(s) did your experimentation demonstrate the potential of tokenisation to alter the nature or visibility of counterparty risk, and/or the way in which counterparty risk is monitored and mitigated?}
+
+\subsubsection{In what way(s) did your experimentation demonstrate increased or decreased system resilience compared with existing financial infrastructure?}
+
+\subsubsection{What redundancy or resilience features did your experimentation reveal as important to your use case design?}
+
+\subsection{Promoting efficiency of the payments system}
+
+\subsubsection{In what way(s) would the design of your use case (e.g. your selection of settlement asset or blockchain network) assist in promoting efficiency in the payments system? For example, if you experimented with pilot CBDC, what efficiencies (if any) did access to central bank money in that form by a broader set of market participants than existing ESA holders demonstrate, and why?}
+
+\subsubsection{How did your use case design promote at par convertibility of different forms of public and private money denominated in Australian dollars?}
+
+\subsection{Promoting competition}
+
+\subsubsection{In what way(s) did your use case provide research evidence about how asset tokenisation and/or new forms of public or private money may promote competition in the development of new markets and settlement infrastructure services? For example, did your use case demonstrate if barriers to new entry or service development can be lowered or bypassed, and if so how?}
+
+\subsubsection{Were there barriers that prevented you from structuring your use case in a way that may have provided more information on this question, and if so what were those barriers?}
+
+\end{document}

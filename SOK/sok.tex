@@ -1,0 +1,976 @@
+\documentclass[10pt, a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{left=1in, right=1in, top=1in, bottom=1in}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{newpxtext,newpxmath}
+\usepackage{microtype} % Essential for dense technical text
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{multicol}
+
+% --- Configuration ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!40!black},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    captionpos=b,
+    escapechar=|
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\sloppy % Prevents overfull hboxes in narrow columns
+
+% --- Macros for Case Studies ---
+\newcommand{\citem}[2]{\textbf{#1}: \texttt{#2}\\}
+\newcommand{\profile}[3]{%
+    \par\vspace{0.3em}%
+    \noindent\begin{minipage}{\columnwidth}
+    \subsection*{#1: #2}
+    \scriptsize
+    #3
+    \vspace{0.2em}
+    \hrule
+    \end{minipage}%
+    \vspace{0.3em}%
+}
+
+% --- Title ---
+\title{\textbf{SoK: Digital Liquidity}\\
+\large \textit{State-Machine and Type-System Ontology}}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Digital liquidity today spans central-bank RTGS systems, ACH/card schemes, commercial-bank cores, super-app wallets, public blockchains, L2s, DeFi protocols, stablecoins, tokenised MMFs, and multi-CBDC platforms. Each comes with its own terminology and risk model. Systems researchers see ``RTGS vs DeFi vs CBDC vs stablecoins'' as qualitatively distinct systems, and lack a unified way to compare them, build tools over them, or formally reason about their behaviour.
+
+This paper defines a \textbf{Systematisation of Knowledge (SoK)} for digital liquidity that addresses this fragmentation. Its core contributions are:
+
+\begin{enumerate}
+    \item A \textbf{Balance-State Transition Event (BSTE)} model: A universal, event-level state-machine model for monetary ledgers, with three irreducible primitives: \textbf{OWNERSHIP\_TRANSFER (P1)}, \textbf{ENCUMBRANCE\_ADJUST (P2)}, and \textbf{SUPPLY\_ADJUST (P3)}.
+    \item A \textbf{Core Digital Liquidity Profile (C1--C20)}: A finite feature space that classifies any instrument--infrastructure pair along asset, ledger, access, trust, privacy, ordering, and failure dimensions.
+    \item An explicit \textbf{alignment with Basel III, PFMI, and ISO 20022}, showing how existing standards map into this state-centric view.
+    \item A view of the SoK as a \textbf{state-machine type system} for smart contracts and protocols: given a contract's SoK type, we can derive obligations and verify them with formal methods.
+    \item A formal approach to \textbf{Liquidity Calculus}, providing mathematical definitions for digital LCR/NSFR and optimisation costs.
+    \item A comprehensive library of \textbf{20 case mappings} (Fedwire, ACH, Bitcoin, Tornado Cash, etc.) with the full 20-dimensional profile for each.
+\end{enumerate}
+
+The result is a \textbf{computational ontology} and \textbf{front-end semantic type system for \textit{digital liquidity instruments and infrastructures}}, designed to plug into monitoring, optimisation, protocol design, and formal verification workflows.
+\end{abstract}
+
+\newpage
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Introduction}
+
+Digital liquidity infrastructure has exploded in diversity:
+\begin{itemize}
+    \item Central-bank infrastructures (RTGS, wholesale CBDC pilots, multi-CBDC platforms).
+    \item Commercial-bank rails (ACH, card schemes, instant payments, tokenised deposits).
+    \item FMIs (CLS, CCP cash ledgers, CHESS-style settlement systems).
+    \item Public-chain ecosystems (BTC, ETH, L2 rollups, DeFi AMMs, lending protocols).
+    \item Tokenised cash/collateral networks (stablecoins, ERC-4626 vaults, tokenised MMFs).
+    \item Privacy-preserving networks (Mixers, Shielded Pools, ZK-Rollups).
+\end{itemize}
+
+These are usually analysed in silos: an economist might compare RTGS and ACH; a DeFi researcher might analyse AMMs; an applied-crypto person might scrutinise bridges. There is no unified, technically precise \textbf{design space} for ``digital liquidity'' in which all of these systems can be represented, compared, and reasoned about.
+
+From a systems perspective, there are three core problems:
+
+\begin{enumerate}
+    \item \textbf{No common event model:} ISO 20022 and SWIFT provide rich messaging schemas, but they are \textit{not} ledger state models. On-chain systems have tx logs, but semantics differ (account vs UTXO vs smart-contract state). We want a single event-level abstraction that covers RTGS, ACH, DeFi, and Lightning.
+    \item \textbf{No shared feature space:} We lack a finite set of dimensions that capture what matters for digital liquidity - not only asset nature, but privacy models, ordering mechanisms (MEV), and failure modes.
+    \item \textbf{No ``type system'' for contract behaviour:} Languages like Solidity or Rust tell you \textit{how} a contract is implemented. They do not tell you \textit{what kind of instrument or rail it is supposed to be} (e.g., fully-reserved stablecoin vs unsecured credit token) nor what invariants that implies.
+\end{enumerate}
+
+This paper addresses these problems by defining a universal \textbf{Balance-State Transition Event (BSTE)} model (§3) and a \textbf{Core Digital Liquidity Profile} (C1--C20) (§4). Together, these constitute a \textbf{formal ontology} that acts as a semantic type system for digital finance.
+
+% =============================================================================
+\section{Background and Requirements}
+
+\subsection{Digital Liquidity and Instruments}
+We use ``digital liquidity'' as an umbrella term for the short-horizon, transactional layer of modern finance:
+\begin{itemize}
+    \item monetary claims used as \textbf{settlement assets} (central-bank reserves, CBDCs, tokenised MMFs),
+    \item \textbf{payment instruments} (bank deposits, e-money, stablecoins, platform balances),
+    \item \textbf{collateral instruments} used in secured funding (repo, margin, RWA vault shares),
+    \item and the infrastructures that move, encumber, and settle them.
+\end{itemize}
+
+\subsection{State Machines vs Messaging Layers}
+At the highest level, a \textbf{ledger} is a \textbf{state machine}:
+\begin{itemize}
+    \item \textbf{State}: for a given $(ledger\_id, asset\_code)$, balances per account (available, reservation, collateral, etc.) and summary variables.
+    \item \textbf{Transitions}: events that update this state.
+\end{itemize}
+
+Different technologies give different encodings (Account vs UTXO vs ZK-Commitment). By contrast, systems like SWIFT + ISO 20022 are primarily \textbf{messaging networks}. They define messages, but not a canonical `State'. Our SoK treats each ledger as a state machine with a BSTE log.
+
+% =============================================================================
+\section{Balance-State Transition Event (BSTE) Model}
+
+\subsection{Intuition}
+A \textbf{Balance-State Transition Event (BSTE)} is a single \textbf{atomic change} in balances of \textit{one asset} on \textit{one ledger}. If you replay all BSTEs in time order, you reconstruct the ledger's monetary state. This abstracts over Account-based, UTXO-based, and Zero-Knowledge (commitment-based) ledgers.
+
+\subsection{Unified Logical Schema}
+This schema merges the rigorous data requirements of ISO 20022 with the privacy and ordering primitives required for distributed ledger technology (DLT) and ZK systems.
+
+\begin{center}
+\begin{minipage}{0.85\textwidth}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\scriptsize]
+struct BSTE:
+    # --- Identity & Time ---
+    event_id: string        # UUID, TxHash, or UETR
+    ledger_id: string       # "CB.RTGS/US", "DLT/ETH", "BANK/DE"
+    t_occurred: timestamp   # ISO 8601 / RFC3339
+
+    # --- Ordering (for Distributed Systems) ---
+    sequence_index: uint64  # Block height + Tx Index (Ordering)
+    causal_ref: list[ID]    # Vector clock / dependency graph
+
+    # --- The Primitive ---
+    op_kind: enum { OWNERSHIP_TRANSFER, ENCUMBRANCE_ADJUST, SUPPLY_ADJUST }
+
+    # --- Asset & Privacy ---
+    asset_code: string      # ISO 4217, ISIN, or Contract Address
+    privacy_mode: enum { TRANSPARENT, CONFIDENTIAL_AMT, SHIELDED }
+
+    # If transparent:
+    amount_scalar: decimal
+    # If confidential (ZK):
+    amount_commitment: bytes
+    proof_ref: string
+
+    # --- Accounts & Buckets ---
+    # Can be an address, or a ZK Nullifier/Commitment hash
+    src_account: string or bytes or NULL
+    src_balance_type: enum { available, reservation, collateral, escrow, channel }
+
+    dst_account: string or bytes or NULL
+    dst_balance_type: enum { available, reservation, collateral, escrow, channel }
+
+    # --- Global State Deltas ---
+    supply_delta: decimal   # Net change to total supply (for P3)
+    lock_delta: decimal     # Net change to encumbered quantity (for P2)
+
+    # --- Linkage & Atomicity ---
+    link_id: string         # Groups atomic bundles (e.g. PvP, Flash Loan)
+    atomicity: enum { none, PvP, DvP, HTLC, protocol_atomic }
+
+    # --- Evidence / Upstream Messaging (ISO 20022 Alignment) ---
+    message_ref: json or NULL  # References to pacs/pain/camt or SWIFT MT
+    purpose_code: string       # ISO 20022 <Purp> (e.g., "SALA", "COLL")
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\subsection{Three Irreducible Primitives}
+Every BSTE is exactly one of three primitives:
+
+\subsubsection*{P1. OWNERSHIP\_TRANSFER}
+Move spendable units between accounts \textbf{without} changing total supply or system-wide encumbrance.
+\begin{itemize}
+    \item Constraints: $supply\_delta = 0$, $lock\_delta = 0$.
+    \item Instances: RTGS payment, ACH posting, BTC transfer, Lightning channel rebalance.
+\end{itemize}
+
+\subsubsection*{P2. ENCUMBRANCE\_ADJUST}
+Change how much balance is \textbf{free vs encumbered} (reservation/collateral/escrow) \textbf{without} changing ownership or total supply.
+\begin{itemize}
+    \item Constraints: $supply\_delta = 0$, $lock\_delta \neq 0$.
+    \item Instances: Card authorisation, Repo collateral pledge, Lightning Harming Logic (HTLC), Optimistic Bridge lock.
+\end{itemize}
+
+\subsubsection*{P3. SUPPLY\_ADJUST}
+Increase or decrease total recognised supply of a given asset on a given ledger (mint/burn).
+\begin{itemize}
+    \item Constraints: $lock\_delta = 0$, $supply\_delta \neq 0$.
+    \item Instances: Central bank reserve creation, Stablecoin mint/burn, Tokenised MMF share issuance, Wrapping/Unwrapping assets.
+\end{itemize}
+
+% =============================================================================
+\section{Core Digital Liquidity Profile (C1--C20)}
+
+The Profile constitutes a \textbf{domain ontology} defined by a finite feature space of 20 fields. Each instrument or infrastructure is defined by a unique tuple in this space. 
+
+A core contribution of this profile is the formalisation of \textbf{trust}. Rather than labeling systems broadly as ``trusted" or ``trustless", the C1–C20 dimensions decompose trust into specific vectors: \textit{Solvency Trust} (C1–C3), \textit{Custodial Trust} (C9, C20), \textit{Operational Trust} (C12–C14), and \textit{Governance Trust} (C10, C18). This allows researchers to quantify exactly \textit{what} a user must trust in any given system-e.g., trusting a stablecoin issuer's solvency (C3) but not their ability to reverse settled transactions (C6).
+
+\subsection{Asset Layer (C1--C3)}
+\begin{description}
+    \item[C1. Asset Nature:] What kind of liability is this?
+    \textit{Values:} \texttt{cb\_reserve}, \texttt{cb\_cash}, \texttt{commercial\_deposit}, \texttt{e\_money}, \texttt{stablecoin\_fiat}, \texttt{token\_native}, \texttt{security\_cash}.
+    
+    \item[C2. Representation Model:] How is the claim stored?
+    \textit{Values:} \texttt{native\_account}, \texttt{native\_token}, \texttt{wrapped\_mirror}, \texttt{synthetic}.
+    
+    \item[C3. Liquidity Backing:] What secures the value?
+    \textit{Values:} \texttt{unsecured}, \texttt{secured\_specific\_collateral} (Repo/DeFi), \texttt{fully\_reserved} (Narrow bank/Stablecoin).
+\end{description}
+
+\subsection{Ledger Layer (C4--C7)}
+\begin{description}
+    \item[C4. Ledger Tech:] Where does the state live?
+    \textit{Values:} \texttt{cb\_rtgs}, \texttt{bank\_core}, \texttt{dlt\_public}, \texttt{dlt\_permissioned}, \texttt{fmi\_ledger}, \texttt{channel\_state}, \texttt{scheme\_internal}.
+    
+    \item[C5. Settlement Mode:] How are obligations settled?
+    \textit{Values:} \texttt{gross} (RTGS), \texttt{multilateral\_net\_batch} (ACH), \texttt{onchain\_gross}.
+    
+    \item[C6. Finality Kind:] When is it irreversible?
+    \textit{Values:} \texttt{deterministic}, \texttt{probabilistic} (Nakamoto), \texttt{deterministic\_deferred} (Optimistic Rollups).
+    
+    \item[C7. State Visibility:] Who can see the global state?
+    \textit{Values:} \texttt{public}, \texttt{private\_consortium}, \texttt{encrypted\_state} (ZK).
+\end{description}
+
+\subsection{Access, Trust \& Privacy (C8--C11)}
+\begin{description}
+    \item[C8. Access Model:] Who can hold balances?
+    \textit{Values:} \texttt{direct\_wholesale}, \texttt{retail}, \texttt{permissionless}, \texttt{permissioned}.
+    
+    \item[C9. Custody Model:] Who holds the keys?
+    \textit{Values:} \texttt{self\_custody}, \texttt{bank\_custody}, \texttt{smart\_contract\_custody}, \texttt{infrastructure\_custody}.
+    
+    \item[C10. Governance Model:] Who changes the rules?
+    \textit{Values:} \texttt{issuer\_board}, \texttt{dao\_token\_vote}, \texttt{immutable\_contract}, \texttt{statutory}.
+    
+    \item[C11. Privacy Model:] How much information is hidden?
+    \textit{Values:} \texttt{transparent} (Bitcoin), \texttt{pseudonymous} (Ethereum), \texttt{confidential\_amounts} (Liquid), \texttt{fully\_shielded} (Zcash/Tornado), \texttt{confidential\_routing} (Lightning).
+\end{description}
+
+\subsection{Ordering \& Systems Semantics (C12--C16)}
+\begin{description}
+    \item[C12. Ordering Mechanism:] Who decides the sequence of events (MEV)?
+    \textit{Values:} \texttt{fifo}, \texttt{fee\_auction}, \texttt{proposer\_privilege} (Standard Block Builders), \texttt{fair\_sequencing} (Encrypted Mempool).
+    
+    \item[C13. Liveness Dependency:] On whom does progress depend?
+    \textit{Values:} \texttt{autonomous}, \texttt{sequencer\_dependent}, \texttt{operator\_dependent}.
+    
+    \item[C14. Safety Fallback:] What happens during a partition/failure?
+    \textit{Values:} \texttt{halt} (Consistency favored), \texttt{fork} (Availability favored), \texttt{escape\_hatch} (L1 Force Exit).
+    
+    \item[C15. Cross-Ledger Pattern:] How is value moved between ledgers?
+    \textit{Values:} \texttt{none}, \texttt{lock\_mint}, \texttt{burn\_mint}, \texttt{htlc}, \texttt{notary\_federation}, \texttt{optimistic\_bridge}.
+    
+    \item[C16. Messaging Primitive:] How are changes driven?
+    \textit{Values:} \texttt{offledger\_messages} (ISO 20022), \texttt{onchain\_transactions}, \texttt{hybrid}.
+\end{description}
+
+\subsection{Credit and Systemic Control (C17--C20)}
+\begin{description}
+    \item[C17. Credit Sources:] Where does funding elasticity come from?
+    \textit{Values:} \texttt{prefunded}, \texttt{intraday\_credit}, \texttt{flash\_loan}, \texttt{repo}, \texttt{retail\_credit}.
+    
+    \item[C18. Upgrade Timelock:] How fast can the system rules change?
+    \textit{Values:} \texttt{none}, \texttt{time\_delay}, \texttt{immutable}.
+    
+    \item[C19. Censorship Boundary:] At what layer can transactions be blocked?
+    \textit{Values:} \texttt{network\_edge} (IP blocking), \texttt{builder} (Tx exclusion), \texttt{contract} (Blacklist logic).
+    
+    \item[C20. Sanction Capability:] What coercive actions can the operator take?
+    \textit{Values:} \texttt{freeze\_account}, \texttt{freeze\_asset}, \texttt{none}.
+\end{description}
+
+% =============================================================================
+\section{Alignment with Regulatory Frameworks}
+
+\subsection{Basel III (LCR / NSFR)}
+Basel III reasoning hinges on HQLA quality and encumbrance. Our profile supports this via derived metrics:
+\begin{itemize}
+    \item \textbf{Digital HQLA:} Using \texttt{liquidity\_backing} and \texttt{asset\_nature} to classify tiers.
+    \item \textbf{Free Liquidity:} $F(t) = Supply(t) - Encumbered(t)$, where Encumbered is derived from P2 events.
+    \item \textbf{Funding Structure:} \texttt{credit\_sources} distinguishes between unsecured interbank funding (run risk) and secured funding (repo/SFT).
+\end{itemize}
+
+\subsection{PFMI (CPSS--IOSCO)}
+\begin{itemize}
+    \item \textbf{Principle 8 (Finality):} Mapped directly to \texttt{finality\_kind} and \texttt{safety\_fallback}.
+    \item \textbf{Principle 5 (Collateral):} P2 events allow on-chain collateral (vaults, channels) to be mapped into PFMI frameworks.
+    \item \textbf{Principle 2 (Governance):} Mapped to \texttt{governance\_model} and \texttt{upgrade\_timelock}.
+\end{itemize}
+
+\subsection{ISO 20022 Alignment}
+ISO 20022 provides a \textbf{message model}, not a ledger state model. BSTE is its \textbf{state-side dual}:
+\begin{itemize}
+    \item A \texttt{pacs.008} settlement leg corresponds to a P1 OWNERSHIP\_TRANSFER.
+    \item Securities/corporate action messages correspond to P3 SUPPLY\_ADJUST and associated P1 transfers.
+    \item Status reports (\texttt{camt.053}) correspond to state read-outs post-BSTE.
+\end{itemize}
+This allows DLT instruments to be embedded into ISO 20022 workflows by mapping BSTEs to the appropriate message category.
+
+% =============================================================================
+\section{SoK as a State-Machine Type System}
+
+Languages like Solidity define implementation; the SoK defines the \textit{intended instrument type}. This allows us to pose the question: \textit{Does the design actually satisfy the obligations implied by its type?}
+
+\subsection{The Five-Step Evaluation Pipeline}
+
+\begin{enumerate}
+    \item \textbf{Classify (C1--C20):} Fill out the profile for the target system. For example, a stablecoin might declare itself \texttt{stablecoin\_fiat}, \texttt{fully\_reserved}, \texttt{burn\_mint} bridge.
+    
+    \item \textbf{Derive Obligations:} A \texttt{fully\_reserved} stablecoin implies $Supply \leq Reserves$. A \texttt{lock\_mint} bridge implies $Supply_{wrapped} \leq Locked_{native}$. A \texttt{dao\_token\_vote} governance model implies that logic changes must pass a voting threshold.
+    
+    \item \textbf{Map Primitives:} Map the contract's behavioral surface (functions like \texttt{deposit}, \texttt{swap}) to sequences of P1/P2/P3 events.
+    
+    \item \textbf{Verify (Model Checking):} Encode the state machine and obligations in a formalism (e.g., TLA+) to check if the primitives satisfy the obligations under all reachable states.
+    
+    \item \textbf{Compare:} Evaluate designs that share the same type but differ in governance or ordering risks (e.g., two stablecoins with different \texttt{sanction\_capability}).
+\end{enumerate}
+
+\subsection{Conceptual TLA+ Mapping}
+
+The BSTE model is able to be mapped naturally to TLA+ (Temporal Logic of Actions):
+\begin{itemize}
+    \item \textbf{Variables:} \texttt{balance[account]}, \texttt{supply}, \texttt{reserve}.
+    \item \textbf{Actions:} 
+    \begin{itemize}
+        \item \texttt{Transfer(from, to, amt)} $\rightarrow$ P1 (Ownership Transfer).
+        \item \texttt{Mint(amt, to)} $\rightarrow$ P3 (Supply Adjust).
+        \item \texttt{Lock(amt, user)} $\rightarrow$ P2 (Encumbrance Adjust).
+    \end{itemize}
+    \item \textbf{Invariants:} 
+    \begin{itemize}
+        \item Conservation: \texttt{supply = Sum(balance)}.
+        \item Backing: \texttt{supply <= reserve}.
+    \end{itemize}
+\end{itemize}
+The model checker then explores all sequences of actions (including adversarial ordering) to find states where invariants like "Backing" are violated.
+
+\subsection{Formal Subtyping: Liskov Substitution for Money}
+We propose a formal definition for instrument equivalence:
+\begin{quote}
+    \textit{System $S$ is a subtype of System $T$ ($S <: T$) if $S$ preserves all invariants of $T$ under all failure modes defined in $T$.}
+\end{quote}
+For example, a Stablecoin is a subtype of `Commercial Deposit` only if it maintains par redemption under the failure mode of the issuer's insolvency (often requiring bankruptcy remoteness, captured in \texttt{custody\_model}).
+
+% =============================================================================
+\section{System-Level Applications}
+
+\subsection{Unified Liquidity Monitoring}
+By instrumenting systems to emit BSTEs, we can build cross-rail observatories. A central bank could monitor $Supply(USD)$ across RTGS, Tokenised Deposits, and Stablecoins in real-time, detecting leaks or unbacked credit expansion.
+
+\subsection{Liquidity Calculus and Optimisation}
+The BSTE stream allows us to define rigorous metrics for digital liquidity optimisation.
+
+\subsubsection{Digital LCR/NSFR}
+For participant $i$ and asset $a$:
+\[
+\text{LCR}_{i,a}(t) = \frac{\text{HQLA}^{\mathrm{unenc}}_{i,a}(t)}{\text{NetOutflows}_{i,a}(t, t+30d)}
+\]
+where $\text{HQLA}^{\mathrm{unenc}}$ is inferred from C1 (\texttt{asset\_nature}) and C14 (Encumbrance State derived from P2 events).
+
+\subsubsection{Cost of Encumbrance}
+For liquidity saving mechanisms (LSMs), we can define the cost of encumbrance for participant $i$ as:
+\[
+\text{Cost}_i = \int K_{i}(t) \, dt
+\]
+where $K$ is the encumbered quantity. The optimisation problem then becomes: Find a sequence of P1/P2/P3 events that satisfies all payment obligations while minimizing $\int K(t) dt$.
+
+\subsection{Decomposing Representation Risk and the Synchronisation Operator}
+
+A critical ambiguity in digital finance is the distinction between ``native'' assets (which live on the ledger) and ``tokenised'' representations of off-chain value (RWAs). The SoK resolves this by formalising the role of the \textbf{Synchronisation Operator} - the entity responsible for maintaining consistency between the on-chain state and the external reality.
+
+\subsubsection{General Case: Tokenised Representation}
+Industry terminology often conflates the asset with its record. The SoK forces a structural distinction via \texttt{representation\_model} (C2):
+\begin{itemize}
+    \item \textbf{\texttt{native\_token}:} The ledger state is the definitive reality (e.g., Bitcoin, Ether). No external synchronisation is required; the asset is \texttt{autonomous} (C13).
+    \item \textbf{\texttt{tokenised\_representation}:} The ledger is a shadow record of an external state (e.g., Tokenised MMFs, Real Estate, Corporate Bonds).
+\end{itemize}
+
+Classifying an instrument as a \texttt{tokenised\_representation} logically implies the existence of a Synchronisation Operator. This creates a specific \textbf{Safety Invariant} that the system must satisfy, yet cannot enforce via protocol logic alone:
+\[
+\forall t, \quad \text{Supply}_{\text{onchain}}(t) \le \text{ProvenBalance}_{\text{offchain}}(t)
+\]
+Consequently, any system with \texttt{C2: tokenised\_representation} must fundamentally accept \texttt{operator\_dependent} liveness (C13). Even if the blockchain is functional, the asset loses its peg or redeemability if the off-chain operator fails to synchronise the ledger with the external custodian.
+
+\subsubsection{Special Case: Synthetic CBDC}
+This general theory resolves the confusion between \textbf{True Wholesale CBDC} and \textbf{Synthetic CBDC}. While both aim to provide risk-free settlement assets, the SoK reveals a fundamental ontological difference:
+
+\begin{enumerate}
+    \item \textbf{True Wholesale CBDC:} Defined as $\langle \text{C1:}\texttt{cb\_reserve}, \text{C2:}\texttt{native\_token}, \text{C13:}\texttt{autonomous} \rangle$. The asset \textbf{is} the central bank liability. The ledger constitutes the definitive legal settlement; no external synchronisation is required.
+    \item \textbf{Synthetic CBDC:} Defined as $\langle \text{C1:}\texttt{e\_money}, \text{C2:}\texttt{wrapped\_mirror}, \text{C3:}\texttt{fully\_reserved} \rangle$. The asset is a private claim \textbf{backed} by central bank reserves.
+\end{enumerate}
+
+By exposing the \texttt{tokenised\_representation} attribute, the framework highlights that the Synthetic CBDC is structurally identical to a Tokenised RWA. It relies on a private operator to atomically lock reserves in the RTGS when minting tokens on-chain (\texttt{cross\_ledger\_pattern: lock\_mint}). This framework implies that ``Synthetic CBDC'' is a misnomer: it is simply a highly-secure stablecoin that reintroduces the counterparty and operational risks (via the Synchronisation Operator) that a native CBDC is designed to eliminate.
+
+\subsection{Power: Messaging vs. Shared Ledgers}
+The framework clarifies where \textbf{power} resides-specifically the power to censor.
+
+\subsubsection{SWIFT (Messaging)}
+\begin{itemize}
+    \item \textbf{Profile:} \texttt{ledger\_tech = none}, \texttt{messaging = offledger}, \texttt{censorship = network\_edge}.
+    \item \textbf{Power:} Sanctions occur by preventing messages from flowing. However, the ledger state remains distributed across banks; SWIFT cannot unilaterally mutate a bank's balance sheet.
+\end{itemize}
+
+\subsubsection{mBridge / Multi-CBDC (Shared Ledger)}
+\begin{itemize}
+    \item \textbf{Profile:} \texttt{ledger\_tech = dlt\_permissioned}, \texttt{messaging = onchain}, \texttt{censorship = builder/contract}.
+    \item \textbf{Power:} Authorities act as operators of the shared state machine. They can not only block transactions but potentially freeze or redirect assets directly via the consensus mechanism or smart contract logic.
+\end{itemize}
+This shift from \textit{messaging coalitions} to \textit{ledger coalitions} represents a fundamental change in the architecture of financial sanctions.
+
+% =============================================================================
+\newpage
+\appendix
+\section{Appendix A: Complete Case Studies Library}
+\label{sec:appendix}
+
+This appendix provides the full 20-dimensional mapping for 20 diverse digital liquidity systems.
+
+\begin{multicols}{2}
+% -----------------------------------------------------------------------------
+\profile{A.1}{Fedwire (US RTGS)}{
+    \citem{C1 Asset}{cb\_reserve}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{fully\_reserved}
+    \citem{C4 Ledger}{cb\_rtgs}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{wholesale}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{statutory}
+    \citem{C11 Privacy}{transparent (op)}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{intraday}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.2}{US ACH (Nacha)}{
+    \citem{C1 Asset}{comm\_deposit}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{bank\_core}
+    \citem{C5 Settl}{net\_batch}
+    \citem{C6 Finality}{deferred}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{retail}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{consortium}
+    \citem{C11 Privacy}{transparent (op)}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{unsecured}
+    \citem{C18 Upgr}{consortium}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.3}{Card Schemes (Visa)}{
+    \citem{C1 Asset}{comm\_deposit}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{scheme\_internal}
+    \citem{C5 Settl}{net\_batch}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{retail}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{transparent (op)}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{retail\_credit}
+    \citem{C18 Upgr}{issuer}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.4}{CLS (FX PvP)}{
+    \citem{C1 Asset}{security\_cash}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{fully\_reserved}
+    \citem{C4 Ledger}{fmi\_ledger}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{wholesale}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{consortium}
+    \citem{C11 Privacy}{transparent (op)}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{proto\_atomic}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{intraday}
+    \citem{C18 Upgr}{consortium}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.5}{CCP Cash (LCH/ICE)}{
+    \citem{C1 Asset}{security\_cash}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{fully\_reserved}
+    \citem{C4 Ledger}{fmi\_ledger}
+    \citem{C5 Settl}{net\_batch}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{wholesale}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{statutory}
+    \citem{C11 Privacy}{transparent (op)}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{repo}
+    \citem{C18 Upgr}{statutory}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.6}{Bitcoin (L1)}{
+    \citem{C1 Asset}{token\_native}
+    \citem{C2 Rep}{utxo}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{self\_custody}
+    \citem{C10 Gov}{immutable}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{fork}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{immutable}
+    \citem{C19 Censor}{builder}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.7}{Lightning Network}{
+    \citem{C1 Asset}{token\_native}
+    \citem{C2 Rep}{hybrid}
+    \citem{C3 Backing}{fully\_reserved}
+    \citem{C4 Ledger}{channel\_state}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{local\_determ}
+    \citem{C7 Visible}{pvt\_channels}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{self\_custody}
+    \citem{C10 Gov}{immutable}
+    \citem{C11 Privacy}{conf\_routing}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{htlc}
+    \citem{C16 Msg}{hybrid}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{immutable}
+    \citem{C19 Censor}{none}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.8}{Ethereum (L1)}{
+    \citem{C1 Asset}{token\_native}
+    \citem{C2 Rep}{account}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{self\_custody}
+    \citem{C10 Gov}{consortium}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{prop\_privilege}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{fork}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{immutable}
+    \citem{C19 Censor}{builder}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.9}{Optimistic Rollup}{
+    \citem{C1 Asset}{wrapped\_mirror}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{deferred}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{contract}
+    \citem{C10 Gov}{dao\_vote}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{prop\_privilege}
+    \citem{C13 Live}{sequencer\_dep}
+    \citem{C14 Safe}{escape\_hatch}
+    \citem{C15 X-Ledger}{opt\_bridge}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{builder}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.10}{USDT (Tether)}{
+    \citem{C1 Asset}{stable\_fiat}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{self\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{sequencer\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{lock\_mint}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{none}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.11}{USDC (Circle)}{
+    \citem{C1 Asset}{stable\_fiat}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{fully\_res}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{self\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{sequencer\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{burn\_mint}
+    \citem{C16 Msg}{hybrid}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.12}{Tokenised Deposits}{
+    \citem{C1 Asset}{comm\_deposit}
+    \citem{C2 Rep}{wrapped\_mirror}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{dlt\_perm}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{permissioned}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{conf\_amt}
+    \citem{C12 Order}{prop\_privilege}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{burn\_mint}
+    \citem{C16 Msg}{hybrid}
+    \citem{C17 Credit}{unsecured}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.13}{RWA Vault (4626)}{
+    \citem{C1 Asset}{security\_cash}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{contract}
+    \citem{C10 Gov}{dao\_vote}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{sequencer\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{flash\_loan}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.14}{Tokenised MMF}{
+    \citem{C1 Asset}{security\_cash}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{kyc\_gated}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{sequencer\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{burn\_mint}
+    \citem{C16 Msg}{hybrid}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.15}{Uniswap v3 Pool}{
+    \citem{C1 Asset}{token\_native}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{contract}
+    \citem{C10 Gov}{immutable}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{immutable}
+    \citem{C19 Censor}{builder}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.16}{Aave Lending}{
+    \citem{C1 Asset}{wrapped\_mirror}
+    \citem{C2 Rep}{native\_token}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{onchain\_gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{contract}
+    \citem{C10 Gov}{dao\_vote}
+    \citem{C11 Privacy}{pseudonymous}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{overcollat}
+    \citem{C18 Upgr}{time\_delay}
+    \citem{C19 Censor}{contract}
+    \citem{C20 Sanct}{none}
+}
+
+\profile{A.17}{CeFi (Binance)}{
+    \citem{C1 Asset}{comm\_deposit}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{unsecured}
+    \citem{C4 Ledger}{scheme\_int}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{retail}
+    \citem{C9 Custody}{infra\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{private}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{margin}
+    \citem{C18 Upgr}{none}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.18}{AliPay}{
+    \citem{C1 Asset}{e\_money}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{fully\_res}
+    \citem{C4 Ledger}{scheme\_int}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{retail}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{issuer\_board}
+    \citem{C11 Privacy}{private}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{retail\_credit}
+    \citem{C18 Upgr}{none}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.19}{e-CNY (CBDC)}{
+    \citem{C1 Asset}{cb\_cash}
+    \citem{C2 Rep}{native\_account}
+    \citem{C3 Backing}{fully\_res}
+    \citem{C4 Ledger}{dlt\_perm}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{deterministic}
+    \citem{C7 Visible}{private}
+    \citem{C8 Access}{retail}
+    \citem{C9 Custody}{bank\_custody}
+    \citem{C10 Gov}{statutory}
+    \citem{C11 Privacy}{managed}
+    \citem{C12 Order}{fifo}
+    \citem{C13 Live}{operator\_dep}
+    \citem{C14 Safe}{halt}
+    \citem{C15 X-Ledger}{none}
+    \citem{C16 Msg}{offledger}
+    \citem{C17 Credit}{none}
+    \citem{C18 Upgr}{statutory}
+    \citem{C19 Censor}{network\_edge}
+    \citem{C20 Sanct}{freeze\_account}
+}
+
+\profile{A.20}{Tornado Cash}{
+    \citem{C1 Asset}{wrapped\_mirror}
+    \citem{C2 Rep}{account}
+    \citem{C3 Backing}{secured}
+    \citem{C4 Ledger}{dlt\_public}
+    \citem{C5 Settl}{gross}
+    \citem{C6 Finality}{probabilistic}
+    \citem{C7 Visible}{public}
+    \citem{C8 Access}{permissionless}
+    \citem{C9 Custody}{contract}
+    \citem{C10 Gov}{immutable}
+    \citem{C11 Privacy}{shielded}
+    \citem{C12 Order}{fee\_auction}
+    \citem{C13 Live}{autonomous}
+    \citem{C14 Safe}{fork}
+    \citem{C15 X-Ledger}{lock\_mint}
+    \citem{C16 Msg}{onchain\_tx}
+    \citem{C17 Credit}{prefunded}
+    \citem{C18 Upgr}{immutable}
+    \citem{C19 Censor}{builder}
+    \citem{C20 Sanct}{none}
+}
+\end{multicols}
+
+\newpage
+\section{Appendix B: Semantic Formalisation Strategy}
+\label{sec:appendix_b}
+
+While the Core Digital Liquidity Profile (C1--C20) provides a conceptual ontology for distinguishing instruments and infrastructures, formalising this structure into the Web Ontology Language (OWL 2) offers significant advantages for automated verification and interoperability. This appendix outlines the motivation and mapping strategy for translating the semi-formal SoK into a machine-readable artifact.
+
+\subsection{Motivation for an OWL Artifact}
+
+Defining the SoK as a formal OWL ontology enables three capabilities that are not possible with a textual taxonomy alone:
+
+\begin{enumerate}
+    \item \textbf{Automated Consistency Checking:} By defining constraints using Description Logic (DL), off-the-shelf reasoners (e.g., HermiT, Pellet) can automatically detect logical contradictions. For example, a system that declares itself as \texttt{ledger\_tech: dlt\_public} but claims \texttt{finality\_kind: deterministic} would flag a logical inconsistency if the ontology defines public chains as inherently probabilistic.
+    \item \textbf{Subsumption and Classification:} We can formally define instrument types (e.g., ``Valid Stablecoin'') as classes with specific restrictions. The reasoner can then automatically classify specific instances (e.g., \textit{USDC}) based on their properties, validating whether they truly meet the criteria of their claimed type.
+    \item \textbf{Interoperability and Querying:} An OWL representation allows the risk profile of financial infrastructures to be queried using SPARQL, integrating this data into broader Knowledge Graphs used by regulators or risk-management dashboards.
+\end{enumerate}
+
+\subsection{Mapping Strategy}
+
+The transition from the tabular SoK profile to OWL primitives follows a direct structural mapping. The domain of discourse is divided into \textit{Classes} (the entities), \textit{Object Properties} (the dimensions), and \textit{Named Individuals} (the values and case studies).
+
+\subsubsection{Structural Mapping Table}
+
+The proposed mapping between the SoK components and OWL 2 primitives is defined as follows:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{SoK Component} & \textbf{OWL 2 Primitive} & \textbf{Description} \\ \midrule
+\textbf{System / Instrument} & \texttt{owl:Class} & The top-level concepts (e.g., \textit{DigitalInstrument}, \textit{Infrastructure}). \\
+\textbf{Dimensions (C1--C20)} & \texttt{owl:ObjectProperty} & The relationships connecting an instrument to its attributes (e.g., \textit{hasAssetNature}, \textit{hasFinalityKind}). \\
+\textbf{Dimension Values} & \texttt{owl:NamedIndividual} & The specific enumerated values allowed for each dimension (e.g., \textit{fully\_reserved}, \textit{dlt\_public}). \\
+\textbf{Case Studies} & \texttt{owl:NamedIndividual} & Concrete instances of systems (e.g., \textit{Fedwire}, \textit{TornadoCash}) instantiating the classes. \\
+\textbf{Type Obligations} & \texttt{owl:Restriction} & Logical constraints that define necessary conditions for a class (e.g., ``A Stablecoin must be fully reserved''). \\
+\bottomrule
+\end{tabular}
+\caption{Mapping Strategy from SoK Profile to OWL 2 DL}
+\label{tab:owl_mapping}
+\end{table}
+
+\subsection{Encoding Invariants as Restrictions}
+
+The ``Type System'' aspect of this SoK is realised in OWL through \texttt{owl:equivalentClass} and property restrictions. This allows us to formalise the obligations derived in Section 6.
+
+For example, to enforce the invariant that a ``True Stablecoin'' must be fully reserved, we define the class not merely as a label, but as a logical restriction:
+
+\begin{lstlisting}[language=Python, caption={Conceptual Turtle Syntax for Type Definition}]
+:ValidStablecoin rdf:type owl:Class ;
+    owl:equivalentClass [
+        rdf:type owl:Class ;
+        owl:intersectionOf (
+            :DigitalInstrument
+            [ rdf:type owl:Restriction ;
+              owl:onProperty :hasAssetNature ;
+              owl:hasValue :stablecoin_fiat ]
+            [ rdf:type owl:Restriction ;
+              owl:onProperty :hasLiquidityBacking ;
+              owl:hasValue :fully_reserved ]
+        )
+    ] .
+\end{lstlisting}
+
+Under this formalisation, if a case study instance (e.g., \textit{AlgorithmicCoin}) is instantiated with \texttt{hasAssetNature: stablecoin\_fiat} but \texttt{hasLiquidityBacking: unsecured}, the reasoner will correctly infer that it is \textit{not} a member of the \texttt{:ValidStablecoin} class, regardless of its marketing labels.
+
+This formalisation strategy ensures that the ``Core Digital Liquidity Profile'' acts as a rigorous semantic standard rather than a subjective classification scheme.
+
+\end{document}
