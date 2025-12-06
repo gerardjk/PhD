@@ -1,0 +1,123 @@
+<svg viewBox="0 0 1000 850" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .reg-num { font-family: 'Arial', sans-serif; font-size: 14px; font-weight: bold; text-anchor: middle; fill: #000; }
+      .reg-name { font-family: 'Arial', sans-serif; font-size: 10px; text-anchor: middle; fill: #333; }
+      .axis { font-family: 'Arial Black', sans-serif; font-size: 18px; fill-opacity: 0.15; text-anchor: middle; }
+      .title { font-family: 'Arial', sans-serif; font-size: 24px; font-weight: 900; fill: #333; }
+      
+      /* The 4 Rectangles */
+      .rect-token { fill: #d62728; fill-opacity: 0.1; stroke: #d62728; stroke-width: 2; }
+      .rect-yield { fill: #1f77b4; fill-opacity: 0.1; stroke: #1f77b4; stroke-width: 2; }
+      .rect-sec { fill: #2ca02c; fill-opacity: 0.1; stroke: #2ca02c; stroke-width: 2; }
+      .rect-par { fill: #ff7f0e; fill-opacity: 0.1; stroke: #ff7f0e; stroke-width: 2; }
+      
+      /* Split Line Style */
+      .split-line { stroke: #666; stroke-width: 1; stroke-dasharray: 2,2; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="850" fill="#f8f8f8" />
+  
+  <text x="50" y="50" class="title">The Liquidity 26</text>
+  <text x="50" y="80" font-family="Arial" font-size="14" fill="#666">1 Core + 8 Triples + 12 Doubles + 4 Singles + 1 Void</text>
+
+  <!-- CENTER GRAPHIC -->
+  <g transform="translate(450, 450)">
+
+    <!-- GEOMETRY: 4 Rotated Rectangles -->
+    <!-- 1. TOKEN (Red Vertical) -->
+    <rect x="-130" y="-350" width="260" height="700" class="rect-token" />
+    <text x="0" y="-310" class="axis">TOKEN</text>
+
+    <!-- 2. YIELD (Blue Horizontal) -->
+    <rect x="-350" y="-130" width="700" height="260" class="rect-yield" />
+    <text x="300" y="5" class="axis" style="text-anchor: end;">YIELD</text>
+
+    <!-- 3. SECURED (Green Diag \) -->
+    <rect x="-130" y="-350" width="260" height="700" transform="rotate(-45)" class="rect-sec" />
+    <text x="240" y="-220" class="axis">SECURED</text>
+
+    <!-- 4. PAR (Orange Diag /) -->
+    <rect x="-130" y="-350" width="260" height="700" transform="rotate(45)" class="rect-par" />
+    <text x="-240" y="-220" class="axis">PAR</text>
+
+
+    <!-- === 1. THE CORE === -->
+    <rect x="-15" y="-15" width="30" height="30" fill="#fff" stroke="#000" />
+    <text x="0" y="5" class="reg-num">1</text>
+
+
+    <!-- === 2. THE TRIPLES (The 8 Inner Shards) === -->
+    <!-- 2A/2B: Tok+Par+Yld -->
+    <text x="-60" y="-40" class="reg-num">2A</text> <text x="-60" y="-25" class="reg-name">W-CBDC</text>
+    <text x="60" y="40" class="reg-num">2B</text> <text x="60" y="55" class="reg-name">Algo</text>
+
+    <!-- 3A/3B: Tok+Par+Sec -->
+    <text x="40" y="-60" class="reg-num">3A</text> <text x="40" y="-45" class="reg-name">USDC</text>
+    <text x="-40" y="60" class="reg-num">3B</text> <text x="-40" y="75" class="reg-name">USDT</text>
+
+    <!-- 4A/4B: Par+Yld+Sec -->
+    <text x="-60" y="40" class="reg-num">4A</text> <text x="-60" y="55" class="reg-name">RRP</text>
+    <text x="60" y="-40" class="reg-num">4B</text> <text x="60" y="-25" class="reg-name">MMF</text>
+
+    <!-- 5A/5B: Tok+Yld+Sec -->
+    <text x="-40" y="-60" class="reg-num">5A</text> <text x="-40" y="-45" class="reg-name">RWA</text>
+    <text x="40" y="60" class="reg-num">5B</text> <text x="40" y="75" class="reg-name">stETH</text>
+
+
+    <!-- === 3. THE DOUBLES (The 12 Outer Petals) === -->
+    <!-- 6: Tok+Par -->
+    <text x="-120" y="-220" class="reg-num">6A</text> <text x="-120" y="-205" class="reg-name">Cash</text>
+    <text x="120" y="220" class="reg-num">6B</text> <text x="120" y="235" class="reg-name">Retail CBDC</text>
+
+    <!-- 7: Par+Yld -->
+    <text x="-220" y="90" class="reg-num">7A</text> <text x="-220" y="105" class="reg-name">Reserves</text>
+    <text x="220" y="-90" class="reg-num">7B</text> <text x="220" y="-75" class="reg-name">Savings</text>
+
+    <!-- 8: Sec+Yld -->
+    <text x="-90" y="220" class="reg-num">8A</text> <text x="-90" y="235" class="reg-name">Repo</text>
+    <text x="90" y="-220" class="reg-num">8B</text> <text x="90" y="-205" class="reg-name">Cov Bond</text>
+
+    <!-- 9: Tok+Sec -->
+    <text x="220" y="-120" class="reg-num">9A</text> <text x="220" y="-105" class="reg-name">wBTC</text>
+    <text x="-220" y="120" class="reg-num">9B</text> <text x="-220" y="135" class="reg-name">PAXG</text>
+
+    <!-- 10: Tok+Yld -->
+    <text x="120" y="-90" class="reg-num">10A</text> <text x="120" y="-75" class="reg-name">SecTok</text>
+    <text x="-120" y="90" class="reg-num">10B</text> <text x="-120" y="105" class="reg-name">GovTok</text>
+
+    <!-- 11: Par+Sec -->
+    <text x="-200" y="-120" class="reg-num">11A</text> <text x="-200" y="-105" class="reg-name">Narrow</text>
+    <text x="200" y="120" class="reg-num">11B</text> <text x="200" y="135" class="reg-name">Lombard</text>
+
+
+    <!-- === 4. THE SINGLES (The 4 Logic Anchors) === -->
+    <!-- Note: I am placing the number at BOTH ends to show it's one region -->
+    
+    <!-- 12: Just Token -->
+    <text x="0" y="-330" class="reg-num">12</text>
+    <text x="0" y="330" class="reg-num">12</text>
+    <text x="0" y="-315" class="reg-name">Bitcoin</text>
+
+    <!-- 13: Just Yield -->
+    <text x="330" y="0" class="reg-num">13</text>
+    <text x="-330" y="0" class="reg-num">13</text>
+    <text x="330" y="15" class="reg-name">Risk Asset</text>
+
+    <!-- 14: Just Secured -->
+    <text x="-260" y="-260" class="reg-num">14</text>
+    <text x="260" y="260" class="reg-num">14</text>
+    <text x="260" y="275" class="reg-name">Gold</text>
+
+    <!-- 15: Just Par -->
+    <text x="260" y="-260" class="reg-num">15</text>
+    <text x="-260" y="260" class="reg-num">15</text>
+    <text x="260" y="-245" class="reg-name">Ledger</text>
+
+  </g>
+  
+  <!-- VOID LABEL -->
+  <text x="850" y="800" font-family="Arial" font-size="16" fill="#999">26: The Void</text>
+
+</svg>
