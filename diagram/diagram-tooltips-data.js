@@ -163,6 +163,385 @@ const tooltipContent = {
     ],
     link: 'https://www.rba.gov.au/about-rba/'
   },
+
+  // Foreign Branch Banks (dots 2-44)
+  'dot-1': {
+    title: 'Citibank, N.A.',
+    subtitle: 'CINA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States',
+      'FSS Member'
+    ]
+  },
+  'dot-2': {
+    title: 'JPMorgan Chase Bank, National Association',
+    subtitle: 'CHAM',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States',
+      'FSS Member'
+    ]
+  },
+  'dot-3': {
+    title: 'Agricultural Bank of China Limited',
+    subtitle: 'ABOC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-4': {
+    title: 'Bank of America, National Association',
+    subtitle: 'BOFA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States'
+    ]
+  },
+  'dot-5': {
+    title: 'Bank of China Limited, Sydney Branch',
+    subtitle: 'BOCS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-6': {
+    title: 'Bank of Communications Co. Ltd.',
+    subtitle: 'BCOM',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-7': {
+    title: 'Barclays Bank PLC',
+    subtitle: 'BARC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United Kingdom'
+    ]
+  },
+  'dot-8': {
+    title: 'BNP Paribas',
+    subtitle: 'BNPT',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in France'
+    ]
+  },
+  'dot-9': {
+    title: 'China Construction Bank Corporation',
+    subtitle: 'CCBC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-10': {
+    title: 'China Everbright Bank Co., Ltd',
+    subtitle: 'EVER',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-11': {
+    title: 'China Merchants Bank Co., Ltd.',
+    subtitle: 'CMBC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-12': {
+    title: 'Cooperatieve Rabobank U.A.',
+    subtitle: 'RANE',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Netherlands'
+    ]
+  },
+  'dot-13': {
+    title: 'Credit Agricole Corporate and Investment Bank',
+    subtitle: 'CACB',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in France'
+    ]
+  },
+  'dot-14': {
+    title: 'DBS Bank Ltd',
+    subtitle: 'DBSA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Singapore'
+    ]
+  },
+  'dot-15': {
+    title: 'Deutsche Bank AG',
+    subtitle: 'DBAL',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Germany'
+    ]
+  },
+  'dot-16': {
+    title: 'Industrial and Commercial Bank of China Limited',
+    subtitle: 'ICBK',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in China'
+    ]
+  },
+  'dot-17': {
+    title: 'ING Bank NV',
+    subtitle: 'INGA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Netherlands'
+    ]
+  },
+  'dot-18': {
+    title: 'Mega International Commercial Bank Co. Ltd',
+    subtitle: 'ICBC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan'
+    ]
+  },
+  'dot-19': {
+    title: 'Mizuho Bank, Ltd',
+    subtitle: 'MHCB',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Japan'
+    ]
+  },
+  'dot-20': {
+    title: 'MUFG Bank, Ltd.',
+    subtitle: 'BOTK',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Japan'
+    ]
+  },
+  'dot-21': {
+    title: 'Oversea-Chinese Banking Corporation Limited',
+    subtitle: 'OCBC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Singapore'
+    ]
+  },
+  'dot-22': {
+    title: 'Royal Bank of Canada',
+    subtitle: 'ROYC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Canada'
+    ]
+  },
+  'dot-23': {
+    title: 'Standard Chartered Bank',
+    subtitle: 'SCBA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United Kingdom'
+    ]
+  },
+  'dot-24': {
+    title: 'State Bank of India',
+    subtitle: 'SBIS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in India'
+    ]
+  },
+  'dot-25': {
+    title: 'State Street Bank and Trust Company',
+    subtitle: 'SSBS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States'
+    ]
+  },
+  'dot-26': {
+    title: 'Sumitomo Mitsui Banking Corporation',
+    subtitle: 'SMBC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Japan'
+    ]
+  },
+  'dot-27': {
+    title: 'Taiwan Business Bank, Ltd',
+    subtitle: 'TBBS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan'
+    ]
+  },
+  'dot-28': {
+    title: 'The Hongkong and Shanghai Banking Corporation Limited',
+    subtitle: 'HKSB',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Hong Kong'
+    ]
+  },
+  'dot-29': {
+    title: 'The Northern Trust Company',
+    subtitle: 'TNTC',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States'
+    ]
+  },
+  'dot-30': {
+    title: 'UBS AG',
+    subtitle: 'UBSB',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Switzerland'
+    ]
+  },
+  'dot-31': {
+    title: 'United Overseas Bank Limited',
+    subtitle: 'UOBL',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Singapore'
+    ]
+  },
+  'dot-32': {
+    title: 'Bank of Baroda',
+    subtitle: 'BOBA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in India',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-33': {
+    title: 'Bank of Taiwan',
+    subtitle: 'BOTS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-34': {
+    title: 'Canadian Imperial Bank of Commerce',
+    subtitle: 'CIBS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Canada',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-35': {
+    title: 'E.SUN Commercial Bank, Ltd.',
+    subtitle: 'ESUN',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-36': {
+    title: 'First Commercial Bank, Ltd',
+    subtitle: 'FCBL',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-37': {
+    title: 'Hua Nan Commercial Bank Ltd',
+    subtitle: 'HNCB',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-38': {
+    title: 'KEB Hana Bank',
+    subtitle: 'KEBL',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in South Korea',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-39': {
+    title: 'Shinhan Bank Co., Ltd.',
+    subtitle: 'SHIN',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in South Korea',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-40': {
+    title: 'Taishin International Bank Co., Ltd.',
+    subtitle: 'TAIS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-41': {
+    title: 'Taiwan Cooperative Bank, Ltd',
+    subtitle: 'TCBA',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Taiwan',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-42': {
+    title: 'The Bank of New York Mellon',
+    subtitle: 'BNYM',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in United States',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-43': {
+    title: 'The Bank of Nova Scotia',
+    subtitle: 'BNSS',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in Canada',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-44': {
+    title: 'Union Bank of India',
+    subtitle: 'UBOI',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in India',
+      'Uses Settlement Agent'
+    ]
+  },
+  'dot-45': {
+    title: 'Woori Bank',
+    subtitle: 'WOOR',
+    description: 'International Bank: Foreign Branch',
+    details: [
+      'Headquartered in South Korea',
+      'Uses Settlement Agent'
+    ]
+  },
+
   'opa-box': {
     title: 'OPA',
     subtitle: 'Official Public Account',
@@ -324,6 +703,32 @@ const tooltipContent = {
     ],
     hours: '24/7 availability'
   },
+  'fss-circle': {
+    title: 'FSS',
+    subtitle: 'Fast Settlement Service',
+    description: 'Real-time settlement service for retail payments',
+    details: [
+      'Supports NPP and other fast payment systems',
+      'Operates 24/7/365',
+      'Managed by Reserve Bank of Australia'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/about.html'
+  },
+
+  // CLS - Continuous Linked Settlement
+  'cls-circle': {
+    title: 'CLS',
+    subtitle: 'Continuous Linked Settlement',
+    description: 'Global multi-currency settlement system that eliminates settlement risk in foreign exchange transactions through payment-versus-payment (PvP) settlement',
+    details: [
+      'Settles FX transactions for 18 currencies including AUD',
+      'Eliminates Herstatt risk (FX settlement risk)',
+      'Operated by CLS Bank International (New York)',
+      'RBA holds an ESA on behalf of CLS for AUD settlements',
+      'Settles over USD 6 trillion daily'
+    ],
+    link: 'https://www.cls-group.com/'
+  },
 
   // Card payments
   'eftpos-box': {
@@ -410,6 +815,17 @@ const tooltipContent = {
       'Operated by RBA',
       'Multiple settlement cycles per day'
     ]
+  },
+  'lvss-gear': {
+    title: 'LVSS',
+    subtitle: 'Low Value Settlement Service',
+    description: 'Settlement hub for retail payment clearing streams. Receives batched settlement instructions from APCS, BECS, CSHD, CECS and GABS, then settles net positions across Exchange Settlement Accounts in RITS.',
+    details: [
+      'Multilateral net settlement',
+      'Multiple settlement cycles per day',
+      'Operated by RBA'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/payments-system.html'
   },
   'cecs-box': {
     title: 'IAC',
@@ -516,8 +932,64 @@ const tooltipContent = {
     ]
   },
 
-  // Major banks
+  // Foreign Subsidiaries (indices 46-51)
+  'dot-46': {
+    title: 'HSBC Bank Australia Limited',
+    subtitle: 'HKBA',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Subsidiary of HSBC Holdings (UK)',
+      'FSS Member'
+    ]
+  },
+  'dot-47': {
+    title: 'ING Bank (Australia) Limited',
+    subtitle: 'IMMB',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Subsidiary of ING Group (Netherlands)',
+      'FSS Member'
+    ]
+  },
+  'dot-48': {
+    title: 'Arab Bank Australia Limited',
+    subtitle: 'ARAB',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Subsidiary of Arab Bank (Jordan)',
+      'Australian banking licence'
+    ]
+  },
+  'dot-49': {
+    title: 'Bank of China (Australia) Limited',
+    subtitle: 'BOCA',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Subsidiary of Bank of China (China)',
+      'Australian banking licence'
+    ]
+  },
   'dot-50': {
+    title: 'Bank of Sydney Ltd',
+    subtitle: 'LIKI',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Formerly Laiki Bank',
+      'Australian banking licence'
+    ]
+  },
+  'dot-51': {
+    title: 'Rabobank Australia Limited',
+    subtitle: 'RABL',
+    description: 'International Bank: Foreign Subsidiary',
+    details: [
+      'Subsidiary of Rabobank (Netherlands)',
+      'Focus on agribusiness banking'
+    ]
+  },
+
+  // Major banks (indices 52-55)
+  'dot-52': {
     title: 'ANZ',
     subtitle: 'Australia and New Zealand Banking Group',
     description: 'One of Australia\'s Big Four banks',
@@ -527,7 +999,7 @@ const tooltipContent = {
       'Listed on ASX'
     ]
   },
-  'dot-51': {
+  'dot-53': {
     title: 'Commonwealth Bank',
     subtitle: 'Commonwealth Bank of Australia',
     description: 'Australia\'s largest bank by market cap',
@@ -537,7 +1009,7 @@ const tooltipContent = {
       'Listed on ASX'
     ]
   },
-  'dot-52': {
+  'dot-54': {
     title: 'NAB',
     subtitle: 'National Australia Bank',
     description: 'One of Australia\'s Big Four banks',
@@ -547,7 +1019,7 @@ const tooltipContent = {
       'Listed on ASX'
     ]
   },
-  'dot-53': {
+  'dot-55': {
     title: 'Westpac',
     subtitle: 'Westpac Banking Corporation',
     description: 'Australia\'s oldest bank (founded 1817)',
@@ -555,6 +1027,190 @@ const tooltipContent = {
       'Full-service retail and commercial bank',
       'Major payment system participant',
       'Listed on ASX'
+    ]
+  },
+  'dot-56': {
+    title: 'Macquarie Bank',
+    subtitle: 'Macquarie Bank Limited',
+    description: 'Major Australian investment bank',
+    details: [
+      'Specialises in asset management and investment banking',
+      'Listed on ASX',
+      'Global operations'
+    ]
+  },
+  'dot-57': {
+    title: 'Bendigo and Adelaide Bank',
+    subtitle: 'Bendigo and Adelaide Bank Limited',
+    description: 'Major Australian regional bank',
+    details: [
+      'Community-focused banking',
+      'Formed from merger of Bendigo Bank and Adelaide Bank',
+      'Listed on ASX'
+    ]
+  },
+
+  // Remaining Domestic Banks (58-86)
+  'dot-58': { title: 'Alex Bank', subtitle: 'Alex Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-59': { title: 'AMP Bank', subtitle: 'AMP Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-60': { title: 'Bank of Queensland', subtitle: 'Bank of Queensland Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-61': { title: 'Heritage and People\'s Choice', subtitle: 'Heritage and People\'s Choice Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-62': { title: 'Judo Bank', subtitle: 'Judo Bank Pty Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-63': { title: 'Norfina', subtitle: 'Norfina Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
+  'dot-64': { title: 'Australian Military Bank', subtitle: 'Australian Military Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-65': { title: 'Australian Mutual Bank', subtitle: 'Australian Mutual Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-66': { title: 'B&E Ltd', subtitle: 'B&E Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-67': { title: 'Bank Australia', subtitle: 'Bank Australia Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-68': { title: 'Beyond Bank Australia', subtitle: 'Beyond Bank Australia Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-69': { title: 'Credit Union Australia', subtitle: 'Credit Union Australia Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-70': { title: 'Defence Bank', subtitle: 'Defence Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-71': { title: 'Gateway Bank', subtitle: 'Gateway Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-72': { title: 'Hume Bank', subtitle: 'Hume Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-73': { title: 'IMB', subtitle: 'IMB Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-74': { title: 'Maitland Mutual', subtitle: 'Maitland Mutual Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-75': { title: 'Members Banking Group', subtitle: 'Members Banking Group Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-76': { title: 'MyState Bank', subtitle: 'MyState Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-77': { title: 'Newcastle Greater Mutual', subtitle: 'Newcastle Greater Mutual Group Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-78': { title: 'Police & Nurses', subtitle: 'Police & Nurses Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-79': { title: 'Police Bank', subtitle: 'Police Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-80': { title: 'Police Financial Services', subtitle: 'Police Financial Services Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-81': { title: 'QPCU', subtitle: 'QPCU Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-82': { title: 'Queensland Country Bank', subtitle: 'Queensland Country Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-83': { title: 'Regional Australia Bank', subtitle: 'Regional Australia Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-84': { title: 'Teachers Mutual Bank', subtitle: 'Teachers Mutual Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-85': { title: 'Unity Bank', subtitle: 'Unity Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-86': { title: 'Victoria Teachers', subtitle: 'Victoria Teachers Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+
+  // Specialised ADIs (87-88)
+  'dot-87': {
+    title: 'Wise Australia',
+    subtitle: 'Wise Australia Pty Limited',
+    description: 'International money transfer and multi-currency account provider',
+    details: [
+      'Specialised ADI licensed in 2021',
+      'Provides low-cost international transfers',
+      'FSS member for real-time payments',
+      'Part of Wise plc (formerly TransferWise)'
+    ]
+  },
+  'dot-88': {
+    title: 'Tyro Payments',
+    subtitle: 'Tyro Payments Limited',
+    description: 'Australian fintech providing EFTPOS and business banking',
+    details: [
+      'Specialised ADI focused on merchant services',
+      'Leading independent EFTPOS provider',
+      'Provides integrated payment solutions for SMEs',
+      'Listed on ASX'
+    ]
+  },
+
+  // Other ADIs (89-91)
+  'dot-89': {
+    title: 'Australian Settlements',
+    subtitle: 'Australian Settlements Limited',
+    description: 'Clearing and settlement services provider',
+    details: [
+      'Provides settlement services to financial institutions',
+      'FSS member for real-time payments',
+      'Part of Cuscal group'
+    ]
+  },
+  'dot-90': {
+    title: 'CUSCAL',
+    subtitle: 'CUSCAL Limited',
+    description: 'Payment services provider for mutual ADIs',
+    details: [
+      'Provides payment infrastructure to credit unions and building societies',
+      'FSS member for real-time payments',
+      'Operates shared payment systems',
+      'Largest mutual ADI payments provider'
+    ]
+  },
+  'dot-91': {
+    title: 'Indue',
+    subtitle: 'Indue Ltd',
+    description: 'Payment solutions provider for financial institutions',
+    details: [
+      'Provides payment services to credit unions and mutual banks',
+      'FSS member for real-time payments',
+      'Operates payment processing infrastructure',
+      'Services over 40 financial institutions'
+    ]
+  },
+
+  // PSPs (92-95)
+  'dot-92': {
+    title: 'Mastercard',
+    subtitle: 'Mastercard Asia/Pacific Pte. Ltd.',
+    description: 'Global payment network operator',
+    details: [
+      'Operates international card payment network',
+      'Non-ADI ESA holder',
+      'Provides clearing and settlement for card transactions'
+    ]
+  },
+  'dot-93': {
+    title: 'Visa',
+    subtitle: 'Visa AP (Australia) Pty Ltd',
+    description: 'Global payment technology company',
+    details: [
+      'Operates international card payment network',
+      'Non-ADI ESA holder',
+      'Facilitates electronic funds transfers worldwide'
+    ]
+  },
+  'dot-94': {
+    title: 'eftpos Australia',
+    subtitle: 'eftpos Payments Australia Limited',
+    description: 'Australian domestic debit card network',
+    details: [
+      'Operates Australia\'s domestic debit network',
+      'Non-ADI ESA holder',
+      'Owned by Australian Payments Plus'
+    ]
+  },
+  'dot-95': {
+    title: 'Citigroup Global Markets',
+    subtitle: 'Citigroup Global Markets Australia Pty Limited',
+    description: 'Investment banking and securities services',
+    details: [
+      'Uses settlement agent for RITS access',
+      'Provides securities and trading services',
+      'Part of Citigroup Inc.'
+    ]
+  },
+
+  // CS - Clearing and Settlement (96-98)
+  'dot-96': {
+    title: 'ASX Clearing',
+    subtitle: 'ASX Clearing Corporation Limited',
+    description: 'Central counterparty for ASX markets',
+    details: [
+      'Provides clearing services for ASX-listed securities',
+      'Non-ADI ESA holder',
+      'Manages counterparty risk'
+    ]
+  },
+  'dot-97': {
+    title: 'ASX Settlement',
+    subtitle: 'ASX Settlement Pty Limited',
+    description: 'Securities settlement facility operator',
+    details: [
+      'Operates CHESS settlement system',
+      'Non-ADI ESA holder',
+      'Settles ASX equity market transactions'
+    ]
+  },
+  'dot-98': {
+    title: 'Austraclear',
+    subtitle: 'Austraclear Limited',
+    description: 'Debt securities settlement and depository',
+    details: [
+      'Settles wholesale debt and money market instruments',
+      'Non-ADI ESA holder',
+      'Operated by ASX',
+      'Holds over $2 trillion in securities'
     ]
   }
 };

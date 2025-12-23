@@ -236,11 +236,17 @@ function createLvssCircle(params, labelsGroup) {
 
   labelsGroup.appendChild(lvssGroup);
 
-  // Add LVSS label
+  // Make LVSS gear group interactive
+  if (typeof makeInteractive === 'function') {
+    makeInteractive(lvssGroup, 'lvss-gear');
+  }
+
+  // Add LVSS label (pointer-events none so hover passes through to gear)
   const lvssText = createStyledText(redCircleX, redCircleY, 'LVSS', {
     fill: '#ffffff',
     fontSize: '14'
   });
+  lvssText.setAttribute('pointer-events', 'none');
   labelsGroup.appendChild(lvssText);
 
   // Store LVSS position

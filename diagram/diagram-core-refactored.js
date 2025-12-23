@@ -186,6 +186,17 @@ function initializeDiagram() {
       makeInteractive(bigGroupElement, 'rits-circle');
     }
 
+    // Make FSS circle interactive
+    const smallGroupElement = document.getElementById('small-group');
+    if (smallGroupElement && typeof makeInteractive === 'function') {
+      makeInteractive(smallGroupElement, 'fss-circle');
+    }
+    // Make FSS label interactive
+    const smallLabelNode = document.getElementById('small-label');
+    if (smallLabelNode && typeof makeInteractive === 'function') {
+      makeInteractive(smallLabelNode, 'fss-circle');
+    }
+
     // Ensure orange connectors render above the RITS circle
     if (svg && orangeLinesGroup && bigGroupElement) {
       const nextSibling = bigGroupElement.nextSibling;
@@ -221,7 +232,7 @@ function initializeDiagram() {
 
     // Insert groups in correct order for layering
     // yellowCirclesGroup now contains both yellow lines and circles in interleaved order
-    const smallGroupElement = document.getElementById('small-group');
+    // smallGroupElement already declared above
     if (svg && bigGroupElement && smallGroupElement) {
       // Insert blueCirclesGroup before big-group (under RITS)
       svg.insertBefore(blueCirclesGroup, bigGroupElement);
@@ -390,7 +401,7 @@ function initializeDiagram() {
       }
     };
 
-    // Distribute circles in groups: 1, triple gap, 45, gap, 5, double gap, 34, gap, 3, gap, 4, double gap, 8
+    // Distribute circles in groups: 1, triple gap, 43, gap, 6, double gap, 34, gap, 2, gap, 6, double gap, 8
     // Use consistent spacing for all dots (based on larger dot spacing)
     const dotSpacing = 5.0; // Further increased spacing
     const gapSpacing = dotSpacing * 2; // Gaps are double the dot spacing
@@ -456,33 +467,29 @@ function initializeDiagram() {
       if (i === 0) {
         adjustedIndex = 0;
       }
-      // Group 2: 44 dots (indices 1-44) after triple gap
-      else if (i >= 1 && i < 45) {
+      // Group 2: 45 dots (indices 1-45) after triple gap - Foreign Branches
+      else if (i >= 1 && i < 46) {
         adjustedIndex = (i * dotSpacing) + (2 * gapSpacing); // Add scaled triple gap
       }
-      // Group 3: 5 dots (indices 45-49) after single gap - HSBC and ING should be here
-      else if (i >= 45 && i < 50) {
-        adjustedIndex = (i * dotSpacing) + (3 * gapSpacing); // Add 3 + 1 gaps
+      // Group 3: 6 dots (indices 46-51) after single gap - Foreign Subsidiaries (HSBC, ING, etc.)
+      else if (i >= 46 && i < 52) {
+        adjustedIndex = (i * dotSpacing) + (3.3 * gapSpacing); // Moved up 2 pixels
       }
-      // Group 4: 34 dots (indices 50-83) after double gap - shifted down by 1
-      else if (i >= 50 && i < 84) {
-        adjustedIndex = ((i + 1) * dotSpacing) + (6 * gapSpacing); // Add 3 + 1 + 2 gaps, shift by 1
+      // Group 4: 35 dots (indices 52-86) after double gap - Domestic Banks
+      else if (i >= 52 && i < 87) {
+        adjustedIndex = ((i - 1) * dotSpacing) + (6.3 * gapSpacing); // Adjusted to maintain spacing
       }
-      // Group 5a: 2 dots (indices 86, 88 - Specialised ADIs) positioned at arc positions 84-85
-      // Big circle (88=Wise) comes first (position 84), small circle (86=Tyro) comes second (position 85)
-      else if (i === 86 || i === 88) {
-        const positionInGroup = i === 88 ? 0 : 1; // Wise=0, Tyro=1
-        adjustedIndex = ((84 + positionInGroup + 1) * dotSpacing) + (8 * gapSpacing);
+      // Group 5a: 2 dots (indices 87-88 - Specialised ADIs) positioned at arc positions 87-88
+      // Wise (87) comes first, Tyro (88) comes second
+      else if (i === 87 || i === 88) {
+        const positionInGroup = i - 87; // Wise=0, Tyro=1
+        adjustedIndex = ((86 + positionInGroup + 1) * dotSpacing) + (8.3 * gapSpacing);
       }
-      // Group 5b: 6 dots (indices 84, 85, 87, 89-91 - Other ADIs) positioned at arc positions 86-91
-      // Order from top to bottom: Australian Settlements (84), CUSCAL (87), Indue (85), then 89-91
-      else if (i === 84 || i === 85 || i === 87 || (i >= 89 && i < 92)) {
-        let positionInGroup;
-        if (i === 84) positionInGroup = 0; // Australian Settlements - first (top)
-        else if (i === 87) positionInGroup = 1; // CUSCAL - second
-        else if (i === 85) positionInGroup = 2; // Indue - third
-        else positionInGroup = i - 89 + 3; // 89->3, 90->4, 91->5
-        adjustedIndex = (86 + positionInGroup) * dotSpacing + (10.5 * gapSpacing);
+      // Group 5b: 3 dots (indices 89-91 - Other ADIs) positioned at arc positions 89-91
+      // Australian Settlements (89), CUSCAL (90), Indue (91)
+      else if (i >= 89 && i < 92) {
+        const positionInGroup = i - 89; // 89->0, 90->1, 91->2
+        adjustedIndex = (89 + positionInGroup) * dotSpacing + (10.8 * gapSpacing);
       }
       // Group 6: 8 dots (indices 92-99) after increased gap with 1.5x spacing
       else {
@@ -491,7 +498,7 @@ function initializeDiagram() {
         const positionInGroup = i - groupStartIndex;
         // Use 1.5x spacing within this group
         // Increased gap before first red dot
-        let baseIndex = (groupStartIndex * dotSpacing) + (13.5 * gapSpacing) + (positionInGroup * dotSpacing * 1.5);
+        let baseIndex = (groupStartIndex * dotSpacing) + (13.8 * gapSpacing) + (positionInGroup * dotSpacing * 1.5);
 
         // Add increased gap after last red dot (before first green dot at index 96)
         if (i >= 96) {
@@ -521,8 +528,11 @@ function initializeDiagram() {
       const circleX = arcCenterX + arcRadiusX * Math.cos(angle);
       const circleY = arcCenterY + arcRadiusY * Math.sin(angle);
 
-      // Skip blue lines for specified dots (user counts from 1, code indexes from 0)
-      const skipBlueLines = (i >= 34 && i <= 44) || (i >= 68 && i <= 83) || i === 91 || i === 95;
+      // Skip blue lines for specified dots (Settlement Agent = TRUE means no direct line to RITS)
+      // Foreign Branches with settlement agents: 32-45
+      // Domestic banks with settlement agents: 64-86
+      // PSP with settlement agent: 95 (Citigroup)
+      const skipBlueLines = (i >= 32 && i <= 45) || (i >= 64 && i <= 86) || i === 95;
 
       // Create straight line from small blue dot to center of big blue circle
       // (will be configured after position calculations)
@@ -533,23 +543,23 @@ function initializeDiagram() {
 
       // Group 1 (index 0): keep orange
       if (i === 0) showOrange = true;
-      // Group 2 (indices 1-44): keep only first 2 orange
-      else if (i >= 1 && i < 45 && i < 3) showOrange = true;
-      // Group 3 (indices 45-49): keep 2 orange (HSBC and ING)
-      else if (i >= 45 && i < 50 && i < 47) showOrange = true;
-      // Group 4 (indices 50-83): keep first 6 orange
-      else if (i >= 50 && i < 84 && i < 56) showOrange = true;
-      // Group 5a (Specialised ADIs - dots 86, 88): only 88 has orange (Wise Australia)
-      else if (i === 88) showOrange = true;
-      // Group 5b (Other ADIs - dots 84, 85, 87, 89-91): dots 84, 85, 87 have orange
-      else if (i === 84 || i === 85 || i === 87) showOrange = true;
+      // Group 2 (indices 1-45): keep only first 2 orange - Foreign Branches
+      else if (i >= 1 && i < 46 && i < 3) showOrange = true;
+      // Group 3 (indices 46-51): keep first 2 orange (HSBC and ING) - Foreign Subsidiaries
+      else if (i >= 46 && i < 52 && i < 48) showOrange = true;
+      // Group 4 (indices 52-57): first 6 have orange (FSS=TRUE) - Domestic Banks
+      else if (i >= 52 && i <= 57) showOrange = true;
+      // Specialised ADIs (87-88): only 87 (Wise) has orange (FSS=TRUE)
+      else if (i === 87) showOrange = true;
+      // Other ADIs (89-91): all have orange (FSS=TRUE)
+      else if (i >= 89 && i <= 91) showOrange = true;
       // Group 6 (indices 92-99): keep none
 
       // Make paired dots twice as large
       let blueRadius = showOrange ? smallCircleRadius * 2 : smallCircleRadius;
 
-      // Make first 4 dots in group 4 (indices 50-53) 50% larger
-      if (i >= 50 && i < 54) {
+      // Make first 4 dots in group 4 (indices 52-55) 50% larger - Big Four banks
+      if (i >= 52 && i < 56) {
         blueRadius = blueRadius * 1.5;
       }
 
@@ -639,6 +649,8 @@ function initializeDiagram() {
             makeInteractive(line, 'dot-0');
           }
         } else {
+          // Give all blue lines data-interactive-id for hover highlighting
+          line.setAttribute('data-interactive-id', `blue-line-${i}`);
           // Append to blueLinesGroup so blue lines appear UNDER blue circles
           blueLinesGroup.appendChild(line);
         }
@@ -663,6 +675,10 @@ function initializeDiagram() {
           stroke: '#ffffff', // White border
           strokeWidth: '2' // Thicker white border for CLS dot
         });
+        // Make CLS circle interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(whiteCircle, 'cls-circle');
+        }
         circlesGroup.appendChild(whiteCircle);
 
         // Create outer green border circle
@@ -673,6 +689,10 @@ function initializeDiagram() {
           stroke: strokeColor, // Green border
           strokeWidth: borderWidth // Thick green border
         });
+        // Also make outer ring respond to hover
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(circle, 'cls-circle');
+        }
         circlesGroup.appendChild(circle);
       } else {
         // Normal circle for all other dots
@@ -694,44 +714,18 @@ function initializeDiagram() {
             makeInteractive(circle, 'dot-0');
           }
         } else {
-          // For Specialised ADIs and Other ADIs dots, control stacking order
-          // Loop order: 84, 85, 86, 87, 88, 89, 90, 91
-          // Desired z-order (bottom to top): Wise < Tyro < dot89 < Indue < CUSCAL < AusSett
-          if (i === 88) {
-            // Wise - insert at beginning (bottom of stack)
-            circlesGroup.insertBefore(circle, circlesGroup.firstChild);
-          } else if (i === 86) {
-            // Tyro - insert at beginning so it comes right after Wise (which is added later)
-            circlesGroup.insertBefore(circle, circlesGroup.firstChild);
-          } else if (i === 85) {
-            // Indue - insert BEFORE AusSett so Indue is under CUSCAL and AusSett
-            if (australianSettlementsCircle && australianSettlementsCircle.parentNode) {
-              circlesGroup.insertBefore(circle, australianSettlementsCircle);
-            } else {
-              circlesGroup.appendChild(circle);
+          // All dots - append normally so higher indices are on top of lower indices
+          circlesGroup.appendChild(circle);
+
+          // Make Foreign Branch dots (1-45) interactive
+          if (i >= 1 && i <= 45) {
+            const dotId = `dot-${i}`;
+            // Give visible circle the data-interactive-id so it glows when highlighted
+            circle.setAttribute('data-interactive-id', dotId);
+            // Store the hit area radius for distance-based detection
+            if (!window.foreignBranchHitRadius) {
+              window.foreignBranchHitRadius = blueRadius * 3;
             }
-            indueCircle = circle;
-          } else if (i === 87) {
-            // CUSCAL - insert BEFORE AusSett (which was already added) so CUSCAL is under AusSett but over Indue
-            if (australianSettlementsCircle && australianSettlementsCircle.parentNode) {
-              circlesGroup.insertBefore(circle, australianSettlementsCircle);
-            } else {
-              circlesGroup.appendChild(circle);
-            }
-          } else if (i === 84) {
-            // Australian Settlements - append and store reference
-            australianSettlementsCircle = circle;
-            circlesGroup.appendChild(circle);
-          } else if (i === 89) {
-            // Dot 89 - insert BEFORE Indue (which was already added) so 89 is under Indue
-            if (indueCircle && indueCircle.parentNode) {
-              circlesGroup.insertBefore(circle, indueCircle);
-            } else {
-              circlesGroup.appendChild(circle);
-            }
-          } else {
-            // All other dots - append normally
-            circlesGroup.appendChild(circle);
           }
         }
       }
@@ -743,6 +737,8 @@ function initializeDiagram() {
           fontSize: '16',
           fontWeight: 'bold'
         });
+        // Don't let text block hover on the CLS circle
+        text.style.pointerEvents = 'none';
         circlesGroup.appendChild(text);
 
         // REMOVED: Straight line coming from CLS dot
@@ -1078,13 +1074,8 @@ function initializeDiagram() {
           window.hvcsLineOffset = hvcsLineOffset;
         }
 
-        // Place connector in foreground lines group so it renders above thin branches
-        const foregroundGroupRef = document.getElementById('foreground-lines');
-        if (foregroundGroupRef) {
-          foregroundGroupRef.appendChild(hvcsLine);
-        } else {
-          svg.appendChild(hvcsLine);
-        }
+        // Insert at very beginning so line renders under all boxes
+        svg.insertBefore(hvcsLine, svg.firstChild);
 
         // Store the line for later update
         window.swiftHvcsElements.hvcsLine = hvcsLine;
@@ -1623,7 +1614,11 @@ function initializeDiagram() {
           rx: '8',
           ry: '8'
         });
+        cshdBox.setAttribute('id', 'cecs-box');
         labelsGroup.appendChild(cshdBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(cshdBox, 'cecs-box');
+        }
 
         // CECS label
         const cshdText = createStyledText(
@@ -1650,7 +1645,11 @@ function initializeDiagram() {
           rx: '8',
           ry: '8'
         });
+        cecsBox.setAttribute('id', 'gabs-box');
         labelsGroup.appendChild(cecsBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(cecsBox, 'gabs-box');
+        }
 
         // CECS label
         const cecsText = createStyledText(
@@ -1680,7 +1679,11 @@ function initializeDiagram() {
           rx: '8',
           ry: '8'
         });
+        becsBox.setAttribute('id', 'cshd-box');
         labelsGroup.appendChild(becsBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(becsBox, 'cshd-box');
+        }
 
         // Store BECS box data for connecting lines
         window.becsBoxData = {
@@ -1711,7 +1714,11 @@ function initializeDiagram() {
           rx: '8',
           ry: '8'
         });
+        apcsBox.setAttribute('id', 'becs-box');
         labelsGroup.appendChild(apcsBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(apcsBox, 'becs-box');
+        }
 
         // Store APCS box data (which has BECS label) for connecting lines
         window.apcsBoxData = {
@@ -1761,7 +1768,11 @@ function initializeDiagram() {
           rx: '8',
           ry: '8'
         });
+        gabsBox.setAttribute('id', 'apcs-box');
         labelsGroup.appendChild(gabsBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(gabsBox, 'apcs-box');
+        }
 
         // GABS label
         const gabsText = createStyledText(
@@ -3956,39 +3967,14 @@ function initializeDiagram() {
 
                   const verticalSpan = endY - horizontalYValue;
 
-                  let control1X;
-                  let control2X;
-                  if (geometry && Number.isFinite(geometry.control1X) && Number.isFinite(geometry.control2X) && Number.isFinite(geometry.curveStartX) && Number.isFinite(geometry.endX)) {
-                    // Shift control points to maintain the same curvature as the maroon line
-                    const baseCurveStart = geometry.curveStartX;
-                    const baseEndX = geometry.endX;
-                    const ctrl1Offset = geometry.control1X - baseCurveStart;
-                    const ctrl2Offset = geometry.control2X - baseCurveStart;
-                    const deltaEnd = endX - baseEndX;
-
-                    control1X = curveStartX + ctrl1Offset + deltaEnd;
-                    control2X = curveStartX + ctrl2Offset + deltaEnd;
-                  } else {
-                    control1X = curveStartX + Math.max(40, horizontalExtension * 0.6);
-                    control2X = endX - Math.max(28, horizontalExtension * 0.45);
-                  }
+                  // Use same curve pattern as bottom lines (HVCS, ASX, Sympli)
+                  // Control 1: 60px right of curve start, same Y as horizontal
+                  // Control 2: very close to end point (15px back), Y shifted 15% toward target
+                  const control1X = curveStartX + 60;
+                  const control2X = endX - 15;
 
                   const control1Y = horizontalYValue;
                   const control2Y = horizontalYValue + verticalSpan * 0.15;
-
-                  // Clamp controls to maintain smoothness
-                  if (control1X > endX - 10) {
-                    control1X = endX - 10;
-                  }
-                  if (control1X <= curveStartX + 12) {
-                    control1X = curveStartX + Math.max(16, horizontalExtension * 0.45 + 16);
-                  }
-                  if (control2X <= curveStartX + 18) {
-                    control2X = curveStartX + Math.max(26, horizontalExtension * 0.55 + 22);
-                  }
-                  if (control2X >= endX - 6) {
-                    control2X = endX - 6;
-                  }
 
                   pathString += ` C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
@@ -4048,8 +4034,8 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'eftpos-left-line'
               });
-              // Insert into admin lines group so lines go under all boxes
-              adminLinesGroup.appendChild(eftposUpturnPath);
+              // Insert at very beginning so line renders under all boxes
+              svg.insertBefore(eftposUpturnPath, svg.firstChild);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
                 stroke: 'rgb(255,120,120)', // Mastercard border color (less pink, more red)
@@ -4058,8 +4044,8 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'mastercard-left-line'
               });
-              // Insert into admin lines group so lines go under all boxes
-              adminLinesGroup.appendChild(mastercardUpturnPath);
+              // Insert at very beginning so line renders under all boxes
+              svg.insertBefore(mastercardUpturnPath, svg.firstChild);
 
               // Create horizontal branches for Eftpos and Mastercard
               const createHorizontalBranch = (segments, color, id) => {
@@ -4376,8 +4362,8 @@ function initializeDiagram() {
           line.setAttribute('stroke-width', '4');
           line.setAttribute('stroke-linecap', 'round');
           line.setAttribute('fill', 'none');
-          // Add to red lines group so line goes under all boxes
-          redLinesGroup.appendChild(line);
+          // Insert at very beginning so line renders under all boxes
+          svg.insertBefore(line, svg.firstChild);
           directEntryToAdiLines.push(line);
 
           // Single visible duplicate that will mirror the invisible original
@@ -4387,8 +4373,8 @@ function initializeDiagram() {
           duplicate.setAttribute('stroke-width', '4');
           duplicate.setAttribute('stroke-linecap', 'round');
           duplicate.setAttribute('fill', 'none');
-          // Add to red lines group so it goes under all boxes
-          redLinesGroup.appendChild(duplicate);
+          // Insert at very beginning so line renders under all boxes
+          svg.insertBefore(duplicate, svg.firstChild);
           maroonLineDuplicates.push(duplicate);
 
           window.maroonLineDuplicates = maroonLineDuplicates;
@@ -4401,8 +4387,8 @@ function initializeDiagram() {
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
           horizontalBranch.setAttribute('stroke-linecap', 'butt'); // Square cap so it stops exactly at edge
           horizontalBranch.setAttribute('fill', 'none');
-          // Add to red lines group to ensure it goes under all boxes
-          redLinesGroup.appendChild(horizontalBranch);
+          // Insert at very beginning so line renders under all boxes
+          svg.insertBefore(horizontalBranch, svg.firstChild);
           maroonHorizontalBranches.push(horizontalBranch);
           window.maroonHorizontalBranches = maroonHorizontalBranches;
 
@@ -5812,7 +5798,7 @@ function initializeDiagram() {
           const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
-          const pathStartY = asxLineStartY + 0.1; // Begin just below the box edge to avoid overlap
+          const pathStartY = asxLineStartY + 4; // Begin below the box edge so stroke (width 6) appears to come from under the box
           const asxPath = `M ${asxLineStartX} ${pathStartY} ` +
                         `L ${asxLineStartX} ${pathStartY + goDownDistance} ` + // Go straight down
                         `Q ${asxLineStartX} ${pathStartY + goDownDistance + cornerRadius}, ` +
@@ -5835,11 +5821,8 @@ function initializeDiagram() {
             strokeLinecap: 'butt',
             id: 'asx-to-hvcs-line'
           });
-          if (window.asxBoundingBoxElement) {
-            svg.insertBefore(asxToHvcsLineStyled, window.asxBoundingBoxElement);
-          } else {
-            svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
-          }
+          // Insert at very beginning so line renders under all boxes
+          svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -5852,7 +5835,8 @@ function initializeDiagram() {
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
-          const asxPath2 = `M ${asxLine2StartX} ${asxLine2StartY} ` +
+          const line2StartYOffset = 4; // Start below box edge so stroke appears to come from under the box
+          const asxPath2 = `M ${asxLine2StartX} ${asxLine2StartY + line2StartYOffset} ` +
                         `L ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine} ` + // Go straight down (extra to separate from first line)
                         `Q ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius}, ` +
                         `${asxLine2StartX + cornerRadius} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius} ` + // Curve right
@@ -5867,13 +5851,8 @@ function initializeDiagram() {
           });
           asxToAdiLineStyled.classList.add('thick-line-to-adi');
 
-          // Insert before ASX bounding box so box edge (including stroke) renders on top of line
-          if (window.asxBoundingBoxElement) {
-            svg.insertBefore(asxToAdiLineStyled, window.asxBoundingBoxElement);
-          } else {
-            // Fallback: insert at beginning
-            svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
-          }
+          // Insert at very beginning so line renders under all boxes
+          svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -6572,21 +6551,16 @@ function initializeDiagram() {
           opacity: '1',
           pointerEvents: 'none'
         });
-        // For RBA dot (i=0), insert before big-group so line renders over black circle but under FSS
-        if (i === 0) {
-          const bigGroup = document.getElementById('big-group');
-          if (bigGroup && bigGroup.parentNode) {
-            bigGroup.parentNode.insertBefore(orangeLine, bigGroup);
-          } else {
-            orangeLinesGroup.appendChild(orangeLine);
-          }
-          // Make RBA yellow line interactive (use RBA tooltip)
-          if (typeof makeInteractive === 'function') {
-            makeInteractive(orangeLine, 'dot-0');
-          }
-        } else {
-          // Store yellow line for later interleaved rendering
-          yellowLinesByDot[i] = orangeLine;
+        // Store yellow line for later interleaved rendering (including RBA at i=0)
+        yellowLinesByDot[i] = orangeLine;
+        // Make RBA yellow line interactive with its own ID (also responds to rba-system hover)
+        if (i === 0 && typeof makeInteractive === 'function') {
+          makeInteractive(orangeLine, 'rba-yellow-line');
+        }
+        // Give all yellow lines specific IDs for highlighting when their dot is hovered
+        // (RBA at i=0 uses 'rba-yellow-line' instead, set via makeInteractive above)
+        if (i !== 0) {
+          orangeLine.setAttribute('data-interactive-id', `yellow-line-${i}`);
         }
 
         const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
@@ -6594,28 +6568,23 @@ function initializeDiagram() {
           stroke: '#ffffff',
           strokeWidth: '1'
         });
-        // For RBA dot (i=0), insert before big-group so dot renders over line but under FSS
-        if (i === 0) {
-          const bigGroup = document.getElementById('big-group');
-          if (bigGroup && bigGroup.parentNode) {
-            bigGroup.parentNode.insertBefore(orangeCircle, bigGroup);
-          } else {
-            circlesGroup.appendChild(orangeCircle);
-          }
-          // Make RBA yellow dot interactive (use RBA tooltip)
-          if (typeof makeInteractive === 'function') {
-            makeInteractive(orangeCircle, 'dot-0');
-          }
-        } else {
-          // Store yellow circle for later interleaved rendering
-          yellowCirclesByDot[i] = orangeCircle;
+        // Store yellow circle for later interleaved rendering (including RBA at i=0)
+        yellowCirclesByDot[i] = orangeCircle;
+        // Make RBA yellow dot interactive with its own ID (also responds to rba-system hover)
+        if (i === 0 && typeof makeInteractive === 'function') {
+          makeInteractive(orangeCircle, 'rba-yellow-dot');
+        }
+        // Give all yellow dots specific IDs for highlighting when their blue dot is hovered
+        // (RBA at i=0 uses 'rba-yellow-dot' instead, set via makeInteractive above)
+        if (i !== 0) {
+          orangeCircle.setAttribute('data-interactive-id', `yellow-dot-${i}`);
         }
       }
 
       // Dot positions are now stored outside the if block
 
       // Get average Y position for middle dots to align labels properly
-      if (!window.middleY && i === 53) {
+      if (!window.middleY && i === 55) {
         window.middleY = actualCircleY;
       }
 
@@ -6623,24 +6592,24 @@ function initializeDiagram() {
       const dotLabels = {
         1: "Citibank, N.A.",
         2: "JPMorgan Chase Bank, National Association",
-        45: "HSBC Bank Australia Limited",  // Back to 45
-        46: "ING Bank (Australia) Limited",  // Back to 46
-        50: "Australia and New Zealand Banking Group Limited",  // Changed from 51
-        51: "Commonwealth Bank of Australia",  // Changed from 52
-        52: "National Australia Bank Limited",  // Changed from 53
-        53: "Westpac Banking Corporation",  // Changed from 54
-        54: "Macquarie Bank Limited",  // Changed from 55
-        55: "Bendigo and Adelaide Bank Limited",  // Changed from 56
-        84: "Australian Settlements Limited",  // Changed from 85
-        85: "Indue Ltd",  // Changed from 86
-        86: "Tyro Payments Limited",
-        87: "CUSCAL Limited",  // Changed from 88
-        88: "Wise Australia Pty Limited",  // Changed from 89
+        46: "HSBC Bank Australia Limited",  // Foreign Subsidiary
+        47: "ING Bank (Australia) Limited",  // Foreign Subsidiary
+        52: "Australia and New Zealand Banking Group Limited",  // Big Four
+        53: "Commonwealth Bank of Australia",  // Big Four
+        54: "National Australia Bank Limited",  // Big Four
+        55: "Westpac Banking Corporation",  // Big Four
+        56: "Macquarie Bank Limited",
+        57: "Bendigo and Adelaide Bank Limited",
+        87: "Wise Australia Pty Limited",  // Specialised ADI
+        88: "Tyro Payments Limited",  // Specialised ADI
+        89: "Australian Settlements Limited",  // Other ADI
+        90: "CUSCAL Limited",  // Other ADI
+        91: "Indue Ltd",  // Other ADI
         92: "Adyen Australia Pty Limited",
         93: "EFTEX Pty Limited",
         94: "First Data Network Australia Limited",
-        96: "ASX Settlement Pty Limited",
-        97: "ASX Clearing Corporation Limited",
+        96: "ASX Clearing Corporation Limited",
+        97: "ASX Settlement Pty Limited",
         98: "LCH Limited"
       };
 
@@ -6658,58 +6627,58 @@ function initializeDiagram() {
         } else if (i === 2) {
           // JPMorgan - lower slightly
           labelY = actualCircleY - 2;
-        } else if (i === 45) {
+        } else if (i === 46) {
           // HSBC - moved down slightly
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 1;  // Lowered by 2 more pixels (was -1, now +1)
-        } else if (i === 46) {
+          labelY = actualCircleY + 1;
+        } else if (i === 47) {
           // ING - slightly below its dot to maintain spacing
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 8;  // Lowered by 2 more pixels (was +6, now +8)
-        } else if (i === 50) {
+          labelY = actualCircleY + 8;
+        } else if (i === 52) {
           // ANZ - nudged up more
           labelX = actualCircleX + 25;
-          labelY = 360;  // Was 362, now 360
-        } else if (i === 51) {
+          labelY = 361;  // Moved down 1 pixel
+        } else if (i === 53) {
           // Commonwealth - nudged up more
           labelX = actualCircleX + 25;
-          labelY = 370;  // Was 372, now 370
-        } else if (i === 52) {
+          labelY = 371;  // Moved down 1 pixel
+        } else if (i === 54) {
           // NAB - nudged up more
           labelX = actualCircleX + 25;
-          labelY = 380;  // Was 382, now 380
-        } else if (i === 53) {
+          labelY = 381;  // Moved down 1 pixel
+        } else if (i === 55) {
           // Westpac - nudged up more
           labelX = actualCircleX + 25;
-          labelY = 390;  // Was 392, now 390
-        } else if (i === 54) {
+          labelY = 391;  // Moved down 1 pixel
+        } else if (i === 56) {
           // Macquarie - moved up slightly
           labelX = actualCircleX + 25;
-          labelY = 473;  // Was 475, now 473
-        } else if (i === 55) {
+          labelY = 473;
+        } else if (i === 57) {
           // Bendigo - moved up slightly
           labelX = actualCircleX + 25;
-          labelY = 483;  // Was 485, now 483
-        } else if (i === 88) {
-          // Wise Australia - next to its dot (first in Specialised ADIs, at top)
-          labelX = actualCircleX + 25;
-          labelY = actualCircleY - 4; // Lowered by 1 pixel from -5 to -4
-        } else if (i === 86) {
-          // Tyro Payments Limited - next to its dot (second in Specialised ADIs, below Wise)
-          labelX = actualCircleX + 25;
-          labelY = actualCircleY + 1; // Lowered by 3 pixels (was -2, now +1)
-        } else if (i === 84) {
-          // Australian Settlements - next to its dot (first in Other ADIs, at top)
-          labelX = actualCircleX + 25;
-          labelY = actualCircleY - 2; // Keep unchanged
+          labelY = 483;
         } else if (i === 87) {
-          // CUSCAL - next to its dot (second in Other ADIs, below Australian Settlements)
+          // Wise Australia - Specialised ADI
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 4; // Lowered by 1 more pixel (was +3, now +4)
-        } else if (i === 85) {
-          // Indue Ltd - next to its dot (third in Other ADIs, below CUSCAL)
+          labelY = actualCircleY - 4;
+        } else if (i === 88) {
+          // Tyro Payments Limited - Specialised ADI
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 9; // Lowered by 2 more pixels (was +7, now +9)
+          labelY = actualCircleY + 1;
+        } else if (i === 89) {
+          // Australian Settlements - Other ADI
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY - 2;
+        } else if (i === 90) {
+          // CUSCAL - Other ADI
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY + 4;
+        } else if (i === 91) {
+          // Indue Ltd - Other ADI
+          labelX = actualCircleX + 25;
+          labelY = actualCircleY + 9;
         } else if (i === 92) {
           // Adyen Australia - align with dot
           labelX = actualCircleX + 25;
@@ -6739,16 +6708,19 @@ function initializeDiagram() {
         // Add pointer line from edge of dot
         // Calculate edge position based on dot radius
         let dotRadius = showOrange ? smallCircleRadius * 2 : smallCircleRadius;
-        if (i >= 50 && i < 54) dotRadius = dotRadius * 1.5;
+        if (i >= 52 && i < 56) dotRadius = dotRadius * 1.5;
         if (i >= 96) dotRadius = smallCircleRadius * 2;
         if (i === 99) dotRadius = smallCircleRadius * 10.8; // Reduced by 10%
 
-        // For ANZ to Bendigo (indices 50-55), create kinked lines
+        // For Macquarie and Bendigo (indices 56-57), create kinked lines
+        // Big Four (52-55) now use straight lines
         // ASX/LCH labels (96-98) now use straight lines
         // Groups 2, 3, 5a, 5b now use straight lines
-        if (i >= 50 && i <= 55) {
+        if (i >= 52 && i <= 57) {
           labelX += 8; // Shift ANZ-Bendigo labels 8 pixels to the right
+        }
 
+        if (i >= 56 && i <= 57) {
           // Create path for kinked line: diagonal then horizontal
           const startX = actualCircleX + dotRadius;
           const startY = actualCircleY;
@@ -6794,11 +6766,15 @@ function initializeDiagram() {
       } // End of if (dotLabels[i])
     } // End of main for loop (let i = 0; i < numCircles; i++)
 
+    // Expose yellowLinesByDot globally so hover handlers can check for yellow companions
+    window.yellowLinesByDot = yellowLinesByDot;
+
     // Add yellow lines and circles in interleaved order
     // Order from bottom to top: each line goes under its own dot but over other dots
-    // All yellow dots: 1, 2, 45, 46, 50-55, 84, 85, 87, 88
-    // For Specialised/Other ADIs (84, 85, 87, 88), use specific bottom-to-top order: 88, 85, 87, 84
-    const yellowDotOrder = [1, 2, 45, 46, 50, 51, 52, 53, 54, 55, 88, 85, 87, 84];
+    // All yellow dots: 0 (RBA), 1, 2, 46, 47, 52-57 (Domestic Banks), 87 (Wise), 89-91 (Other ADIs)
+    // RBA (0) first so it renders at bottom of the group
+    // For Other ADIs (87, 89, 90, 91), use specific bottom-to-top order: 91, 90, 89, 87
+    const yellowDotOrder = [0, 1, 2, 46, 47, 52, 53, 54, 55, 56, 57, 91, 90, 89, 87];
     yellowDotOrder.forEach(dotIndex => {
       if (yellowLinesByDot[dotIndex]) {
         yellowCirclesGroup.appendChild(yellowLinesByDot[dotIndex]);
@@ -6842,8 +6818,8 @@ function initializeDiagram() {
     console.log('CLS fallback AUD line endpoints set from dot data:', window.clsEndpoints);
   }
 
-  // Add BDF square for dots 50-53
-  if (window.dotPositions && window.dotPositions[50] && window.dotPositions[53]) {
+  // Add BDF square for dots 52-55 (Big Four banks)
+  if (window.dotPositions && window.dotPositions[52] && window.dotPositions[55]) {
       const squareSize = 60; // 50% larger (was 40)
       // Calculate position for BDF square (moved further right)
       // Add RBA red border now that all positions are set
@@ -6851,8 +6827,8 @@ function initializeDiagram() {
         window.addRbaRedBorder();
       }
 
-      const bdfX = window.dotPositions[50].x + 60 + squareSize/2; // Moved further right
-      const bdfY = (window.dotPositions[50].y + window.dotPositions[53].y) / 2 + 60; // Shifted down by 60px (was 55)
+      const bdfX = window.dotPositions[52].x + 60 + squareSize/2; // Moved further right
+      const bdfY = (window.dotPositions[52].y + window.dotPositions[55].y) / 2 + 60; // Shifted down by 60px (was 55)
 
       // Create square with lighter red fill and dark red border
       const bdfSquare = createStyledRect(bdfX - squareSize/2, bdfY - squareSize/2, squareSize, squareSize, {
@@ -6960,12 +6936,12 @@ function initializeDiagram() {
         }
       }
 
-      // Add kinked lines from dots 50-53 to the square
+      // Add kinked lines from dots 52-55 (Big Four banks) to the square
       const boxLeftX = bdfX - squareSize/2;
       const boxTopY = bdfY - squareSize/2;
       const boxBottomY = bdfY + squareSize/2;
 
-      for (let j = 50; j <= 53; j++) {
+      for (let j = 52; j <= 55; j++) {
         if (window.dotPositions[j]) {
           // Get dot radius for this dot
           const dotRadius = smallCircleRadius * 2 * 1.5; // These are all large dots
@@ -6973,7 +6949,7 @@ function initializeDiagram() {
           // Calculate connection point on box's left edge
           // Connect at 0.2, 0.4, 0.6, and 0.8 of the box height
           const connectionPoints = [0.2, 0.4, 0.6, 0.8];
-          const boxConnectY = boxTopY + connectionPoints[j - 50] * (boxBottomY - boxTopY);
+          const boxConnectY = boxTopY + connectionPoints[j - 52] * (boxBottomY - boxTopY);
 
           // Create kinked path: diagonal then horizontal
           const startX = window.dotPositions[j].x + dotRadius;
@@ -7047,7 +7023,7 @@ function initializeDiagram() {
           labelsGroup.appendChild(path);
         });
       }
-  } // End of if (window.dotPositions && window.dotPositions[50] && window.dotPositions[53])
+  } // End of if (window.dotPositions && window.dotPositions[52] && window.dotPositions[55])
 
 
   // Draw refreshed double lines from admin boxes into RITS once positions are ready
@@ -7743,6 +7719,16 @@ function initializeDiagram() {
                     const lineGap = 3; // Gap between the two lines
           const greyColor = '#C0C0C0'; // Silver color
 
+          // Map internal labels to visual box names for IDs
+          const labelToVisualName = {
+            'GABS_BOX': 'gabs',
+            'CSHD': 'cecs',
+            'BECS': 'cshd',
+            'BECS_BOX': 'becs',
+            'APCS_BOX': 'apcs'
+          };
+          const visualName = labelToVisualName[source.label] || source.label.toLowerCase();
+
           for (let lineOffset of [-lineGap/2, lineGap/2]) {
             const angle = Math.atan2(dy1, dx1);
             const offsetX = -Math.sin(angle) * lineOffset;
@@ -7759,6 +7745,7 @@ function initializeDiagram() {
               fill: 'none',
               strokeLinecap: 'round'
             });
+            parallelPath.setAttribute('data-interactive-id', `lvss-line-${visualName}`);
             svg.insertBefore(parallelPath, svg.firstChild);
           }
         });
@@ -7871,11 +7858,11 @@ function initializeDiagram() {
       }
 
 
-      // Add third rectangle for groups 2 and 3 (dots 1-49)
+      // Add third rectangle for groups 2 and 3 (dots 1-51) - International Banks
       let minX3 = null, minY3 = null, maxX3 = null, maxY3 = null;
 
-      // Find boundaries for dots 1-49
-      for (let i = 1; i <= 49; i++) {
+      // Find boundaries for dots 1-51
+      for (let i = 1; i <= 51; i++) {
         if (window.dotPositions[i]) {
           if (minX3 === null || window.dotPositions[i].x < minX3) minX3 = window.dotPositions[i].x;
           if (maxX3 === null || window.dotPositions[i].x > maxX3) maxX3 = window.dotPositions[i].x;
@@ -7888,7 +7875,7 @@ function initializeDiagram() {
         // Use smaller padding for the yellow rectangle
         const yellowLeftPadding = 10;
         const yellowTopPadding = 24;
-        const yellowBottomPadding = 21;
+        const yellowBottomPadding = 12;  // Reduced by 1 pixel
         const yellowRightPadding = 210;
 
         const yellowRect = createStyledRect(
@@ -7899,7 +7886,7 @@ function initializeDiagram() {
           {
             fill: '#415366', // Slightly lighter blue-grey
             stroke: '#dde6ff', // Light blue (swapped with fill)
-            strokeWidth: '0.5', // Very thin border
+            strokeWidth: '0.75', // Match Specialised/Other ADIs border
             rx: '6' // Smaller rounded corners
           }
         );
@@ -7946,11 +7933,11 @@ function initializeDiagram() {
         labelsGroup.appendChild(banksText);
       }
 
-      // Add fourth rectangle for group 4 (dots 50-83)
+      // Add fourth rectangle for group 4 (dots 52-83) - Domestic Banks
       let minX4 = null, minY4 = null, maxX4 = null, maxY4 = null;
 
-      // Find boundaries for dots 50-83
-      for (let i = 50; i <= 83; i++) {
+      // Find boundaries for dots 52-83
+      for (let i = 52; i <= 83; i++) {
         if (window.dotPositions[i]) {
           if (minX4 === null || window.dotPositions[i].x < minX4) minX4 = window.dotPositions[i].x;
           if (maxX4 === null || window.dotPositions[i].x > maxX4) maxX4 = window.dotPositions[i].x;
@@ -7962,7 +7949,7 @@ function initializeDiagram() {
       if (minX4 !== null && maxX4 !== null) {
         // Use even smaller padding for the green rectangle
         const greenLeftPadding = 100;
-        const greenTopPadding = 11; // Increased by 1 pixel
+        const greenTopPadding = 10; // Increased by 1 pixel to move top up
         const greenBottomPadding = 3; // Decreased by 1 pixel
         const greenRightPadding = 280;
 
@@ -7974,12 +7961,20 @@ function initializeDiagram() {
           {
             fill: '#8B4DB8', // Even lighter purple
             stroke: '#e4d4f4', // Light Excel purple (swapped with fill)
-            strokeWidth: '0.5', // Very thin border
+            strokeWidth: '0.75', // Match Specialised/Other ADIs border
             rx: '5' // Smaller rounded corners
           }
         );
         greenRect.setAttribute('fill-opacity', '0.2'); // Reduced opacity
         greenRect.id = 'domestic-banks-box';
+
+        // Store Domestic Banks box data for line connections
+        window.domesticBanksBoxData = {
+          x: minX4 - greenLeftPadding - dotRadius,
+          y: minY4 - greenTopPadding - dotRadius,
+          width: (maxX4 - minX4) + greenLeftPadding + greenRightPadding + dotRadius * 2,
+          height: (maxY4 - minY4) + greenTopPadding + greenBottomPadding + dotRadius * 2
+        };
 
         // Insert after the yellow rectangle so it appears on top
         svg.insertBefore(greenRect, blueLinesGroup);
@@ -8010,13 +8005,98 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(domesticBanksText, 'domestic-banks-box');
         }
+
+        // Create distance-based hover overlay for Domestic Banks dots (52-86)
+        const hitRadius4 = 15;
+        const overlayPadding4 = hitRadius4 + 5;
+        const domesticBanksOverlay = createStyledRect(
+          minX4 - overlayPadding4 - dotRadius,
+          minY4 - overlayPadding4 - dotRadius,
+          (maxX4 - minX4) + overlayPadding4 * 2 + dotRadius * 2,
+          (maxY4 - minY4) + overlayPadding4 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        domesticBanksOverlay.style.pointerEvents = 'all';
+        domesticBanksOverlay.style.cursor = 'default';
+        domesticBanksOverlay.id = 'domestic-banks-hover-overlay';
+
+        let currentHighlightedDot4 = null;
+
+        domesticBanksOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i = 52; i <= 86; i++) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius4) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot4) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot4 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              domesticBanksOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
+                relatedElements.add(`yellow-line-${closestDot}`);
+                relatedElements.add(`yellow-dot-${closestDot}`);
+              }
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              domesticBanksOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        domesticBanksOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot4 = null;
+          domesticBanksOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(domesticBanksOverlay);
       }
 
-      // Add fifth rectangle for Group 2 (dots 1-44)
+      // Add fifth rectangle for Group 2 (dots 1-45)
       let minX5 = null, minY5 = null, maxX5 = null, maxY5 = null;
 
-      // Find boundaries for dots 1-44
-      for (let i = 1; i <= 44; i++) {
+      // Find boundaries for dots 1-45 (Foreign Branches)
+      for (let i = 1; i <= 45; i++) {
         if (window.dotPositions[i]) {
           if (minX5 === null || window.dotPositions[i].x < minX5) minX5 = window.dotPositions[i].x;
           if (maxX5 === null || window.dotPositions[i].x > maxX5) maxX5 = window.dotPositions[i].x;
@@ -8029,7 +8109,7 @@ function initializeDiagram() {
         // Use tight padding for Group 2 rectangle
         const group2LeftPadding = 6;
         const group2TopPadding = 19;
-        const group2BottomPadding = 1;
+        const group2BottomPadding = 3;  // Increased by 2 pixels
         const group2RightPadding = 110;
 
         const group2Rect = createStyledRect(
@@ -8077,13 +8157,119 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(foreignBranchesText, 'foreign-branches-box');
         }
+
+        // Create distance-based hover overlay for Foreign Branch dots (1-45)
+        // This ensures the closest dot is highlighted when hit areas overlap
+        const hitRadius = window.foreignBranchHitRadius || 10;
+        const overlayPadding = hitRadius + 5;
+        const foreignBranchOverlay = createStyledRect(
+          minX5 - overlayPadding - dotRadius,
+          minY5 - overlayPadding - dotRadius,
+          (maxX5 - minX5) + overlayPadding * 2 + dotRadius * 2,
+          (maxY5 - minY5) + overlayPadding * 2 + dotRadius * 2,
+          {
+            fill: 'transparent',
+            stroke: 'none'
+          }
+        );
+        foreignBranchOverlay.style.pointerEvents = 'all';
+        foreignBranchOverlay.style.cursor = 'default';
+        foreignBranchOverlay.id = 'foreign-branch-hover-overlay';
+
+        // Track currently highlighted dot to avoid redundant updates
+        let currentHighlightedDot = null;
+
+        foreignBranchOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+
+          // Get mouse position in SVG coordinates
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          // Find closest Foreign Branch dot (indices 1-45)
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i = 1; i <= 45; i++) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < closestDistance && distance <= hitRadius) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          // Update highlighting if closest dot changed
+          if (closestDot !== currentHighlightedDot) {
+            // Clear previous highlights
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+
+            currentHighlightedDot = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              foreignBranchOverlay.style.cursor = 'pointer';
+
+              // Show tooltip
+              if (window.showTooltip) window.showTooltip(dotId, event);
+
+              // Highlight dot and related elements
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+
+              // Check if this dot has a yellow line/dot (FSS members)
+              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
+                relatedElements.add(`yellow-line-${closestDot}`);
+                relatedElements.add(`yellow-dot-${closestDot}`);
+              }
+
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              foreignBranchOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            // Update tooltip position for currently highlighted dot
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        foreignBranchOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot = null;
+          foreignBranchOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        // Add overlay on top of everything in the Foreign Branch region
+        labelsGroup.appendChild(foreignBranchOverlay);
       }
 
-      // Add sixth rectangle for Group 3 (dots 45-49)
+      // Add sixth rectangle for Group 3 (dots 46-51)
       let minX6 = null, minY6 = null, maxX6 = null, maxY6 = null;
 
-      // Find boundaries for dots 45-49
-      for (let i = 45; i <= 49; i++) {
+      // Find boundaries for dots 46-51 (Foreign Subsidiaries)
+      for (let i = 46; i <= 51; i++) {
         if (window.dotPositions[i]) {
           if (minX6 === null || window.dotPositions[i].x < minX6) minX6 = window.dotPositions[i].x;
           if (maxX6 === null || window.dotPositions[i].x > maxX6) maxX6 = window.dotPositions[i].x;
@@ -8095,8 +8281,8 @@ function initializeDiagram() {
       if (minX6 !== null && maxX6 !== null) {
         // Use tight padding for Group 3 rectangle
         const group3LeftPadding = 10;
-        const group3TopPadding = 5;
-        const group3BottomPadding = 18;
+        const group3TopPadding = 6;  // Increased by 1 pixel
+        const group3BottomPadding = 9;  // Reduced by 9 pixels total
         const group3RightPadding = 205;
 
         const group3Rect = createStyledRect(
@@ -8131,7 +8317,7 @@ function initializeDiagram() {
         // Position in bottom right corner with padding
         const foreignSubsText = createStyledText(
           group3RectX + group3RectWidth - 10,
-          group3RectY + group3RectHeight - 6,
+          group3RectY + group3RectHeight - 8,  // Moved up 2 pixels
           'Foreign Subsidiaries',
           {
             textAnchor: 'end',
@@ -8144,13 +8330,98 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(foreignSubsText, 'foreign-subsidiaries-box');
         }
+
+        // Create distance-based hover overlay for Foreign Subsidiaries dots (46-51)
+        const hitRadius6 = 15;
+        const overlayPadding6 = hitRadius6 + 5;
+        const foreignSubsOverlay = createStyledRect(
+          minX6 - overlayPadding6 - dotRadius,
+          minY6 - overlayPadding6 - dotRadius,
+          (maxX6 - minX6) + overlayPadding6 * 2 + dotRadius * 2,
+          (maxY6 - minY6) + overlayPadding6 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        foreignSubsOverlay.style.pointerEvents = 'all';
+        foreignSubsOverlay.style.cursor = 'default';
+        foreignSubsOverlay.id = 'foreign-subs-hover-overlay';
+
+        let currentHighlightedDot6 = null;
+
+        foreignSubsOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i = 46; i <= 51; i++) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius6) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot6) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot6 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              foreignSubsOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
+                relatedElements.add(`yellow-line-${closestDot}`);
+                relatedElements.add(`yellow-dot-${closestDot}`);
+              }
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              foreignSubsOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        foreignSubsOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot6 = null;
+          foreignSubsOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(foreignSubsOverlay);
       }
 
-      // Add seventh rectangle for Group 5a - Specialised ADIs (dots 86, 88)
+      // Add seventh rectangle for Group 5a - Specialised ADIs (dots 87, 88)
       let minX7 = null, minY7 = null, maxX7 = null, maxY7 = null;
 
-      // Find boundaries for dots 86 and 88
-      for (let i of [86, 88]) {
+      // Find boundaries for dots 87 and 88 (Wise and Tyro)
+      for (let i of [87, 88]) {
         if (window.dotPositions[i]) {
           if (minX7 === null || window.dotPositions[i].x < minX7) minX7 = window.dotPositions[i].x;
           if (maxX7 === null || window.dotPositions[i].x > maxX7) maxX7 = window.dotPositions[i].x;
@@ -8211,13 +8482,98 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(specialisedADIsText, 'specialised-adis-box');
         }
+
+        // Create distance-based hover overlay for Specialised ADIs dots (87-88)
+        const hitRadius7 = 15;
+        const overlayPadding7 = hitRadius7 + 5;
+        const specialisedADIsOverlay = createStyledRect(
+          minX7 - overlayPadding7 - dotRadius,
+          minY7 - overlayPadding7 - dotRadius,
+          (maxX7 - minX7) + overlayPadding7 * 2 + dotRadius * 2,
+          (maxY7 - minY7) + overlayPadding7 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        specialisedADIsOverlay.style.pointerEvents = 'all';
+        specialisedADIsOverlay.style.cursor = 'default';
+        specialisedADIsOverlay.id = 'specialised-adis-hover-overlay';
+
+        let currentHighlightedDot7 = null;
+
+        specialisedADIsOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i of [87, 88]) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius7) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot7) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot7 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              specialisedADIsOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
+                relatedElements.add(`yellow-line-${closestDot}`);
+                relatedElements.add(`yellow-dot-${closestDot}`);
+              }
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              specialisedADIsOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        specialisedADIsOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot7 = null;
+          specialisedADIsOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(specialisedADIsOverlay);
       }
 
-      // Add eighth rectangle for Group 5b - Other ADIs (dots 84, 85, 87, 89-91)
+      // Add eighth rectangle for Group 5b - Other ADIs (dots 89-91)
       let minX8 = null, minY8 = null, maxX8 = null, maxY8 = null;
 
-      // Find boundaries for dots 84, 85, 87, 89-91
-      for (let i of [84, 85, 87, 89, 90, 91]) {
+      // Find boundaries for dots 89-91 (Australian Settlements, CUSCAL, Indue)
+      for (let i of [89, 90, 91]) {
         if (window.dotPositions[i]) {
           if (minX8 === null || window.dotPositions[i].x < minX8) minX8 = window.dotPositions[i].x;
           if (maxX8 === null || window.dotPositions[i].x > maxX8) maxX8 = window.dotPositions[i].x;
@@ -8277,6 +8633,91 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(otherADIsText, 'other-adis-box');
         }
+
+        // Create distance-based hover overlay for Other ADIs dots (89-91)
+        const hitRadius8 = 15;
+        const overlayPadding8 = hitRadius8 + 5;
+        const otherADIsOverlay = createStyledRect(
+          minX8 - overlayPadding8 - dotRadius,
+          minY8 - overlayPadding8 - dotRadius,
+          (maxX8 - minX8) + overlayPadding8 * 2 + dotRadius * 2,
+          (maxY8 - minY8) + overlayPadding8 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        otherADIsOverlay.style.pointerEvents = 'all';
+        otherADIsOverlay.style.cursor = 'default';
+        otherADIsOverlay.id = 'other-adis-hover-overlay';
+
+        let currentHighlightedDot8 = null;
+
+        otherADIsOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i of [89, 90, 91]) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius8) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot8) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot8 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              otherADIsOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
+                relatedElements.add(`yellow-line-${closestDot}`);
+                relatedElements.add(`yellow-dot-${closestDot}`);
+              }
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              otherADIsOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        otherADIsOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot8 = null;
+          otherADIsOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(otherADIsOverlay);
       }
 
       // Add ninth rectangle for entire Group 6 (dots 92-99)
@@ -8368,8 +8809,16 @@ function initializeDiagram() {
             const blueEndX = greenEndX + 20; // Where blue line ends
             const orangeEndX = blueEndX + 20; // 20px to the right of blue line
 
-            // Bottom of ADIs box
-            const endY = window.adiBoxData.y + window.adiBoxData.height;
+            // Bottom of ADIs box from actual element
+            const adiBoxElement = document.getElementById('adi-box');
+            let endY;
+            if (adiBoxElement) {
+              const adiY = parseFloat(adiBoxElement.getAttribute('y'));
+              const adiHeight = parseFloat(adiBoxElement.getAttribute('height'));
+              endY = adiY + adiHeight;
+            } else {
+              endY = window.adiBoxData.y + window.adiBoxData.height;
+            }
             const actualVerticalDistance = downToY - endY;
 
             const bottomCornerRadius = 100; // Back to 100 for very rounded corner
@@ -8381,17 +8830,22 @@ function initializeDiagram() {
               `Q ${startX - 5 - cornerRadius} ${downToY}, ${startX - 5 - cornerRadius + bottomCornerRadius} ${downToY} ` + // Larger curve right
               `L ${curveStartX} ${downToY} ` + // Go right under the blue lines to where curve starts
               `C ${curveStartX + 60} ${downToY}, ` + // Same curve as blue line
-              `${extendPastNonAdi} ${downToY - actualVerticalDistance * 0.15}, ` + // Gradual rise like blue line
+              `${orangeEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
               `${orangeEndX} ${endY}`; // Curve up to ADIs box
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
               stroke: 'rgb(239,136,51)', // Sympli original color
               strokeWidth: '3',
               fill: 'none',
+              strokeLinecap: 'butt', // Square cap so it stops exactly at edge
               id: 'sympli-to-adis-line'
             });
 
-            labelsGroup.insertBefore(sympliToAdiLineStyled, labelsGroup.firstChild);
+            // Insert BEFORE adi-box so line renders UNDER the box edge
+            const adiBoxForInsert = document.getElementById('adi-box');
+            if (adiBoxForInsert) {
+              adiBoxForInsert.parentNode.insertBefore(sympliToAdiLineStyled, adiBoxForInsert);
+            }
           }
 
           if (window.pexaConveyBoxData && window.adiBoxData && window.asxLineData) {
@@ -8415,7 +8869,16 @@ function initializeDiagram() {
             const blueEndX = greenEndX + 20;
             const orangeEndX = blueEndX + 20;
             const pinkEndX = orangeEndX + 5; // 5 pixels to the right of orange line
-            const endY = window.adiBoxData.y + window.adiBoxData.height;
+            // Bottom of ADIs box from actual element
+            const adiBoxElement = document.getElementById('adi-box');
+            let endY;
+            if (adiBoxElement) {
+              const adiY = parseFloat(adiBoxElement.getAttribute('y'));
+              const adiHeight = parseFloat(adiBoxElement.getAttribute('height'));
+              endY = adiY + adiHeight;
+            } else {
+              endY = window.adiBoxData.y + window.adiBoxData.height;
+            }
             if (!Number.isFinite(downToY) || downToY <= endY + 1) {
               downToY = baseDownToY;
             }
@@ -8434,17 +8897,22 @@ function initializeDiagram() {
               `Q ${controlX} ${downToY}, ${controlX + bottomCornerRadius} ${downToY} ` +
               `L ${curveStartX} ${downToY} ` +
               `C ${curveStartX + 60} ${downToY}, ` +
-                `${extendPastNonAdi} ${downToY - actualVerticalDistance * 0.15}, ` +
+                `${pinkEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
                 `${pinkEndX} ${endY}`;
 
             const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
               stroke: 'rgb(179,46,161)',
               strokeWidth: '3',
               fill: 'none',
+              strokeLinecap: 'butt', // Square cap so it stops exactly at edge
               id: 'pexa-to-adis-line'
             });
 
-            labelsGroup.insertBefore(pexaToAdiLineStyled, labelsGroup.firstChild);
+            // Insert BEFORE adi-box so line renders UNDER the box edge
+            const adiBoxForInsert = document.getElementById('adi-box');
+            if (adiBoxForInsert) {
+              adiBoxForInsert.parentNode.insertBefore(pexaToAdiLineStyled, adiBoxForInsert);
+            }
 
             // Draw white divider line with same width as PEXA e-conveyancing box
             if (window.whiteDotData && window.pexaConveyBoxData) {
@@ -8489,11 +8957,24 @@ function initializeDiagram() {
               gradient.appendChild(stop3);
               defs.appendChild(gradient);
 
-              const whiteLine = createStyledLine(lineStartX, lineY, lineEndX, lineY, {
+              // Draw line from right to left for animation (swap x1/x2)
+              const whiteLine = createStyledLine(lineEndX, lineY, lineStartX, lineY, {
                 stroke: 'url(#white-fade-gradient)',
                 strokeWidth: '0.75'
               });
+
+              // Calculate line length for stroke-dash animation
+              const lineLength = lineEndX - lineStartX;
+              whiteLine.setAttribute('stroke-dasharray', lineLength);
+              whiteLine.setAttribute('stroke-dashoffset', lineLength); // Start hidden
+              whiteLine.style.transition = 'stroke-dashoffset 0.8s ease-out';
+
               labelsGroup.appendChild(whiteLine);
+
+              // Store reference for animation
+              if (!window.dividerElements) window.dividerElements = {};
+              window.dividerElements.whiteLine = whiteLine;
+              window.dividerElements.whiteLineLength = lineLength;
 
               // Centre labels around the centre of the original line (before fade extension)
               const lineCenterX = (lineStartX + originalLineEndX) / 2;
@@ -8643,21 +9124,26 @@ function initializeDiagram() {
             const nonAdiRightEdge = rectX + rectWidth;
             const extendPastNonAdi = nonAdiRightEdge + 60; // Extend 60px past non-ADIs (further right)
 
-            // Get ADI box bottom position
-            const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
+            // Get ADI box bottom position from actual element
+            const adiBoxElement = document.getElementById('adi-box');
+            let adiBottom;
+            if (adiBoxElement) {
+              const adiY = parseFloat(adiBoxElement.getAttribute('y'));
+              const adiHeight = parseFloat(adiBoxElement.getAttribute('height'));
+              adiBottom = adiY + adiHeight;
+            } else {
+              adiBottom = window.adiBoxData.y + window.adiBoxData.height;
+            }
 
             // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
-            // Adjust end point to account for stroke width using helper
-            const strokeWidth = 6; // Updated stroke width
-            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', strokeWidth);
-            const adjustedAdiBottom = adiEdge.y;
+            const strokeWidth = 6;
 
             // Calculate where to start the gradual curve
             // We need to stay below ESAs and non-ADIs boxes
             const esasRightEdgeApprox = window.hvcsLineData.startX + 200; // Stay well clear of ESAs
             const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80); // Start closer to non-ADIs right edge for more clearance
 
-            const verticalDistance = window.hvcsLineData.startY - adjustedAdiBottom;
+            const verticalDistance = window.hvcsLineData.startY - adiBottom;
 
             // Create path with very gradual curve that gets steeper
             // Use two cubic bezier curves for more control
@@ -8676,22 +9162,18 @@ function initializeDiagram() {
                         `L ${curveStartX} ${window.hvcsLineData.startY} ` +
                         `C ${curveStartX + 60} ${window.hvcsLineData.startY}, ` +
                         `${extendPastNonAdi} ${window.hvcsLineData.startY - verticalDistance * 0.15}, ` +
-                        `${hvcsEndX} ${adjustedAdiBottom}`;
+                        `${hvcsEndX} ${adiBottom}`;
 
             hvcsHorizontalLine.setAttribute('d', path);
-
-            const foregroundGroupRef = document.getElementById('foreground-lines');
-            if (foregroundGroupRef) {
-              foregroundGroupRef.appendChild(hvcsHorizontalLine);
-            }
+            // Line stays in original position (before ASX box) - don't move it
 
           if (!window.clsEndpoints) {
             window.clsEndpoints = {};
           }
           window.clsEndpoints.audLineEndX = hvcsEndX;
-          window.clsEndpoints.audLineEndY = adjustedAdiBottom;
+          window.clsEndpoints.audLineEndY = adiBottom;
           window.clsEndpoints.audLineExitX = hvcsEndX;
-          window.clsEndpoints.audLineExitY = adjustedAdiBottom;
+          window.clsEndpoints.audLineExitY = adiBottom;
 
           updateNppToAdiLine();
         }
@@ -8700,7 +9182,16 @@ function initializeDiagram() {
         if (window.asxLine2Data && window.adiBoxData) {
           const asxLine2Extension = document.getElementById('asx-to-adi-line');
           if (asxLine2Extension) {
-            const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
+            // Get ADI box bottom position from actual element
+            const adiBoxElement = document.getElementById('adi-box');
+            let adiBottom;
+            if (adiBoxElement) {
+              const adiY = parseFloat(adiBoxElement.getAttribute('y'));
+              const adiHeight = parseFloat(adiBoxElement.getAttribute('height'));
+              adiBottom = adiY + adiHeight;
+            } else {
+              adiBottom = window.adiBoxData.y + window.adiBoxData.height;
+            }
             const adiRightEdge = window.adiBoxData.x + window.adiBoxData.width;
             const nonAdiRightEdge = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
 
@@ -8710,10 +9201,7 @@ function initializeDiagram() {
             const extendPastNonAdi = nonAdiRightEdge + 60;
 
             // Calculate actual vertical distance for this line
-            const asxStrokeWidth = parseFloat(asxLine2Extension.getAttribute('stroke-width')) || 4;
-            const adiEdge = getBoxEdgePoint(window.adiBoxData, 'bottom', asxStrokeWidth);
-            const curveEndY = adiEdge.y;
-            const actualVerticalDistance = window.asxLine2Data.horizontalY - curveEndY;
+            const actualVerticalDistance = window.asxLine2Data.horizontalY - adiBottom;
 
             // Position endpoint closer to green line endpoint
             const greenEndX = extendPastNonAdi + 15; // Where green line ends
@@ -8728,14 +9216,10 @@ function initializeDiagram() {
                       `L ${curveStartX} ${window.asxLine2Data.horizontalY} ` +
                       `C ${curveStartX + 60} ${window.asxLine2Data.horizontalY}, ` +
                       `${extendPastNonAdi} ${window.asxLine2Data.horizontalY - actualVerticalDistance * 0.15}, ` +
-                      `${targetX} ${curveEndY}`;
+                      `${targetX} ${adiBottom}`;
 
             asxLine2Extension.setAttribute('d', extensionPath);
-
-            const foregroundGroupRef = document.getElementById('foreground-lines');
-            if (foregroundGroupRef) {
-              foregroundGroupRef.appendChild(asxLine2Extension);
-            }
+            // Line stays in original position (before ASX box) - don't move it
           }
         }
 
@@ -8776,7 +9260,7 @@ function initializeDiagram() {
             // Shift entire curve left to shorten horizontal section
             const shiftLeftAmount = 160; // Shift everything left by 160px (was 200, moved back 40)
             const curveStartX = (nonAdiRightEdge - 80) - shiftLeftAmount;
-            const verticalDistance = window.asxLineData.horizontalY - (nonAdiBottom + 2);
+            const verticalDistance = window.asxLineData.horizontalY - nonAdiBottom;
 
             // Get current path and extend it
             const currentPath = asxExtension.getAttribute('d');
@@ -8787,7 +9271,7 @@ function initializeDiagram() {
                       `L ${curveStartX} ${window.asxLineData.horizontalY} ` +
                       `C ${curveStartX + 60} ${window.asxLineData.horizontalY}, ` +
                       `${extendPastNonAdi} ${window.asxLineData.horizontalY - verticalDistance * 0.15}, ` +
-                      `${extendPastNonAdi + 15} ${nonAdiBottom + 2}`;
+                      `${extendPastNonAdi + 15} ${nonAdiBottom}`; // Stop exactly at box bottom edge
 
             asxExtension.setAttribute('d', extensionPath);
           }
@@ -8866,6 +9350,87 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(pspsText, 'psps-box');
         }
+
+        // Create distance-based hover overlay for PSPs dots (92-95)
+        const hitRadius10 = 20;
+        const overlayPadding10 = hitRadius10 + 5;
+        const pspsOverlay = createStyledRect(
+          minX10 - overlayPadding10 - dotRadius,
+          minY10 - overlayPadding10 - dotRadius,
+          (maxX10 - minX10) + overlayPadding10 * 2 + dotRadius * 2,
+          (maxY10 - minY10) + overlayPadding10 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        pspsOverlay.style.pointerEvents = 'all';
+        pspsOverlay.style.cursor = 'default';
+        pspsOverlay.id = 'psps-hover-overlay';
+
+        let currentHighlightedDot10 = null;
+
+        pspsOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i = 92; i <= 95; i++) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius10) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot10) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot10 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              pspsOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              pspsOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        pspsOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot10 = null;
+          pspsOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(pspsOverlay);
       }
 
       // Add eleventh rectangle for green-bordered dots (dots 96-98)
@@ -8936,6 +9501,87 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(csText, 'cs-box');
         }
+
+        // Create distance-based hover overlay for CS dots (96-98)
+        const hitRadius11 = 20;
+        const overlayPadding11 = hitRadius11 + 5;
+        const csOverlay = createStyledRect(
+          minX11 - overlayPadding11 - dotRadius,
+          minY11 - overlayPadding11 - dotRadius,
+          (maxX11 - minX11) + overlayPadding11 * 2 + dotRadius * 2,
+          (maxY11 - minY11) + overlayPadding11 * 2 + dotRadius * 2,
+          { fill: 'transparent', stroke: 'none' }
+        );
+        csOverlay.style.pointerEvents = 'all';
+        csOverlay.style.cursor = 'default';
+        csOverlay.id = 'cs-hover-overlay';
+
+        let currentHighlightedDot11 = null;
+
+        csOverlay.addEventListener('mousemove', (event) => {
+          const svg = document.getElementById('diagram');
+          if (!svg) return;
+          const pt = svg.createSVGPoint();
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+          let closestDot = null;
+          let closestDistance = Infinity;
+
+          for (let i = 96; i <= 98; i++) {
+            if (window.dotPositions[i]) {
+              const dx = svgP.x - window.dotPositions[i].x;
+              const dy = svgP.y - window.dotPositions[i].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < closestDistance && distance <= hitRadius11) {
+                closestDistance = distance;
+                closestDot = i;
+              }
+            }
+          }
+
+          if (closestDot !== currentHighlightedDot11) {
+            if (window.clearHighlights) window.clearHighlights();
+            if (window.hideTooltip) window.hideTooltip();
+            currentHighlightedDot11 = closestDot;
+
+            if (closestDot !== null) {
+              const dotId = `dot-${closestDot}`;
+              csOverlay.style.cursor = 'pointer';
+              if (window.showTooltip) window.showTooltip(dotId, event);
+              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
+              relatedElements.add(dotId);
+              relatedElements.add(`blue-line-${closestDot}`);
+              relatedElements.forEach(id => {
+                if (window.highlightElement) window.highlightElement(id);
+              });
+            } else {
+              csOverlay.style.cursor = 'default';
+            }
+          } else if (closestDot !== null) {
+            const tooltip = document.getElementById('diagram-tooltip');
+            if (tooltip && tooltip.style.opacity !== '0') {
+              const padding = 15;
+              let x = event.clientX + padding;
+              let y = event.clientY + padding;
+              const rect = tooltip.getBoundingClientRect();
+              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
+              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          }
+        });
+
+        csOverlay.addEventListener('mouseleave', () => {
+          currentHighlightedDot11 = null;
+          csOverlay.style.cursor = 'default';
+          if (window.hideTooltip) window.hideTooltip();
+          if (window.clearHighlights) window.clearHighlights();
+        });
+
+        labelsGroup.appendChild(csOverlay);
       }
 
     // === Adjust how far above/below the arc extends ===
@@ -9864,29 +10510,37 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       setTimeout(typeWriter, typeSpeed);
     } else {
       titleText.textContent = fullTitle;
-      // Fade in divider elements once typing completes
+      // Animate divider elements once typing completes
       if (window.dividerElements) {
         window.setTimeout(() => {
-          if (window.dividerElements.upLabel) {
-            window.dividerElements.upLabel.style.opacity = '1';
-            const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / High Volume';
-            if (typeof window.startDividerLabelTypewriter === 'function') {
-              window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
-            } else {
-              window.dividerElements.upLabel.textContent = fullText;
-            }
+          // First, animate the white line extending from right to left
+          if (window.dividerElements.whiteLine) {
+            window.dividerElements.whiteLine.setAttribute('stroke-dashoffset', '0');
           }
-          if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
-          if (window.dividerElements.downLabel) {
-            window.dividerElements.downLabel.style.opacity = '1';
-            const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Low Volume';
-            if (typeof window.startDividerLabelTypewriter === 'function') {
-              window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
-            } else {
-              window.dividerElements.downLabel.textContent = fullDownText;
+
+          // After line animation completes (800ms), start text typewriter
+          window.setTimeout(() => {
+            if (window.dividerElements.upLabel) {
+              window.dividerElements.upLabel.style.opacity = '1';
+              const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / High Volume';
+              if (typeof window.startDividerLabelTypewriter === 'function') {
+                window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
+              } else {
+                window.dividerElements.upLabel.textContent = fullText;
+              }
             }
-          }
-          if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
+            if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
+            if (window.dividerElements.downLabel) {
+              window.dividerElements.downLabel.style.opacity = '1';
+              const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Low Volume';
+              if (typeof window.startDividerLabelTypewriter === 'function') {
+                window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
+              } else {
+                window.dividerElements.downLabel.textContent = fullDownText;
+              }
+            }
+            if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
+          }, 850); // Wait for line animation (800ms) + small buffer
         }, 200);
       }
     }

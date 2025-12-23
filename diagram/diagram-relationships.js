@@ -41,29 +41,42 @@ const elementRelationships = {
   // RITS ecosystem - only RITS triggers the group highlight
   'rits-circle': {
     groups: ['rits-ecosystem'],
-    related: ['rits-circle', 'blue-connecting-lines', 'rba-blue-line', 'small-group', 'yellow-circles', 'rba-yellow-line', 'lvss-gear-group']
+    related: ['rits-circle', 'blue-connecting-lines', 'rba-blue-line', 'small-group', 'yellow-circles', 'lvss-gear-group']
+  },
+
+  // FSS (Fast Settlement Service) - the small orange/yellow gearwheel
+  'fss-circle': {
+    groups: ['fss-ecosystem'],
+    related: ['fss-circle', 'small-group', 'yellow-circles']
   },
 
   // BDF (Banknote Distribution Framework) ecosystem
+  // Includes red BDF lines, blue/yellow connecting lines, and dots for big four banks (52-55)
   'bdf-box': {
     groups: ['bdf-system'],
-    related: ['bdf-line-50', 'bdf-line-51', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
-  },
-  'bdf-line-50': {
-    groups: ['bdf-system'],
-    related: ['bdf-box', 'bdf-line-51', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
-  },
-  'bdf-line-51': {
-    groups: ['bdf-system'],
-    related: ['bdf-box', 'bdf-line-50', 'bdf-line-52', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+    related: [
+      'bdf-line-52', 'bdf-line-53', 'bdf-line-54', 'bdf-line-55',
+      'blue-line-52', 'blue-line-53', 'blue-line-54', 'blue-line-55',
+      'yellow-line-52', 'yellow-line-53', 'yellow-line-54', 'yellow-line-55',
+      'yellow-dot-52', 'yellow-dot-53', 'yellow-dot-54', 'yellow-dot-55',
+      'dot-52', 'dot-53', 'dot-54', 'dot-55'
+    ]
   },
   'bdf-line-52': {
     groups: ['bdf-system'],
-    related: ['bdf-box', 'bdf-line-50', 'bdf-line-51', 'bdf-line-53', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+    related: ['bdf-box', 'bdf-line-53', 'bdf-line-54', 'bdf-line-55', 'blue-line-52', 'yellow-line-52', 'yellow-dot-52', 'dot-52']
   },
   'bdf-line-53': {
     groups: ['bdf-system'],
-    related: ['bdf-box', 'bdf-line-50', 'bdf-line-51', 'bdf-line-52', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+    related: ['bdf-box', 'bdf-line-52', 'bdf-line-54', 'bdf-line-55', 'blue-line-53', 'yellow-line-53', 'yellow-dot-53', 'dot-53']
+  },
+  'bdf-line-54': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-52', 'bdf-line-53', 'bdf-line-55', 'blue-line-54', 'yellow-line-54', 'yellow-dot-54', 'dot-54']
+  },
+  'bdf-line-55': {
+    groups: ['bdf-system'],
+    related: ['bdf-box', 'bdf-line-52', 'bdf-line-53', 'bdf-line-54', 'blue-line-55', 'yellow-line-55', 'yellow-dot-55', 'dot-55']
   },
 
   'swift-pds-box': {
@@ -129,6 +142,14 @@ const elementRelationships = {
     related: ['lvss-label', 'lvss-to-cecs', 'lvss-to-becs', 'lvss-to-apcs', 'lvss-to-gabs', 'lvss-to-cshd',
               'cecs-box', 'becs-box', 'apcs-box', 'gabs-box', 'cshd-box']
   },
+  // LVSS gear hover - lights up clearing boxes and grey lines to RITS
+  'lvss-gear': {
+    groups: ['lvss-ecosystem'],
+    related: [
+      'apcs-box', 'becs-box', 'cshd-box', 'cecs-box', 'gabs-box',
+      'lvss-line-apcs', 'lvss-line-becs', 'lvss-line-cshd', 'lvss-line-cecs', 'lvss-line-gabs'
+    ]
+  },
   'cecs-box': {
     groups: ['lvss-ecosystem', 'clearing-settlement'],
     related: ['lvss-circle', 'lvss-to-cecs']
@@ -141,29 +162,29 @@ const elementRelationships = {
   // Example: ADI groups
   'adi-box': {
     groups: ['adis', 'participants'],
-    related: ['domestic-banks-box', 'specialised-adis-box', 'other-adis-box', 'dot-1', 'dot-50', 'dot-51', 'dot-52', 'dot-53']
+    related: ['domestic-banks-box', 'specialised-adis-box', 'other-adis-box', 'dot-1', 'dot-52', 'dot-53', 'dot-54', 'dot-55']
   },
   'domestic-banks-box': {
     groups: ['adis', 'participants', 'domestic-banks'],
-    related: ['adi-box', 'dot-50', 'dot-51', 'dot-52', 'dot-53'] // ANZ, CBA, NAB, Westpac
+    related: ['adi-box', 'dot-52', 'dot-53', 'dot-54', 'dot-55'] // ANZ, CBA, NAB, Westpac
   },
 
-  // Major bank dots
-  'dot-50': { // ANZ
+  // Major bank dots (Big Four at indices 52-55)
+  'dot-52': { // ANZ
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-51', 'dot-52', 'dot-53', 'domestic-banks-box', 'adi-box']
+    related: ['dot-53', 'dot-54', 'dot-55', 'domestic-banks-box', 'adi-box']
   },
-  'dot-51': { // CBA
+  'dot-53': { // CBA
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-50', 'dot-52', 'dot-53', 'domestic-banks-box', 'adi-box']
+    related: ['dot-52', 'dot-54', 'dot-55', 'domestic-banks-box', 'adi-box']
   },
-  'dot-52': { // NAB
+  'dot-54': { // NAB
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-50', 'dot-51', 'dot-53', 'domestic-banks-box', 'adi-box']
+    related: ['dot-52', 'dot-53', 'dot-55', 'domestic-banks-box', 'adi-box']
   },
-  'dot-53': { // Westpac
+  'dot-55': { // Westpac
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-50', 'dot-51', 'dot-52', 'domestic-banks-box', 'adi-box']
+    related: ['dot-52', 'dot-53', 'dot-54', 'domestic-banks-box', 'adi-box']
   },
 
   // Non-ADI participants
@@ -178,6 +199,26 @@ const elementRelationships = {
   'cs-box': {
     groups: ['non-adis', 'clearing-settlement'],
     related: ['non-adi-box', 'dot-96', 'dot-97', 'dot-98']
+  },
+
+  // Foreign Branch banks with FSS membership (yellow dots/lines)
+  'dot-1': { // Citibank, N.A. - FSS Member
+    groups: ['foreign-branches', 'fss-members'],
+    related: ['blue-line-1', 'yellow-line-1', 'yellow-dot-1']
+  },
+  'dot-2': { // JPMorgan Chase Bank - FSS Member
+    groups: ['foreign-branches', 'fss-members'],
+    related: ['blue-line-2', 'yellow-line-2', 'yellow-dot-2']
+  },
+
+  // Yellow dots should also highlight their blue companions
+  'yellow-dot-1': { // Citibank yellow dot
+    groups: ['fss-members'],
+    related: ['dot-1', 'blue-line-1', 'yellow-line-1']
+  },
+  'yellow-dot-2': { // JPMorgan yellow dot
+    groups: ['fss-members'],
+    related: ['dot-2', 'blue-line-2', 'yellow-line-2']
   }
 };
 

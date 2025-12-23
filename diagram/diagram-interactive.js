@@ -6,6 +6,8 @@
 // Tooltip state
 let currentTooltip = null;
 let currentHighlightedElements = new Set();
+let tooltipIsSticky = false;
+let stickyElementId = null;
 
 /**
  * Create the tooltip element (only created once)
@@ -37,49 +39,133 @@ function createTooltipElement() {
     tooltip = document.createElement('div');
     tooltip.id = 'diagram-tooltip-content';
     tooltip.style.width = '320px';
-    tooltip.style.background = 'rgba(12, 12, 12, 0.94)';
+    tooltip.style.background = 'transparent';
     tooltip.style.color = 'white';
     tooltip.style.padding = '12px 14px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontFamily = 'Arial, sans-serif';
+    tooltip.style.borderRadius = '0';
+    tooltip.style.fontFamily = 'Courier New, monospace';
     tooltip.style.fontSize = '13px';
     tooltip.style.lineHeight = '1.4';
-    tooltip.style.letterSpacing = '0.01em';
-    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
-    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+    tooltip.style.letterSpacing = '0.02em';
+    tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.5)';
+    tooltip.style.border = '2px solid rgba(255, 255, 255, 0.45)';
     tooltip.style.cursor = 'pointer';
     tooltip.style.whiteSpace = 'normal';
     tooltip.style.overflowWrap = 'break-word';
 
     wrapper.appendChild(tooltip);
     document.body.appendChild(wrapper);
+
+    // Dismiss tooltip when mouse leaves it (if sticky)
+    wrapper.addEventListener('mouseleave', handleTooltipMouseLeave);
   } else {
     // Chrome: simple single div
     tooltip = document.createElement('div');
     tooltip.id = 'diagram-tooltip';
     tooltip.style.position = 'fixed';
-    tooltip.style.background = 'rgba(12, 12, 12, 0.94)';
+    tooltip.style.background = 'transparent';
     tooltip.style.color = 'white';
     tooltip.style.padding = '12px 14px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontFamily = 'Arial, sans-serif';
+    tooltip.style.borderRadius = '0';
+    tooltip.style.fontFamily = 'Courier New, monospace';
     tooltip.style.fontSize = '13px';
     tooltip.style.lineHeight = '1.4';
-    tooltip.style.letterSpacing = '0.01em';
+    tooltip.style.letterSpacing = '0.02em';
     tooltip.style.pointerEvents = 'auto';
     tooltip.style.zIndex = '10000';
     tooltip.style.width = '320px';
-    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+    tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.5)';
     tooltip.style.opacity = '0';
     tooltip.style.transition = 'opacity 0.15s ease';
-    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+    tooltip.style.border = '2px solid rgba(255, 255, 255, 0.45)';
     tooltip.style.transformOrigin = 'top left';
     tooltip.style.cursor = 'pointer';
     tooltip.style.whiteSpace = 'normal';
     tooltip.style.overflowWrap = 'break-word';
 
     document.body.appendChild(tooltip);
+
+    // Dismiss tooltip when mouse leaves it (if sticky)
+    tooltip.addEventListener('mouseleave', handleTooltipMouseLeave);
   }
+}
+
+/**
+ * Handle mouse leaving the tooltip
+ */
+function handleTooltipMouseLeave(event) {
+  if (!tooltipIsSticky) return;
+
+  // Check if moving back to the interactive element
+  const relatedTarget = event.relatedTarget;
+  if (relatedTarget && relatedTarget.closest && relatedTarget.closest('[data-interactive-id]')) {
+    // Moving back to an interactive element - don't dismiss yet
+    return;
+  }
+
+  hideTooltip();
+  clearHighlights();
+}
+
+/**
+ * Extract the primary color from an element (fill or stroke)
+ */
+function getElementColor(elementId, event) {
+  // Try to find the element
+  let element = document.querySelector(`[data-interactive-id="${elementId}"]`);
+  if (!element && event && event.currentTarget) {
+    element = event.currentTarget;
+  }
+  if (!element) {
+    element = document.getElementById(elementId);
+  }
+  if (!element) return null;
+
+  // For groups, look at the first child with a fill/stroke
+  if (element.tagName.toLowerCase() === 'g') {
+    const colorChild = element.querySelector('circle, rect, path');
+    if (colorChild) element = colorChild;
+  }
+
+  // Get fill or stroke color
+  let color = element.getAttribute('fill') || element.getAttribute('stroke');
+
+  // Skip transparent/none fills, try stroke instead
+  if (!color || color === 'none' || color === 'transparent') {
+    color = element.getAttribute('stroke');
+  }
+
+  return color;
+}
+
+/**
+ * Darken a color for use as tooltip background
+ */
+function darkenColor(color, factor = 0.3) {
+  if (!color || color === 'none' || color === 'transparent') return null;
+
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    let hex = color.slice(1);
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    const r = Math.floor(parseInt(hex.slice(0, 2), 16) * factor);
+    const g = Math.floor(parseInt(hex.slice(2, 4), 16) * factor);
+    const b = Math.floor(parseInt(hex.slice(4, 6), 16) * factor);
+    return `rgba(${r}, ${g}, ${b}, 0.94)`;
+  }
+
+  // Handle rgb/rgba colors
+  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbMatch) {
+    const r = Math.floor(parseInt(rgbMatch[1]) * factor);
+    const g = Math.floor(parseInt(rgbMatch[2]) * factor);
+    const b = Math.floor(parseInt(rgbMatch[3]) * factor);
+    return `rgba(${r}, ${g}, ${b}, 0.94)`;
+  }
+
+  return null;
 }
 
 /**
@@ -99,6 +185,11 @@ function showTooltip(elementId, event) {
     return;
   }
 
+  // Get element color and apply to tooltip background
+  const elementColor = getElementColor(elementId, event);
+  const tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.94)';
+  tooltipContentElement.style.background = tooltipBgColor;
+
   // Build tooltip HTML with new design
   let html = '';
 
@@ -107,9 +198,9 @@ function showTooltip(elementId, event) {
     html += `<div style="font-weight: bold; font-size: 17px; color: white; margin-bottom: 4px;">${content.title}</div>`;
   }
 
-  // Subtitle - normal size, white
+  // Subtitle - normal size, white, bold
   if (content.subtitle) {
-    html += `<div style="font-size: 13px; color: white; margin-bottom: 8px;">${content.subtitle}</div>`;
+    html += `<div style="font-size: 13px; color: white; font-weight: bold; margin-bottom: 8px;">${content.subtitle}</div>`;
   }
 
   // Description - smaller, white
@@ -130,12 +221,19 @@ function showTooltip(elementId, event) {
   tooltipContentElement.dataset.link = content.link || '';
 
   // Remove old click listeners and add new one
-  tooltipContentElement.onclick = function() {
+  tooltipContentElement.onclick = function(e) {
+    // Only open link if tooltip is sticky (user clicked once to pin it)
+    if (!tooltipIsSticky) return;
+
     if (tooltipContentElement.dataset.link) {
       const newWindow = window.open(tooltipContentElement.dataset.link, '_blank', 'noopener,noreferrer');
       if (newWindow) newWindow.blur();
       window.focus();
+      // Dismiss tooltip after opening link
+      hideTooltip();
+      clearHighlights();
     }
+    e.stopPropagation();
   };
 
   // Position tooltip near mouse
@@ -165,6 +263,8 @@ function hideTooltip() {
   if (tooltip) {
     tooltip.style.opacity = '0';
   }
+  tooltipIsSticky = false;
+  stickyElementId = null;
 }
 
 /**
@@ -193,7 +293,7 @@ function highlightElement(elementId) {
             circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
             circle.dataset.originalFilter = circle.style.filter || 'none';
           }
-          circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+          circle.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
           circle.style.opacity = '1';
           currentHighlightedElements.add(circle);
         }
@@ -206,9 +306,9 @@ function highlightElement(elementId) {
   if (!elements.length) {
     const groupElement = document.getElementById(elementId);
     if (groupElement) {
-      // Special case: blue-connecting-lines and yellow-circles contain lines (and possibly dots)
-      // Highlight only lines/paths, not circles, and treat them consistently
-      if (elementId === 'blue-connecting-lines' || elementId === 'yellow-circles') {
+      // Special case: blue-connecting-lines contains lines, yellow-circles contains lines and circles
+      // No thickness change - just brightness and strong glow
+      if (elementId === 'blue-connecting-lines') {
         const lines = groupElement.querySelectorAll('line, path');
         lines.forEach(line => {
           line.classList.add('highlighted');
@@ -216,18 +316,42 @@ function highlightElement(elementId) {
             line.dataset.originalOpacity = line.style.opacity || getComputedStyle(line).opacity || '1';
             line.dataset.originalFilter = line.style.filter || 'none';
           }
-          if (line.tagName.toLowerCase() === 'line') {
-            if (!line.dataset.originalStrokeWidth) {
-              line.dataset.originalStrokeWidth = line.getAttribute('stroke-width') || '1';
-            }
-            const currentWidth = parseFloat(line.dataset.originalStrokeWidth);
-            line.setAttribute('stroke-width', (currentWidth * 2.5).toString());
-            line.style.filter = 'brightness(1.8) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.9))';
-          } else {
-            line.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
-          }
+          line.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
           line.style.opacity = '1';
           currentHighlightedElements.add(line);
+        });
+        return;
+      }
+
+      // yellow-circles contains both lines and circles (yellow dots)
+      // No thickness change - just brightness and strong glow
+      if (elementId === 'yellow-circles') {
+        const elements = groupElement.querySelectorAll('line, path, circle');
+        elements.forEach(el => {
+          el.classList.add('highlighted');
+          if (!el.dataset.originalOpacity) {
+            el.dataset.originalOpacity = el.style.opacity || getComputedStyle(el).opacity || '1';
+            el.dataset.originalFilter = el.style.filter || 'none';
+          }
+          el.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+          el.style.opacity = '1';
+          currentHighlightedElements.add(el);
+        });
+        return;
+      }
+
+      // small-group (FSS circle) - highlight children with same glow as direct hover
+      if (elementId === 'small-group') {
+        const children = groupElement.querySelectorAll('circle, path');
+        children.forEach(child => {
+          child.classList.add('highlighted');
+          if (!child.dataset.originalOpacity) {
+            child.dataset.originalOpacity = child.style.opacity || getComputedStyle(child).opacity || '1';
+            child.dataset.originalFilter = child.style.filter || 'none';
+          }
+          child.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+          child.style.opacity = '1';
+          currentHighlightedElements.add(child);
         });
         return;
       }
@@ -237,7 +361,7 @@ function highlightElement(elementId) {
         groupElement.dataset.originalOpacity = groupElement.style.opacity || '1';
         groupElement.dataset.originalFilter = groupElement.style.filter || 'none';
       }
-      groupElement.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+      groupElement.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
       groupElement.style.opacity = '1';
       currentHighlightedElements.add(groupElement);
       return;
@@ -256,7 +380,40 @@ function highlightElement(elementId) {
           child.dataset.originalOpacity = child.style.opacity || getComputedStyle(child).opacity || '1';
           child.dataset.originalFilter = child.style.filter || 'none';
         }
-        child.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        child.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+        child.style.opacity = '1';
+        currentHighlightedElements.add(child);
+      });
+      return;
+    }
+
+    // Special handling for FSS circle - highlight children instead of group
+    // Applies when hovering FSS directly (fss-circle) or when FSS is highlighted as related element (small-group)
+    if ((elementId === 'fss-circle' || elementId === 'small-group') && element.id === 'small-group') {
+      const children = element.querySelectorAll('circle, path');
+      children.forEach(child => {
+        child.classList.add('highlighted');
+        if (!child.dataset.originalOpacity) {
+          child.dataset.originalOpacity = child.style.opacity || getComputedStyle(child).opacity || '1';
+          child.dataset.originalFilter = child.style.filter || 'none';
+        }
+        child.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+        child.style.opacity = '1';
+        currentHighlightedElements.add(child);
+      });
+      return;
+    }
+
+    // Special handling for LVSS gear - highlight children instead of group
+    if (elementId === 'lvss-gear') {
+      const children = element.querySelectorAll('circle, path');
+      children.forEach(child => {
+        child.classList.add('highlighted');
+        if (!child.dataset.originalOpacity) {
+          child.dataset.originalOpacity = child.style.opacity || getComputedStyle(child).opacity || '1';
+          child.dataset.originalFilter = child.style.filter || 'none';
+        }
+        child.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
         child.style.opacity = '1';
         currentHighlightedElements.add(child);
       });
@@ -274,19 +431,35 @@ function highlightElement(elementId) {
     // Apply highlight effect
     const tagName = element.tagName.toLowerCase();
 
-    if (tagName === 'circle' || tagName === 'rect' || tagName === 'path') {
-      // For shapes, add a glow filter and increase opacity
-      element.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+    if (tagName === 'rect') {
+      // For boxes/rectangles, use a moderate glow
+      element.style.filter = 'brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.65))';
       element.style.opacity = '1';
-    } else if (tagName === 'line') {
-      // For lines, increase brightness and add strong glow
-      if (!element.dataset.originalStrokeWidth) {
-        element.dataset.originalStrokeWidth = element.getAttribute('stroke-width') || '1';
+    } else if (tagName === 'circle') {
+      // Check if this is a small dot that needs a glow circle
+      const radius = parseFloat(element.getAttribute('r')) || 0;
+      if (radius < 10 && elementId && elementId.startsWith('dot-')) {
+        // For small dots, create a visible glow circle behind them
+        const cx = element.getAttribute('cx');
+        const cy = element.getAttribute('cy');
+        const glowCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        glowCircle.setAttribute('cx', cx);
+        glowCircle.setAttribute('cy', cy);
+        glowCircle.setAttribute('r', radius * 3);
+        glowCircle.setAttribute('fill', 'rgba(255, 255, 255, 0.6)');
+        glowCircle.setAttribute('filter', 'blur(4px)');
+        glowCircle.classList.add('dot-glow-effect');
+        glowCircle.dataset.forDot = elementId;
+        // Insert glow circle before the dot
+        element.parentNode.insertBefore(glowCircle, element);
+        currentHighlightedElements.add(glowCircle);
       }
-      // Make line thicker and add strong glow
-      const currentWidth = parseFloat(element.dataset.originalStrokeWidth);
-      element.setAttribute('stroke-width', (currentWidth * 2.5).toString());
-      element.style.filter = 'brightness(1.8) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.9))';
+      // Also apply filter to the circle itself
+      element.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+      element.style.opacity = '1';
+    } else if (tagName === 'path' || tagName === 'line') {
+      // For paths and lines, add a strong glow filter
+      element.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
       element.style.opacity = '1';
     } else if (tagName === 'text') {
       // For text, add glow
@@ -329,11 +502,17 @@ function unhighlightElement(elementId) {
  * Clear all highlights
  */
 function clearHighlights() {
+  // Remove any glow circles that were created for small dots
+  const glowCircles = document.querySelectorAll('.dot-glow-effect');
+  glowCircles.forEach(glow => glow.remove());
+
   currentHighlightedElements.forEach(item => {
     // Handle both string IDs and direct element references
     if (typeof item === 'string') {
       unhighlightElement(item);
     } else if (item instanceof Element) {
+      // Skip if element was already removed (like glow circles)
+      if (!item.parentNode) return;
       // Directly unhighlight element
       item.classList.remove('highlighted');
       if (item.dataset.originalOpacity) {
@@ -375,6 +554,18 @@ function highlightCirclesInBox(boxElementId) {
       return;
     }
 
+    // Skip FSS gearwheel circles (small-group children)
+    const smallGroup = document.getElementById('small-group');
+    if (smallGroup && smallGroup.contains(circle)) {
+      return;
+    }
+
+    // Skip RITS gearwheel circles (big-group children)
+    const bigGroup = document.getElementById('big-group');
+    if (bigGroup && bigGroup.contains(circle)) {
+      return;
+    }
+
     const cx = parseFloat(circle.getAttribute('cx'));
     const cy = parseFloat(circle.getAttribute('cy'));
     const r = parseFloat(circle.getAttribute('r'));
@@ -390,7 +581,7 @@ function highlightCirclesInBox(boxElementId) {
           circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
           circle.dataset.originalFilter = circle.style.filter || 'none';
         }
-        circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        circle.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
         circle.style.opacity = '1';
 
         // Store reference so we can unhighlight later
@@ -431,11 +622,14 @@ function handleMouseEnter(event) {
           circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
           circle.dataset.originalFilter = circle.style.filter || 'none';
         }
-        circle.style.filter = 'brightness(1.4) drop-shadow(0 0 8px rgba(255,255,255,0.6))';
+        circle.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
         circle.style.opacity = '1';
         currentHighlightedElements.add(circle);
       }
     });
+
+    // Also highlight CLS circle (larger circle, part of ESA holders)
+    highlightElement('cls-circle');
   } else if (elementId === 'adi-box' || elementId === 'non-adis-box' ||
              elementId === 'domestic-banks-box' || elementId === 'international-banks-box' ||
              elementId === 'foreign-branches-box' || elementId === 'foreign-subsidiaries-box' ||
@@ -460,6 +654,9 @@ function handleMouseEnter(event) {
  * Handle mouse move on an interactive element (update tooltip position)
  */
 function handleMouseMove(event) {
+  // Don't move tooltip if it's sticky (stationary)
+  if (tooltipIsSticky) return;
+
   const tooltip = document.getElementById('diagram-tooltip');
   if (!tooltip || tooltip.style.opacity === '0') return;
 
@@ -483,23 +680,31 @@ function handleMouseMove(event) {
  * Handle mouse leave on an interactive element
  */
 function handleMouseLeave(event) {
+  // If tooltip is stationary, check if mouse is moving to the tooltip
+  if (tooltipIsSticky) {
+    const tooltip = document.getElementById('diagram-tooltip');
+    if (tooltip && event.relatedTarget && (tooltip === event.relatedTarget || tooltip.contains(event.relatedTarget))) {
+      // Moving to tooltip - don't dismiss
+      return;
+    }
+  }
+
   hideTooltip();
   clearHighlights();
 }
 
 /**
- * Handle click on an interactive element - open link if available
+ * Handle click on an interactive element - make tooltip stationary
  */
 function handleClick(event) {
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
-  const content = window.tooltipContent?.[elementId];
-  if (content && content.link) {
-    const newWindow = window.open(content.link, '_blank', 'noopener,noreferrer');
-    if (newWindow) newWindow.blur();
-    window.focus();
-  }
+  // Make tooltip stationary (stop following mouse)
+  tooltipIsSticky = true;
+  stickyElementId = elementId;
+
+  event.stopPropagation();
 }
 
 /**
@@ -511,6 +716,7 @@ function makeInteractive(element, elementId) {
 
   element.setAttribute('data-interactive-id', elementId);
   element.style.cursor = 'pointer';
+  element.style.willChange = 'filter, opacity';
 
   element.addEventListener('mouseenter', handleMouseEnter);
   element.addEventListener('mousemove', handleMouseMove);
@@ -539,11 +745,51 @@ function makeInteractiveHighlightOnly(element, elementId) {
 }
 
 /**
+ * Pre-hint elements that may be highlighted for better performance
+ * Adds will-change to elements in groups that get bulk-highlighted
+ */
+function preHintHighlightableElements() {
+  // Groups whose children get highlighted
+  const groupIds = ['blue-connecting-lines', 'yellow-circles', 'big-group', 'small-group', 'lvss-gear-group'];
+
+  groupIds.forEach(groupId => {
+    const group = document.getElementById(groupId);
+    if (group) {
+      const children = group.querySelectorAll('line, path, circle');
+      children.forEach(child => {
+        child.style.willChange = 'filter, opacity, stroke-width';
+      });
+    }
+  });
+}
+
+/**
+ * Handle document click to dismiss sticky tooltip
+ */
+function handleDocumentClick(event) {
+  if (!tooltipIsSticky) return;
+
+  const tooltip = document.getElementById('diagram-tooltip');
+  const clickedOnTooltip = tooltip && tooltip.contains(event.target);
+  const clickedOnInteractive = event.target.closest('[data-interactive-id]');
+
+  // If clicked outside tooltip and outside interactive elements, dismiss
+  if (!clickedOnTooltip && !clickedOnInteractive) {
+    hideTooltip();
+    clearHighlights();
+  }
+}
+
+/**
  * Initialize the interactive system
  * Call this once after the diagram is rendered
  */
 function initializeInteractive() {
   createTooltipElement();
+  // Delay pre-hinting slightly to ensure diagram is fully rendered
+  setTimeout(preHintHighlightableElements, 100);
+  // Listen for clicks outside to dismiss sticky tooltip
+  document.addEventListener('click', handleDocumentClick);
   console.log('Interactive tooltip system initialized');
 }
 
