@@ -14,6 +14,7 @@ function createBlueConnectingLines(blueCircleX, cyBig, actualCircleX, actualCirc
   line.setAttribute('stroke', '#3b82f6');
   line.setAttribute('stroke-width', '1.5');
   line.setAttribute('opacity', '0.9');
+  line.setAttribute('pointer-events', 'none');
 
   blueLinesGroup.appendChild(line);
   return line;

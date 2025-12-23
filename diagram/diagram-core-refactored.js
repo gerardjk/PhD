@@ -621,7 +621,8 @@ function initializeDiagram() {
       line = createStyledLine(blueCircleX, cyBig, actualCircleX, actualCircleY, {
         stroke: '#04d9ff',
         strokeWidth: '1.5',
-        opacity: '0.9'
+        opacity: '0.9',
+        pointerEvents: 'none'
       });
 
       if (!skipBlueLines) {
@@ -6568,7 +6569,8 @@ function initializeDiagram() {
         const orangeLine = createStyledLine(cx, cySmall, innerCircleX, innerCircleY, {
           stroke: '#FFFF00',
           strokeWidth: '2.5',
-          opacity: '1'
+          opacity: '1',
+          pointerEvents: 'none'
         });
         // For RBA dot (i=0), insert before big-group so line renders over black circle but under FSS
         if (i === 0) {
@@ -8518,7 +8520,7 @@ function initializeDiagram() {
 
               // Upper section: arrow above text
               const upLabelY = lineY - 25;
-              const upLabelTextValue = 'Low Value / Retail';
+              const upLabelTextValue = 'Low Value / High Volume';
               const upLabel = createStyledText(lineCenterX, upLabelY, '', {
                 fill: '#9BFFCD',
                 fontSize: '15',
@@ -8557,7 +8559,7 @@ function initializeDiagram() {
 
               // Lower section: text above arrow
               const downLabelY = lineY + 30;
-              const downLabelTextValue = 'High Value / Wholesale';
+              const downLabelTextValue = 'High Value / Low Volume';
               const downLabel = createStyledText(lineCenterX, downLabelY, '', {
                 fill: '#9BFFCD',
                 fontSize: '15',
@@ -9867,7 +9869,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         window.setTimeout(() => {
           if (window.dividerElements.upLabel) {
             window.dividerElements.upLabel.style.opacity = '1';
-            const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / Retail';
+            const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / High Volume';
             if (typeof window.startDividerLabelTypewriter === 'function') {
               window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
             } else {
@@ -9877,7 +9879,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
           if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
           if (window.dividerElements.downLabel) {
             window.dividerElements.downLabel.style.opacity = '1';
-            const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Wholesale';
+            const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Low Volume';
             if (typeof window.startDividerLabelTypewriter === 'function') {
               window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
             } else {

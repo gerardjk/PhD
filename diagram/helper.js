@@ -76,6 +76,7 @@ function createStyledLine(x1, y1, x2, y2, options = {}) {
   if (options.strokeDasharray) line.setAttribute('stroke-dasharray', options.strokeDasharray);
   if (options.opacity) line.setAttribute('opacity', options.opacity);
   if (options.id) line.setAttribute('id', options.id);
+  if (options.pointerEvents) line.setAttribute('pointer-events', options.pointerEvents);
   return line;
 }
 
