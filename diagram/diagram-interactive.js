@@ -169,6 +169,31 @@ function darkenColor(color, factor = 0.3) {
 }
 
 /**
+ * Normalize an interactive element ID so variants (e.g., yellow-dot-#) map to their base entity
+ */
+function resolveHoverTarget(elementId) {
+  let targetId = elementId;
+  let dotIndex = null;
+  let isYellowDot = false;
+
+  if (elementId && elementId.startsWith('yellow-dot-')) {
+    const idx = parseInt(elementId.replace('yellow-dot-', ''), 10);
+    if (!Number.isNaN(idx)) {
+      targetId = `dot-${idx}`;
+      dotIndex = idx;
+      isYellowDot = true;
+    }
+  } else if (elementId && elementId.startsWith('dot-')) {
+    const idx = parseInt(elementId.replace('dot-', ''), 10);
+    if (!Number.isNaN(idx)) {
+      dotIndex = idx;
+    }
+  }
+
+  return { targetId, dotIndex, isYellowDot };
+}
+
+/**
  * Show tooltip for an element
  */
 function showTooltip(elementId, event) {
@@ -286,8 +311,8 @@ function highlightElement(elementId) {
         const cy = parseFloat(circle.getAttribute('cy'));
         const r = parseFloat(circle.getAttribute('r'));
 
-        // Check if circle is at this dot's position (within small tolerance)
-        if (r && r < 20 && Math.abs(cx - dotPos.x) < 1 && Math.abs(cy - dotPos.y) < 1) {
+        // Check if circle is at this dot's position (within tolerance)
+        if (r && r < 30 && Math.abs(cx - dotPos.x) < 5 && Math.abs(cy - dotPos.y) < 5) {
           circle.classList.add('highlighted');
           if (!circle.dataset.originalOpacity) {
             circle.dataset.originalOpacity = circle.style.opacity || getComputedStyle(circle).opacity || '1';
@@ -598,13 +623,21 @@ function handleMouseEnter(event) {
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
+  const { targetId, dotIndex, isYellowDot } = resolveHoverTarget(elementId);
+  if (!targetId) return;
+
+  // Clear any lingering highlights before applying new ones (unless we're re-entering the sticky element)
+  if (!tooltipIsSticky || stickyElementId !== targetId) {
+    clearHighlights();
+  }
+
   // Show tooltip for this specific element
-  showTooltip(elementId, event);
+  showTooltip(targetId, event);
 
   // Special handling for boxes that should highlight contained dots
-  if (elementId === 'blue-dots-background') {
+  if (targetId === 'blue-dots-background') {
     // ESA box - highlight all blue and yellow dots (excluding RBA)
-    highlightElement(elementId);
+    highlightElement(targetId);
 
     const allCircles = document.querySelectorAll('circle');
     allCircles.forEach(circle => {
@@ -630,23 +663,49 @@ function handleMouseEnter(event) {
 
     // Also highlight CLS circle (larger circle, part of ESA holders)
     highlightElement('cls-circle');
-  } else if (elementId === 'adi-box' || elementId === 'non-adis-box' ||
-             elementId === 'domestic-banks-box' || elementId === 'international-banks-box' ||
-             elementId === 'foreign-branches-box' || elementId === 'foreign-subsidiaries-box' ||
-             elementId === 'specialised-adis-box' || elementId === 'other-adis-box' ||
-             elementId === 'psps-box' || elementId === 'cs-box') {
+  } else if (targetId === 'adi-box' || targetId === 'non-adis-box' ||
+             targetId === 'domestic-banks-box' || targetId === 'international-banks-box' ||
+             targetId === 'foreign-branches-box' || targetId === 'foreign-subsidiaries-box' ||
+             targetId === 'specialised-adis-box' || targetId === 'other-adis-box' ||
+             targetId === 'psps-box' || targetId === 'cs-box') {
     // Highlight the box itself
-    highlightElement(elementId);
+    highlightElement(targetId);
 
     // Highlight all circles within this box
-    highlightCirclesInBox(elementId);
+    highlightCirclesInBox(targetId);
   } else {
     // Normal highlighting - highlight this element and all related elements
-    const relatedElements = window.getRelatedElements?.(elementId) || new Set([elementId]);
+    let relatedElements;
+    if (isYellowDot) {
+      // Yellow dots should only highlight their own dot/lines, not entire peer groups
+      relatedElements = new Set([targetId]);
+    } else {
+      relatedElements = window.getRelatedElements?.(targetId) || new Set([targetId]);
+    }
+
+    if (targetId.startsWith('dot-')) {
+      // Ensure the radial lines for this dot also highlight
+      const derivedDotIndex = dotIndex ?? parseInt(targetId.replace('dot-', ''), 10);
+      if (!Number.isNaN(derivedDotIndex)) {
+        relatedElements = new Set(relatedElements);
+        relatedElements.add(`blue-line-${derivedDotIndex}`);
+        if (window.yellowLinesByDot && window.yellowLinesByDot[derivedDotIndex]) {
+          relatedElements.add(`yellow-line-${derivedDotIndex}`);
+          relatedElements.add(`yellow-dot-${derivedDotIndex}`);
+        } else if (isYellowDot) {
+          relatedElements.add(`yellow-dot-${derivedDotIndex}`);
+        }
+      }
+    }
 
     relatedElements.forEach(id => {
       highlightElement(id);
     });
+  }
+
+  // Ensure the specific yellow dot element glows when hovered directly
+  if (isYellowDot && dotIndex !== null) {
+    highlightElement(`yellow-dot-${dotIndex}`);
   }
 }
 
@@ -700,9 +759,12 @@ function handleClick(event) {
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
+  const { targetId } = resolveHoverTarget(elementId);
+  if (!targetId) return;
+
   // Make tooltip stationary (stop following mouse)
   tooltipIsSticky = true;
-  stickyElementId = elementId;
+  stickyElementId = targetId;
 
   event.stopPropagation();
 }

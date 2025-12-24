@@ -991,226 +991,199 @@ const tooltipContent = {
   // Major banks (indices 52-55)
   'dot-52': {
     title: 'ANZ',
-    subtitle: 'Australia and New Zealand Banking Group',
-    description: 'One of Australia\'s Big Four banks',
+    subtitle: 'ANZB',
+    description: 'Big Four bank',
     details: [
-      'Full-service retail and commercial bank',
-      'Major participant in all payment systems',
-      'Listed on ASX'
+      'FSS member'
     ]
   },
   'dot-53': {
     title: 'Commonwealth Bank',
-    subtitle: 'Commonwealth Bank of Australia',
-    description: 'Australia\'s largest bank by market cap',
+    subtitle: 'CBAA',
+    description: 'Big Four bank',
     details: [
-      'Full-service retail and commercial bank',
-      'Major payment system participant',
-      'Listed on ASX'
+      'FSS member'
     ]
   },
   'dot-54': {
     title: 'NAB',
-    subtitle: 'National Australia Bank',
-    description: 'One of Australia\'s Big Four banks',
+    subtitle: 'NABL',
+    description: 'Big Four bank',
     details: [
-      'Full-service retail and commercial bank',
-      'Strong business banking presence',
-      'Listed on ASX'
+      'FSS member'
     ]
   },
   'dot-55': {
     title: 'Westpac',
-    subtitle: 'Westpac Banking Corporation',
-    description: 'Australia\'s oldest bank (founded 1817)',
+    subtitle: 'WPAC',
+    description: 'Big Four bank',
     details: [
-      'Full-service retail and commercial bank',
-      'Major payment system participant',
-      'Listed on ASX'
+      'FSS member'
     ]
   },
   'dot-56': {
     title: 'Macquarie Bank',
-    subtitle: 'Macquarie Bank Limited',
-    description: 'Major Australian investment bank',
+    subtitle: 'MACQ',
+    description: 'Domestic bank',
     details: [
-      'Specialises in asset management and investment banking',
-      'Listed on ASX',
-      'Global operations'
+      'FSS member'
     ]
   },
   'dot-57': {
     title: 'Bendigo and Adelaide Bank',
-    subtitle: 'Bendigo and Adelaide Bank Limited',
-    description: 'Major Australian regional bank',
+    subtitle: 'BEND',
+    description: 'Domestic bank',
     details: [
-      'Community-focused banking',
-      'Formed from merger of Bendigo Bank and Adelaide Bank',
-      'Listed on ASX'
+      'FSS member'
     ]
   },
 
   // Remaining Domestic Banks (58-86)
-  'dot-58': { title: 'Alex Bank', subtitle: 'Alex Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-59': { title: 'AMP Bank', subtitle: 'AMP Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-60': { title: 'Bank of Queensland', subtitle: 'Bank of Queensland Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-61': { title: 'Heritage and People\'s Choice', subtitle: 'Heritage and People\'s Choice Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-62': { title: 'Judo Bank', subtitle: 'Judo Bank Pty Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-63': { title: 'Norfina', subtitle: 'Norfina Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Direct RITS participant'] },
-  'dot-64': { title: 'Australian Military Bank', subtitle: 'Australian Military Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-65': { title: 'Australian Mutual Bank', subtitle: 'Australian Mutual Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-66': { title: 'B&E Ltd', subtitle: 'B&E Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-67': { title: 'Bank Australia', subtitle: 'Bank Australia Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-68': { title: 'Beyond Bank Australia', subtitle: 'Beyond Bank Australia Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-69': { title: 'Credit Union Australia', subtitle: 'Credit Union Australia Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-70': { title: 'Defence Bank', subtitle: 'Defence Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-71': { title: 'Gateway Bank', subtitle: 'Gateway Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-72': { title: 'Hume Bank', subtitle: 'Hume Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-73': { title: 'IMB', subtitle: 'IMB Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-74': { title: 'Maitland Mutual', subtitle: 'Maitland Mutual Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-75': { title: 'Members Banking Group', subtitle: 'Members Banking Group Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-76': { title: 'MyState Bank', subtitle: 'MyState Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-77': { title: 'Newcastle Greater Mutual', subtitle: 'Newcastle Greater Mutual Group Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-78': { title: 'Police & Nurses', subtitle: 'Police & Nurses Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-79': { title: 'Police Bank', subtitle: 'Police Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-80': { title: 'Police Financial Services', subtitle: 'Police Financial Services Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-81': { title: 'QPCU', subtitle: 'QPCU Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-82': { title: 'Queensland Country Bank', subtitle: 'Queensland Country Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-83': { title: 'Regional Australia Bank', subtitle: 'Regional Australia Bank Ltd', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-84': { title: 'Teachers Mutual Bank', subtitle: 'Teachers Mutual Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-85': { title: 'Unity Bank', subtitle: 'Unity Bank Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
-  'dot-86': { title: 'Victoria Teachers', subtitle: 'Victoria Teachers Limited', description: 'Australian domestic bank', details: ['ESA Holder', 'Uses settlement agent'] },
+  'dot-58': { title: 'Alex Bank', subtitle: 'ALEX', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-59': { title: 'AMP Bank', subtitle: 'AMPB', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-60': { title: 'Bank of Queensland', subtitle: 'BQLQ', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-61': { title: 'Heritage and People\'s Choice', subtitle: 'HBSL', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-62': { title: 'Judo Bank', subtitle: 'JUDO', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-63': { title: 'Norfina', subtitle: 'METW', description: 'Domestic bank', details: ['Direct RITS participant'] },
+  'dot-64': { title: 'Australian Military Bank', subtitle: 'ADCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-65': { title: 'Australian Mutual Bank', subtitle: 'SYCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-66': { title: 'B&E Ltd', subtitle: 'BEPB', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-67': { title: 'Bank Australia', subtitle: 'MECU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-68': { title: 'Beyond Bank Australia', subtitle: 'CCPS', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-69': { title: 'Credit Union Australia', subtitle: 'CUAL', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-70': { title: 'Defence Bank', subtitle: 'DEFB', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-71': { title: 'Gateway Bank', subtitle: 'GATE', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-72': { title: 'Hume Bank', subtitle: 'HUBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-73': { title: 'IMB', subtitle: 'IMBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-74': { title: 'Maitland Mutual', subtitle: 'MMBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-75': { title: 'Members Banking Group', subtitle: 'QTCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-76': { title: 'MyState Bank', subtitle: 'MSFL', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-77': { title: 'Newcastle Greater Mutual', subtitle: 'NEWC', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-78': { title: 'Police & Nurses', subtitle: 'PNCS', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-79': { title: 'Police Bank', subtitle: 'PCUL', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-80': { title: 'Police Financial Services', subtitle: 'PACC', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-81': { title: 'QPCU', subtitle: 'QPCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-82': { title: 'Queensland Country Bank', subtitle: 'QCCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-83': { title: 'Regional Australia Bank', subtitle: 'NECU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-84': { title: 'Teachers Mutual Bank', subtitle: 'TMBL', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-85': { title: 'Unity Bank', subtitle: 'SGCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+  'dot-86': { title: 'Victoria Teachers', subtitle: 'VTCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
 
   // Specialised ADIs (87-88)
   'dot-87': {
     title: 'Wise Australia',
-    subtitle: 'Wise Australia Pty Limited',
-    description: 'International money transfer and multi-currency account provider',
+    subtitle: 'WISE',
+    description: 'Specialised ADI',
     details: [
-      'Specialised ADI licensed in 2021',
-      'Provides low-cost international transfers',
-      'FSS member for real-time payments',
-      'Part of Wise plc (formerly TransferWise)'
+      'International money transfer provider',
+      'FSS member'
     ]
   },
   'dot-88': {
     title: 'Tyro Payments',
-    subtitle: 'Tyro Payments Limited',
-    description: 'Australian fintech providing EFTPOS and business banking',
+    subtitle: 'MONY',
+    description: 'Specialised ADI',
     details: [
-      'Specialised ADI focused on merchant services',
-      'Leading independent EFTPOS provider',
-      'Provides integrated payment solutions for SMEs',
-      'Listed on ASX'
+      'EFTPOS and merchant services provider'
     ]
   },
 
   // Other ADIs (89-91)
   'dot-89': {
     title: 'Australian Settlements',
-    subtitle: 'Australian Settlements Limited',
-    description: 'Clearing and settlement services provider',
+    subtitle: 'ASLL',
+    description: 'Other ADI',
     details: [
-      'Provides settlement services to financial institutions',
-      'FSS member for real-time payments',
-      'Part of Cuscal group'
+      'Clearing and settlement services',
+      'FSS member'
     ]
   },
   'dot-90': {
     title: 'CUSCAL',
-    subtitle: 'CUSCAL Limited',
-    description: 'Payment services provider for mutual ADIs',
+    subtitle: 'CUFS',
+    description: 'Other ADI',
     details: [
-      'Provides payment infrastructure to credit unions and building societies',
-      'FSS member for real-time payments',
-      'Operates shared payment systems',
-      'Largest mutual ADI payments provider'
+      'Payment infrastructure for credit unions',
+      'FSS member'
     ]
   },
   'dot-91': {
     title: 'Indue',
-    subtitle: 'Indue Ltd',
-    description: 'Payment solutions provider for financial institutions',
+    subtitle: 'INDU',
+    description: 'Other ADI',
     details: [
-      'Provides payment services to credit unions and mutual banks',
-      'FSS member for real-time payments',
-      'Operates payment processing infrastructure',
-      'Services over 40 financial institutions'
+      'Payment services for mutual banks',
+      'FSS member'
     ]
   },
 
   // PSPs (92-95)
   'dot-92': {
-    title: 'Mastercard',
-    subtitle: 'Mastercard Asia/Pacific Pte. Ltd.',
-    description: 'Global payment network operator',
+    title: 'Adyen Australia',
+    subtitle: 'ADYE',
+    description: 'Payment Service Provider',
     details: [
-      'Operates international card payment network',
-      'Non-ADI ESA holder',
-      'Provides clearing and settlement for card transactions'
+      'Global payment platform'
     ]
   },
   'dot-93': {
-    title: 'Visa',
-    subtitle: 'Visa AP (Australia) Pty Ltd',
-    description: 'Global payment technology company',
+    title: 'EFTEX',
+    subtitle: 'ETXL',
+    description: 'Payment Service Provider',
     details: [
-      'Operates international card payment network',
-      'Non-ADI ESA holder',
-      'Facilitates electronic funds transfers worldwide'
+      'Payment processing'
     ]
   },
   'dot-94': {
-    title: 'eftpos Australia',
-    subtitle: 'eftpos Payments Australia Limited',
-    description: 'Australian domestic debit card network',
+    title: 'First Data Network',
+    subtitle: 'CSCD',
+    description: 'Payment Service Provider',
     details: [
-      'Operates Australia\'s domestic debit network',
-      'Non-ADI ESA holder',
-      'Owned by Australian Payments Plus'
+      'Payment processing services'
     ]
   },
   'dot-95': {
-    title: 'Citigroup Global Markets',
-    subtitle: 'Citigroup Global Markets Australia Pty Limited',
-    description: 'Investment banking and securities services',
+    title: 'Citigroup',
+    subtitle: 'CITI',
+    description: 'Payment Service Provider',
     details: [
-      'Uses settlement agent for RITS access',
-      'Provides securities and trading services',
-      'Part of Citigroup Inc.'
+      'Uses settlement agent'
     ]
   },
 
   // CS - Clearing and Settlement (96-98)
   'dot-96': {
     title: 'ASX Clearing',
-    subtitle: 'ASX Clearing Corporation Limited',
-    description: 'Central counterparty for ASX markets',
+    subtitle: 'ASXC',
+    description: 'Clearing and Settlement facility',
     details: [
-      'Provides clearing services for ASX-listed securities',
-      'Non-ADI ESA holder',
-      'Manages counterparty risk'
+      'Central counterparty for ASX markets'
     ]
   },
   'dot-97': {
     title: 'ASX Settlement',
-    subtitle: 'ASX Settlement Pty Limited',
-    description: 'Securities settlement facility operator',
+    subtitle: 'ASTC',
+    description: 'Clearing and Settlement facility',
     details: [
-      'Operates CHESS settlement system',
-      'Non-ADI ESA holder',
-      'Settles ASX equity market transactions'
+      'Securities settlement operator'
     ]
   },
   'dot-98': {
-    title: 'Austraclear',
-    subtitle: 'Austraclear Limited',
-    description: 'Debt securities settlement and depository',
+    title: 'LCH Limited',
+    subtitle: 'LCHC',
+    description: 'Clearing and Settlement facility',
     details: [
-      'Settles wholesale debt and money market instruments',
-      'Non-ADI ESA holder',
-      'Operated by ASX',
-      'Holds over $2 trillion in securities'
+      'Central counterparty clearing house'
+    ]
+  },
+
+  // CLS (99)
+  'dot-99': {
+    title: 'CLS Bank',
+    subtitle: 'CLSB',
+    description: 'Continuous Linked Settlement',
+    details: [
+      'Multi-currency FX settlement system'
     ]
   }
 };

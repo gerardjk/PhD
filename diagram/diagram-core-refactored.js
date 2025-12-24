@@ -526,7 +526,16 @@ function initializeDiagram() {
 
       // Calculate position on elliptical arc
       const circleX = arcCenterX + arcRadiusX * Math.cos(angle);
-      const circleY = arcCenterY + arcRadiusY * Math.sin(angle);
+      let circleY = arcCenterY + arcRadiusY * Math.sin(angle);
+
+      // Move Specialised ADIs (87-88) up by 5 pixels
+      if (i === 87 || i === 88) {
+        circleY -= 5;
+      }
+      // Move Other ADIs (89-91) up by 5 pixels
+      if (i >= 89 && i <= 91) {
+        circleY -= 5;
+      }
 
       // Skip blue lines for specified dots (Settlement Agent = TRUE means no direct line to RITS)
       // Foreign Branches with settlement agents: 32-45
@@ -717,12 +726,16 @@ function initializeDiagram() {
           // All dots - append normally so higher indices are on top of lower indices
           circlesGroup.appendChild(circle);
 
-          // Make Foreign Branch dots (1-45) interactive
+          // Give all dots data-interactive-id for highlighting
+          const dotId = `dot-${i}`;
+          circle.setAttribute('data-interactive-id', dotId);
+
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(circle, dotId);
+          }
+
+          // Store the hit area radius for Foreign Branch dots (1-45)
           if (i >= 1 && i <= 45) {
-            const dotId = `dot-${i}`;
-            // Give visible circle the data-interactive-id so it glows when highlighted
-            circle.setAttribute('data-interactive-id', dotId);
-            // Store the hit area radius for distance-based detection
             if (!window.foreignBranchHitRadius) {
               window.foreignBranchHitRadius = blueRadius * 3;
             }
@@ -6542,6 +6555,13 @@ function initializeDiagram() {
         } else {
           innerCircleX = arcCenterX + (arcRadiusX - innerOffset) * Math.cos(angle);
           innerCircleY = arcCenterY + (arcRadiusY - innerOffset) * Math.sin(angle);
+          // Apply same vertical offset for Specialised ADIs (87) and Other ADIs (89-91)
+          if (i === 87) {
+            innerCircleY -= 5;
+          }
+          if (i >= 89 && i <= 91) {
+            innerCircleY -= 5;
+          }
         }
 
         // Create orange line from orange dot to center of small orange circle
@@ -6578,6 +6598,9 @@ function initializeDiagram() {
         // (RBA at i=0 uses 'rba-yellow-dot' instead, set via makeInteractive above)
         if (i !== 0) {
           orangeCircle.setAttribute('data-interactive-id', `yellow-dot-${i}`);
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(orangeCircle, `yellow-dot-${i}`);
+          }
         }
       }
 
@@ -6670,15 +6693,15 @@ function initializeDiagram() {
         } else if (i === 89) {
           // Australian Settlements - Other ADI
           labelX = actualCircleX + 25;
-          labelY = actualCircleY - 2;
+          labelY = actualCircleY - 5;  // Shifted up by 3 pixels
         } else if (i === 90) {
           // CUSCAL - Other ADI
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 4;
+          labelY = actualCircleY + 1;  // Shifted up by 3 pixels
         } else if (i === 91) {
           // Indue Ltd - Other ADI
           labelX = actualCircleX + 25;
-          labelY = actualCircleY + 9;
+          labelY = actualCircleY + 6;  // Shifted up by 3 pixels
         } else if (i === 92) {
           // Adyen Australia - align with dot
           labelX = actualCircleX + 25;
@@ -7786,7 +7809,7 @@ function initializeDiagram() {
         const innerPadding = 10;
         const innerLeftPadding = 60; // Increased to move left edge left
         const innerTopPadding = 30;
-        const innerBottomPadding = 6; // One extra pixel
+        const innerBottomPadding = 11; // Moved down 5 pixels
         const innerRightPadding = 284;
 
         const adiRect = createStyledRect(
@@ -7950,7 +7973,7 @@ function initializeDiagram() {
         // Use even smaller padding for the green rectangle
         const greenLeftPadding = 100;
         const greenTopPadding = 10; // Increased by 1 pixel to move top up
-        const greenBottomPadding = 3; // Decreased by 1 pixel
+        const greenBottomPadding = 16; // Increased by 13 pixels to include all dots
         const greenRightPadding = 280;
 
         const greenRect = createStyledRect(
@@ -8006,90 +8029,6 @@ function initializeDiagram() {
           makeInteractive(domesticBanksText, 'domestic-banks-box');
         }
 
-        // Create distance-based hover overlay for Domestic Banks dots (52-86)
-        const hitRadius4 = 15;
-        const overlayPadding4 = hitRadius4 + 5;
-        const domesticBanksOverlay = createStyledRect(
-          minX4 - overlayPadding4 - dotRadius,
-          minY4 - overlayPadding4 - dotRadius,
-          (maxX4 - minX4) + overlayPadding4 * 2 + dotRadius * 2,
-          (maxY4 - minY4) + overlayPadding4 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        domesticBanksOverlay.style.pointerEvents = 'all';
-        domesticBanksOverlay.style.cursor = 'default';
-        domesticBanksOverlay.id = 'domestic-banks-hover-overlay';
-
-        let currentHighlightedDot4 = null;
-
-        domesticBanksOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i = 52; i <= 86; i++) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius4) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot4) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot4 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              domesticBanksOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
-                relatedElements.add(`yellow-line-${closestDot}`);
-                relatedElements.add(`yellow-dot-${closestDot}`);
-              }
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              domesticBanksOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        domesticBanksOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot4 = null;
-          domesticBanksOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(domesticBanksOverlay);
       }
 
       // Add fifth rectangle for Group 2 (dots 1-45)
@@ -8158,112 +8097,8 @@ function initializeDiagram() {
           makeInteractive(foreignBranchesText, 'foreign-branches-box');
         }
 
-        // Create distance-based hover overlay for Foreign Branch dots (1-45)
-        // This ensures the closest dot is highlighted when hit areas overlap
-        const hitRadius = window.foreignBranchHitRadius || 10;
-        const overlayPadding = hitRadius + 5;
-        const foreignBranchOverlay = createStyledRect(
-          minX5 - overlayPadding - dotRadius,
-          minY5 - overlayPadding - dotRadius,
-          (maxX5 - minX5) + overlayPadding * 2 + dotRadius * 2,
-          (maxY5 - minY5) + overlayPadding * 2 + dotRadius * 2,
-          {
-            fill: 'transparent',
-            stroke: 'none'
-          }
-        );
-        foreignBranchOverlay.style.pointerEvents = 'all';
-        foreignBranchOverlay.style.cursor = 'default';
-        foreignBranchOverlay.id = 'foreign-branch-hover-overlay';
-
-        // Track currently highlighted dot to avoid redundant updates
-        let currentHighlightedDot = null;
-
-        foreignBranchOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-
-          // Get mouse position in SVG coordinates
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          // Find closest Foreign Branch dot (indices 1-45)
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i = 1; i <= 45; i++) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-
-              if (distance < closestDistance && distance <= hitRadius) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          // Update highlighting if closest dot changed
-          if (closestDot !== currentHighlightedDot) {
-            // Clear previous highlights
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-
-            currentHighlightedDot = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              foreignBranchOverlay.style.cursor = 'pointer';
-
-              // Show tooltip
-              if (window.showTooltip) window.showTooltip(dotId, event);
-
-              // Highlight dot and related elements
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-
-              // Check if this dot has a yellow line/dot (FSS members)
-              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
-                relatedElements.add(`yellow-line-${closestDot}`);
-                relatedElements.add(`yellow-dot-${closestDot}`);
-              }
-
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              foreignBranchOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            // Update tooltip position for currently highlighted dot
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        foreignBranchOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot = null;
-          foreignBranchOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        // Add overlay on top of everything in the Foreign Branch region
-        labelsGroup.appendChild(foreignBranchOverlay);
       }
+
 
       // Add sixth rectangle for Group 3 (dots 46-51)
       let minX6 = null, minY6 = null, maxX6 = null, maxY6 = null;
@@ -8331,91 +8166,8 @@ function initializeDiagram() {
           makeInteractive(foreignSubsText, 'foreign-subsidiaries-box');
         }
 
-        // Create distance-based hover overlay for Foreign Subsidiaries dots (46-51)
-        const hitRadius6 = 15;
-        const overlayPadding6 = hitRadius6 + 5;
-        const foreignSubsOverlay = createStyledRect(
-          minX6 - overlayPadding6 - dotRadius,
-          minY6 - overlayPadding6 - dotRadius,
-          (maxX6 - minX6) + overlayPadding6 * 2 + dotRadius * 2,
-          (maxY6 - minY6) + overlayPadding6 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        foreignSubsOverlay.style.pointerEvents = 'all';
-        foreignSubsOverlay.style.cursor = 'default';
-        foreignSubsOverlay.id = 'foreign-subs-hover-overlay';
-
-        let currentHighlightedDot6 = null;
-
-        foreignSubsOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i = 46; i <= 51; i++) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius6) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot6) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot6 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              foreignSubsOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
-                relatedElements.add(`yellow-line-${closestDot}`);
-                relatedElements.add(`yellow-dot-${closestDot}`);
-              }
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              foreignSubsOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        foreignSubsOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot6 = null;
-          foreignSubsOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(foreignSubsOverlay);
       }
+
 
       // Add seventh rectangle for Group 5a - Specialised ADIs (dots 87, 88)
       let minX7 = null, minY7 = null, maxX7 = null, maxY7 = null;
@@ -8432,7 +8184,7 @@ function initializeDiagram() {
 
       if (minX7 !== null && maxX7 !== null) {
         // Use tight padding for Group 5a rectangle
-        const group5aLeftPadding = 8;
+        const group5aLeftPadding = 10;  // Moved left 2 pixels
         const group5aTopPadding = 9;
         const group5aBottomPadding = 4;  // Added 3 pixels
         const group5aRightPadding = 295;  // Same as group 4
@@ -8483,91 +8235,8 @@ function initializeDiagram() {
           makeInteractive(specialisedADIsText, 'specialised-adis-box');
         }
 
-        // Create distance-based hover overlay for Specialised ADIs dots (87-88)
-        const hitRadius7 = 15;
-        const overlayPadding7 = hitRadius7 + 5;
-        const specialisedADIsOverlay = createStyledRect(
-          minX7 - overlayPadding7 - dotRadius,
-          minY7 - overlayPadding7 - dotRadius,
-          (maxX7 - minX7) + overlayPadding7 * 2 + dotRadius * 2,
-          (maxY7 - minY7) + overlayPadding7 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        specialisedADIsOverlay.style.pointerEvents = 'all';
-        specialisedADIsOverlay.style.cursor = 'default';
-        specialisedADIsOverlay.id = 'specialised-adis-hover-overlay';
-
-        let currentHighlightedDot7 = null;
-
-        specialisedADIsOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i of [87, 88]) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius7) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot7) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot7 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              specialisedADIsOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
-                relatedElements.add(`yellow-line-${closestDot}`);
-                relatedElements.add(`yellow-dot-${closestDot}`);
-              }
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              specialisedADIsOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        specialisedADIsOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot7 = null;
-          specialisedADIsOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(specialisedADIsOverlay);
       }
+
 
       // Add eighth rectangle for Group 5b - Other ADIs (dots 89-91)
       let minX8 = null, minY8 = null, maxX8 = null, maxY8 = null;
@@ -8584,9 +8253,9 @@ function initializeDiagram() {
 
       if (minX8 !== null && maxX8 !== null) {
         // Use tight padding for Group 5b rectangle
-        const group5bLeftPadding = 3;
-        const group5bTopPadding = 7;  // Increased by 1 pixel (was 6, now 7)
-        const group5bBottomPadding = 3;
+        const group5bLeftPadding = 12;  // Moved left 9 pixels
+        const group5bTopPadding = 10;  // Increased by 3 pixels (was 7, now 10)
+        const group5bBottomPadding = 8;  // Moved down 6 pixels
         const group5bRightPadding = 281;  // Same as group 4
 
         const group5bRect = createStyledRect(
@@ -8618,15 +8287,16 @@ function initializeDiagram() {
         const group5bRectWidth = parseFloat(group5bRect.getAttribute('width'));
         const group5bRectHeight = parseFloat(group5bRect.getAttribute('height'));
 
-        // Position near bottom edge, same as Domestic Banks
+        // Position vertically centered in the box, moved up 1 pixel
         const otherADIsText = createStyledText(
           group5bRectX + group5bRectWidth - 15,
-          group5bRectY + group5bRectHeight - 15,
+          group5bRectY + group5bRectHeight / 2 - 1,
           'Other ADIs',
           {
             textAnchor: 'end',
             fill: '#ffe0f7', // Light version (swapped text color)
-            fontSize: '13' // Between 12 and 14
+            fontSize: '13', // Between 12 and 14
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(otherADIsText);
@@ -8634,91 +8304,8 @@ function initializeDiagram() {
           makeInteractive(otherADIsText, 'other-adis-box');
         }
 
-        // Create distance-based hover overlay for Other ADIs dots (89-91)
-        const hitRadius8 = 15;
-        const overlayPadding8 = hitRadius8 + 5;
-        const otherADIsOverlay = createStyledRect(
-          minX8 - overlayPadding8 - dotRadius,
-          minY8 - overlayPadding8 - dotRadius,
-          (maxX8 - minX8) + overlayPadding8 * 2 + dotRadius * 2,
-          (maxY8 - minY8) + overlayPadding8 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        otherADIsOverlay.style.pointerEvents = 'all';
-        otherADIsOverlay.style.cursor = 'default';
-        otherADIsOverlay.id = 'other-adis-hover-overlay';
-
-        let currentHighlightedDot8 = null;
-
-        otherADIsOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i of [89, 90, 91]) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius8) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot8) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot8 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              otherADIsOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              if (window.yellowLinesByDot && window.yellowLinesByDot[closestDot]) {
-                relatedElements.add(`yellow-line-${closestDot}`);
-                relatedElements.add(`yellow-dot-${closestDot}`);
-              }
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              otherADIsOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        otherADIsOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot8 = null;
-          otherADIsOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(otherADIsOverlay);
       }
+
 
       // Add ninth rectangle for entire Group 6 (dots 92-99)
       let minX9 = null, minY9 = null, maxX9 = null, maxY9 = null;
@@ -8753,7 +8340,7 @@ function initializeDiagram() {
           // Use the same left padding as ADI rect
           const innerLeftPadding = 60; // Match the ADI box
           const innerTopPadding = 30;
-          const innerBottomPadding = 7; // Match the ADI box
+          const innerBottomPadding = 10; // Match the ADI box
           const innerRightPadding = 284;
 
           // Calculate ADI box position
@@ -9083,7 +8670,7 @@ function initializeDiagram() {
 
           // Calculate dimensions to enclose dots 92-99
           const rectWidth = (maxX9 - minX9) + 20 + 270 + dotRadius * 2; // Reduced right padding from 300 to 150
-          const rectY = adiBoxY + adiBoxHeight + 2; // Further reduced gap to raise top edge
+          const rectY = adiBoxY + adiBoxHeight + 4; // Moved down 2 pixels
 
           // Calculate height to reach just above ESA box bottom
           // CLS (dot 99) is the lowest dot, so we need to ensure it's enclosed
@@ -9351,87 +8938,8 @@ function initializeDiagram() {
           makeInteractive(pspsText, 'psps-box');
         }
 
-        // Create distance-based hover overlay for PSPs dots (92-95)
-        const hitRadius10 = 20;
-        const overlayPadding10 = hitRadius10 + 5;
-        const pspsOverlay = createStyledRect(
-          minX10 - overlayPadding10 - dotRadius,
-          minY10 - overlayPadding10 - dotRadius,
-          (maxX10 - minX10) + overlayPadding10 * 2 + dotRadius * 2,
-          (maxY10 - minY10) + overlayPadding10 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        pspsOverlay.style.pointerEvents = 'all';
-        pspsOverlay.style.cursor = 'default';
-        pspsOverlay.id = 'psps-hover-overlay';
-
-        let currentHighlightedDot10 = null;
-
-        pspsOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i = 92; i <= 95; i++) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius10) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot10) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot10 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              pspsOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              pspsOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        pspsOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot10 = null;
-          pspsOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(pspsOverlay);
       }
+
 
       // Add eleventh rectangle for green-bordered dots (dots 96-98)
       let minX11 = null, minY11 = null, maxX11 = null, maxY11 = null;
@@ -9449,7 +8957,7 @@ function initializeDiagram() {
       if (minX11 !== null && maxX11 !== null) {
         // Use tight padding for green-bordered dots rectangle
         const greenBorderLeftPadding = -25 + 2 - 1 - 3 + 1 + 1; // Slight left adjustment + 2px left padding - 1px to reduce left margin - 3px additional trim + 1px increase + 1px extra left padding
-        const greenBorderTopPadding = 8 + 2 - 1; // Increased headroom + 2px additional padding - 1px reduction
+        const greenBorderTopPadding = 8 + 2 - 1 - 1; // Increased headroom + 2px additional padding - 1px reduction - 1px to move top down
         const greenBorderBottomPadding = 10 + 2 - 2 + 1 - 1 - 3 + 1; // Increased headroom + 2px additional padding - 2px reduction + 1px extra - 1px to reduce bottom margin - 3px additional trim + 1px bottom padding
         const greenBorderRightPadding = 300; // Reduced to bring right edge in
 
@@ -9502,87 +9010,8 @@ function initializeDiagram() {
           makeInteractive(csText, 'cs-box');
         }
 
-        // Create distance-based hover overlay for CS dots (96-98)
-        const hitRadius11 = 20;
-        const overlayPadding11 = hitRadius11 + 5;
-        const csOverlay = createStyledRect(
-          minX11 - overlayPadding11 - dotRadius,
-          minY11 - overlayPadding11 - dotRadius,
-          (maxX11 - minX11) + overlayPadding11 * 2 + dotRadius * 2,
-          (maxY11 - minY11) + overlayPadding11 * 2 + dotRadius * 2,
-          { fill: 'transparent', stroke: 'none' }
-        );
-        csOverlay.style.pointerEvents = 'all';
-        csOverlay.style.cursor = 'default';
-        csOverlay.id = 'cs-hover-overlay';
-
-        let currentHighlightedDot11 = null;
-
-        csOverlay.addEventListener('mousemove', (event) => {
-          const svg = document.getElementById('diagram');
-          if (!svg) return;
-          const pt = svg.createSVGPoint();
-          pt.x = event.clientX;
-          pt.y = event.clientY;
-          const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-          let closestDot = null;
-          let closestDistance = Infinity;
-
-          for (let i = 96; i <= 98; i++) {
-            if (window.dotPositions[i]) {
-              const dx = svgP.x - window.dotPositions[i].x;
-              const dy = svgP.y - window.dotPositions[i].y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < closestDistance && distance <= hitRadius11) {
-                closestDistance = distance;
-                closestDot = i;
-              }
-            }
-          }
-
-          if (closestDot !== currentHighlightedDot11) {
-            if (window.clearHighlights) window.clearHighlights();
-            if (window.hideTooltip) window.hideTooltip();
-            currentHighlightedDot11 = closestDot;
-
-            if (closestDot !== null) {
-              const dotId = `dot-${closestDot}`;
-              csOverlay.style.cursor = 'pointer';
-              if (window.showTooltip) window.showTooltip(dotId, event);
-              const relatedElements = window.getRelatedElements?.(dotId) || new Set([dotId]);
-              relatedElements.add(dotId);
-              relatedElements.add(`blue-line-${closestDot}`);
-              relatedElements.forEach(id => {
-                if (window.highlightElement) window.highlightElement(id);
-              });
-            } else {
-              csOverlay.style.cursor = 'default';
-            }
-          } else if (closestDot !== null) {
-            const tooltip = document.getElementById('diagram-tooltip');
-            if (tooltip && tooltip.style.opacity !== '0') {
-              const padding = 15;
-              let x = event.clientX + padding;
-              let y = event.clientY + padding;
-              const rect = tooltip.getBoundingClientRect();
-              if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - padding;
-              if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - padding;
-              tooltip.style.left = x + 'px';
-              tooltip.style.top = y + 'px';
-            }
-          }
-        });
-
-        csOverlay.addEventListener('mouseleave', () => {
-          currentHighlightedDot11 = null;
-          csOverlay.style.cursor = 'default';
-          if (window.hideTooltip) window.hideTooltip();
-          if (window.clearHighlights) window.clearHighlights();
-        });
-
-        labelsGroup.appendChild(csOverlay);
       }
+
 
     // === Adjust how far above/below the arc extends ===
     // Increase arcSpan to extend farther above/below; decrease to tighten it.
@@ -10339,7 +9768,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       // Use similar padding but slightly less
       const innerLeftPadding = 60; // Increased to move left edge left
       const innerTopPadding = 30;
-      const innerBottomPadding = 6; // Slightly increased to add extra bottom padding
+      const innerBottomPadding = 10; // Moved down 4 pixels
       const innerRightPadding = 284;
 
       const adiRect = createStyledRect(
