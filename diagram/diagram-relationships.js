@@ -150,13 +150,76 @@ const elementRelationships = {
       'lvss-line-apcs', 'lvss-line-becs', 'lvss-line-cshd', 'lvss-line-cecs', 'lvss-line-gabs'
     ]
   },
-  'cecs-box': {
+  // APCS box - triggers glowie group including LVSS gear, grey lines, Cheques box and connections
+  'apcs-box': {
     groups: ['lvss-ecosystem', 'clearing-settlement'],
-    related: ['lvss-circle', 'lvss-to-cecs']
+    related: ['lvss-gear-group', 'lvss-line-apcs', 'cheques-to-apcs-line', 'cheques-box', 'osko-to-adi-line']
   },
+
+  // BECS box - triggers glowie group including BECN, BECG, DE boxes and red lines
   'becs-box': {
     groups: ['lvss-ecosystem', 'clearing-settlement', 'direct-entry'],
-    related: ['lvss-circle', 'lvss-to-becs', 'becn-box', 'becg-box']
+    related: ['becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'de-box', 'directentry-to-adi-line', 'maroon-line-duplicate', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs']
+  },
+
+  // CECS box - triggers glowie group including LVSS gear, grey lines, IAC box and colored lines
+  'cecs-box': {
+    groups: ['lvss-ecosystem', 'clearing-settlement'],
+    related: [
+      'lvss-gear-group', 'lvss-line-cecs',
+      'cecs-to-iac-line-1', 'cecs-to-iac-line-2',
+      'direct-entry-stack-bounding-box',
+      'direct-entry-stack-line-blue', 'direct-entry-stack-line-yellow',
+      'direct-entry-stack-line-green', 'direct-entry-stack-line-brown'
+    ]
+  },
+
+  // IAC (Issuers and Acquirers Community) box - lights up CECS group and internal card boxes (Visa, Other Cards only)
+  'direct-entry-stack-bounding-box': {
+    groups: ['iac-ecosystem', 'clearing-settlement'],
+    related: [
+      'cecs-box', 'lvss-gear-group', 'lvss-line-cecs',
+      'cecs-to-iac-line-1', 'cecs-to-iac-line-2',
+      'direct-entry-stack-line-blue', 'direct-entry-stack-line-yellow',
+      'direct-entry-stack-line-green', 'direct-entry-stack-line-brown',
+      'visa-box', 'other-cards-box'
+    ]
+  },
+
+  // GABS box - triggers glowie group including LVSS gear, grey lines, and OPA box
+  'gabs-box': {
+    groups: ['lvss-ecosystem', 'clearing-settlement'],
+    related: ['lvss-gear-group', 'lvss-line-gabs', 'opa-box', 'opa-label']
+  },
+
+  // CSHD box - triggers glowie group including LVSS gear and grey lines
+  'cshd-box': {
+    groups: ['lvss-ecosystem', 'clearing-settlement'],
+    related: ['lvss-gear-group', 'lvss-line-cshd']
+  },
+
+  // Cheques box - triggers entire APCS group
+  'cheques-box': {
+    groups: ['apcs-ecosystem'],
+    related: ['apcs-box', 'lvss-gear-group', 'lvss-line-apcs', 'cheques-to-apcs-line', 'osko-to-adi-line']
+  },
+
+  // DE (Direct Entry) box - triggers entire BECS group plus BPAY
+  'de-box': {
+    groups: ['becs-ecosystem', 'direct-entry'],
+    related: ['becs-box', 'becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'directentry-to-adi-line', 'maroon-line-duplicate', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs', 'bpay-box']
+  },
+
+  // BECN box - lights up DE, BECN, BECS and associated lines
+  'becn-box': {
+    groups: ['becs-ecosystem', 'direct-entry'],
+    related: ['de-box', 'becs-box', 'becn-to-becs-line', 'lvss-gear-group', 'lvss-line-becs']
+  },
+
+  // BECG box - lights up DE, BECG, BECS and associated lines
+  'becg-box': {
+    groups: ['becs-ecosystem', 'direct-entry'],
+    related: ['de-box', 'becs-box', 'becg-to-becs-line', 'lvss-gear-group', 'lvss-line-becs']
   },
 
   // Example: ADI groups

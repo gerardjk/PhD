@@ -829,12 +829,12 @@ const tooltipContent = {
   },
   'cecs-box': {
     title: 'IAC',
-    subtitle: 'Industry Administered Clearing',
-    description: 'Clearing arrangements managed by industry bodies',
+    subtitle: 'Issuers and Acquirers Community',
+    description: 'Card payment schemes and clearing arrangements',
     details: [
-      'Various industry-specific clearing',
+      'Card payment clearing (eftpos, Mastercard, Visa)',
       'Settled through LVSS',
-      'Multiple clearing streams'
+      'Industry-managed clearing streams'
     ]
   },
   'becs-box': {
@@ -865,6 +865,17 @@ const tooltipContent = {
       'Government agency payments',
       'Settled through LVSS',
       'Managed by specific government arrangements'
+    ]
+  },
+  'cshd-box': {
+    title: 'CSHD',
+    subtitle: 'Cashcard High Value Direct Entry',
+    description: 'High-value direct entry clearing stream',
+    details: [
+      'Formerly operated by Cashcard Australia Limited',
+      'High-value electronic payments',
+      'Settled through LVSS',
+      'Now defunct or integrated into other systems'
     ]
   },
 

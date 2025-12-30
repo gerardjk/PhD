@@ -1885,9 +1885,13 @@ function initializeDiagram() {
           stroke: '#e5e7eb', // Light grey border matching APCS
           strokeWidth: '0.5',
           rx: '5',
-          ry: '5'
+          ry: '5',
+          id: 'cheques-box'
         });
         labelsGroup.appendChild(newChequesBox);
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(newChequesBox, 'cheques-box');
+        }
 
         // Store Cheques box data for line connections
         window.chequesBoxData = {
@@ -1921,7 +1925,8 @@ function initializeDiagram() {
           apcsTopY,
           {
             stroke: '#e5e7eb', // Match APCS border color
-            strokeWidth: '2'
+            strokeWidth: '2',
+            id: 'cheques-to-apcs-line'
           }
         );
         labelsGroup.insertBefore(chequesToApcsLine, newChequesBox);
@@ -2937,7 +2942,7 @@ function initializeDiagram() {
           const eftposY = baseEftposY + shift;
           const mastercardY = eftposY - gapSympliPexa - stackedHeight;
 
-          const createStackedRect = (y, fillColor, label, xOverride, heightOverride, fontSizeOverride) => {
+          const createStackedRect = (y, fillColor, label, xOverride, heightOverride, fontSizeOverride, id) => {
             // Reduce width by 20% for ATMs, Claims, Other Cards, and Visa boxes
             const isNarrowBox = ['ATMs', 'Claims', 'Other Cards', 'Visa'].includes(label);
 
@@ -2972,7 +2977,8 @@ function initializeDiagram() {
               stroke: label === 'eftpos' ? 'rgb(158,138,239)' : (label === 'Mastercard' ? 'rgb(255,120,120)' : (isNarrowBox ? '#ffffff' : 'none')), // rgb(158,138,239) border for eftpos, less pink more red for Mastercard, thin white for narrow boxes
               strokeWidth: (label === 'eftpos' || label === 'Mastercard') ? '2.5' : (isNarrowBox ? '0.5' : '0'), // Thicker border for eftpos and Mastercard
               rx: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8', // More rounded corners for eftpos and Mastercard to match BPAY
-              ry: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8'
+              ry: (label === 'eftpos' || label === 'Mastercard') ? '12' : '8',
+              id: id
             });
             labelsGroup.appendChild(rect);
 
@@ -3010,25 +3016,25 @@ function initializeDiagram() {
             });
           };
 
-          const eftpos = createStackedRect(eftposY, 'rgb(80,58,130)', 'eftpos');
+          const eftpos = createStackedRect(eftposY, 'rgb(80,58,130)', 'eftpos', undefined, undefined, undefined, 'eftpos-box');
 
           const eftposRect = eftpos.rect;
           const eftposActualX = parseFloat(eftposRect.getAttribute('x'));
 
-          const createAlignedRect = (y, fillColor, label) => {
-            return createStackedRect(y, fillColor, label, eftposActualX);
+          const createAlignedRect = (y, fillColor, label, id) => {
+            return createStackedRect(y, fillColor, label, eftposActualX, undefined, undefined, id);
           };
 
           const reducedHeight = stackedHeight * 0.81; // 10% less tall (was 0.9)
           const reducedFont = 11;
 
-          const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
+          const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard', 'mastercard-box');
           const visaGap = gapSympliPexa * 2;
           const gapHalf = gapSympliPexa / 2;
           const visaY = mastercardY - visaGap - reducedHeight;
-          const visa = createStackedRect(visaY, '#27AEE3', 'Other Cards', eftposActualX, reducedHeight, reducedFont);
+          const visa = createStackedRect(visaY, '#27AEE3', 'Other Cards', eftposActualX, reducedHeight, reducedFont, 'other-cards-box');
           const otherCardsY = mastercardY - gapHalf - reducedHeight;
-          const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont);
+          const otherCards = createStackedRect(otherCardsY, '#FFA500', 'Visa', eftposActualX, reducedHeight, reducedFont, 'visa-box');
           const medicareY = visaY - gapHalf - reducedHeight;
           const medicare = createStackedRect(medicareY, '#32cd32', 'Claims', eftposActualX, reducedHeight, reducedFont);
           const atmsY = medicareY - gapHalf - reducedHeight;
@@ -3639,7 +3645,8 @@ function initializeDiagram() {
               stroke: '#ffffff', // Very thin white edge
               strokeWidth: '0.5',
               rx: '6',
-              ry: '6'
+              ry: '6',
+              id: 'de-box'
             }
           );
 
@@ -3651,6 +3658,11 @@ function initializeDiagram() {
             width: containerWidth,
             height: stackHeaderHeight
           };
+
+          // Make DE box interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(stackHeaderRect, 'de-box');
+          }
 
           const stackHeaderText = createStyledText(
             containerX + containerWidth / 2,
@@ -3675,7 +3687,7 @@ function initializeDiagram() {
 
             window.cecsToAtmsBoundingLines = []; // Store both lines for later updates
 
-            lineOffsets.forEach((offset) => {
+            lineOffsets.forEach((offset, index) => {
               const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
               line.setAttribute('x1', lineEndX); // START at right edge of bounding box
               line.setAttribute('y1', (cshdCenterY + offset).toFixed(2));
@@ -3684,6 +3696,7 @@ function initializeDiagram() {
               line.setAttribute('stroke', lineColor);
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
+              line.setAttribute('id', `cecs-to-iac-line-${index + 1}`);
 
               // Add to admin lines group so lines appear behind all boxes
               adminLinesGroup.appendChild(line);
@@ -3709,6 +3722,11 @@ function initializeDiagram() {
             labelsGroup.insertBefore(stackHeaderRect, labelNextSibling);
             const headerRectNextSibling = stackHeaderRect.nextSibling;
             labelsGroup.insertBefore(stackHeaderText, headerRectNextSibling);
+          }
+
+          // Make IAC bounding box interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(stackBoundingRect, 'direct-entry-stack-bounding-box');
           }
 
 
@@ -5526,7 +5544,8 @@ function initializeDiagram() {
                     stroke: '#ffb8c8', // Pinker border
                     strokeWidth: '2.5',
                     rx: '4',
-                    ry: '4'
+                    ry: '4',
+                    id: 'becn-box'
                   }),
                   text: createStyledText(newHeaderX + boxWidth / 2, boxY + boxHeight / 2, 'BECN',
                     { fill: '#ffffff', fontSize: '12', dominantBaseline: 'middle' }),
@@ -5537,6 +5556,10 @@ function initializeDiagram() {
                 };
                 labelsGroup.appendChild(window.directEntryChild1.rect);
                 labelsGroup.appendChild(window.directEntryChild1.text);
+                // Make BECN box interactive
+                if (typeof makeInteractive === 'function') {
+                  makeInteractive(window.directEntryChild1.rect, 'becn-box');
+                }
               } else {
                 window.directEntryChild1.rect.setAttribute('x', newHeaderX.toFixed(2));
                 window.directEntryChild1.rect.setAttribute('y', boxY.toFixed(2));
@@ -5559,7 +5582,8 @@ function initializeDiagram() {
                     stroke: '#ff0000',  // Bright red border (from GABS)
                     strokeWidth: '2.5', // Match BECN border width
                     rx: '4',
-                    ry: '4'
+                    ry: '4',
+                    id: 'becg-box'
                   }),
                   text: createStyledText(box2X + boxWidth / 2, boxY + boxHeight / 2, 'BECG',
                     { fill: '#FFFFFF', fontSize: '12', dominantBaseline: 'middle' }),  // White text (from GABS)
@@ -5570,6 +5594,10 @@ function initializeDiagram() {
                 };
                 labelsGroup.appendChild(window.directEntryChild2.rect);
                 labelsGroup.appendChild(window.directEntryChild2.text);
+                // Make BECG box interactive
+                if (typeof makeInteractive === 'function') {
+                  makeInteractive(window.directEntryChild2.rect, 'becg-box');
+                }
               } else {
                 window.directEntryChild2.rect.setAttribute('x', box2X.toFixed(2));
                 window.directEntryChild2.rect.setAttribute('y', boxY.toFixed(2));
@@ -5591,7 +5619,8 @@ function initializeDiagram() {
                 stroke: 'rgb(158,138,239)', // Light purple border
                 strokeWidth: '2.5',
                 rx: '12',
-                ry: '12'
+                ry: '12',
+                id: 'bpay-box'
               });
               labelsGroup.appendChild(bpayBox);
 
@@ -5686,6 +5715,7 @@ function initializeDiagram() {
                 becnToBecsPath.setAttribute('stroke-width', '4');
                 becnToBecsPath.setAttribute('fill', 'none');
                 becnToBecsPath.setAttribute('stroke-linecap', 'round');
+                becnToBecsPath.setAttribute('id', 'becn-to-becs-line');
                 labelsGroup.insertBefore(becnToBecsPath, labelsGroup.firstChild);
 
                 // BECG to BECS curved line
@@ -5702,6 +5732,7 @@ function initializeDiagram() {
                 becgToBecsPath.setAttribute('stroke-width', '4');
                 becgToBecsPath.setAttribute('fill', 'none');
                 becgToBecsPath.setAttribute('stroke-linecap', 'round');
+                becgToBecsPath.setAttribute('id', 'becg-to-becs-line');
                 labelsGroup.insertBefore(becgToBecsPath, labelsGroup.firstChild);
               }
             }
@@ -8573,7 +8604,24 @@ function initializeDiagram() {
                   if (!element || !text) return;
                   element.textContent = '';
                   let index = 0;
+                  let skipTypewriter = false;
+
+                  // Allow skipping with click or key press
+                  const skipHandler = () => {
+                    skipTypewriter = true;
+                    element.textContent = text;
+                  };
+
+                  const clickListener = document.addEventListener('click', skipHandler, { once: true });
+                  const keyListener = document.addEventListener('keydown', skipHandler, { once: true });
+
                   const step = () => {
+                    if (skipTypewriter) {
+                      element.textContent = text;
+                      index = text.length;
+                      return;
+                    }
+
                     if (index < text.length) {
                       element.textContent += text.charAt(index);
                       index += 1;
@@ -9932,7 +9980,24 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
   // Typewriter effect
   let charIndex = 0;
   const typeSpeed = 50; // milliseconds per character
+  let skipAnimation = false;
+
+  // Allow skipping animation with click or any key press
+  const skipAnimationHandler = () => {
+    skipAnimation = true;
+    titleText.textContent = fullTitle;
+    charIndex = fullTitle.length;
+  };
+
+  document.addEventListener('click', skipAnimationHandler, { once: true });
+  document.addEventListener('keydown', skipAnimationHandler, { once: true });
+
   function typeWriter() {
+    if (skipAnimation) {
+      titleText.textContent = fullTitle;
+      charIndex = fullTitle.length;
+    }
+
     if (charIndex < fullTitle.length) {
       titleText.textContent += fullTitle.charAt(charIndex);
       charIndex += 1;

@@ -458,7 +458,7 @@ function highlightElement(elementId) {
 
     if (tagName === 'rect') {
       // For boxes/rectangles, use a moderate glow
-      element.style.filter = 'brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.65))';
+      element.style.filter = 'brightness(1.4) drop-shadow(0 0 10px rgba(255,255,255,0.6)) drop-shadow(0 0 5px rgba(255,255,255,0.6))';
       element.style.opacity = '1';
     } else if (tagName === 'circle') {
       // Check if this is a small dot that needs a glow circle

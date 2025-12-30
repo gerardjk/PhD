@@ -22,7 +22,12 @@ function createStyledRect(x, y, width, height, options = {}) {
   if (options.ry !== undefined) {
     rect.setAttribute('ry', options.ry);
   }
-  
+
+  // Optional ID
+  if (options.id) {
+    rect.setAttribute('id', options.id);
+  }
+
   return rect;
 }
 
@@ -44,7 +49,10 @@ function createStyledText(x, y, textContent, options = {}) {
   text.setAttribute('font-family', options.fontFamily || 'Arial, sans-serif');
   text.setAttribute('font-size', options.fontSize || '12');
   text.setAttribute('font-weight', options.fontWeight || 'bold');
-  
+
+  // Make text not block pointer events so hover works on boxes beneath
+  text.setAttribute('pointer-events', 'none');
+
   return text;
 }
 
