@@ -1,0 +1,33 @@
+\frametitle{Algorithm Design}
+\begin{columns}
+        \begin{column}{0.55\textwidth}
+            \begin{lstlisting}[language=Python, caption=Core Consensus Algorithm]
+def consensus(value, nodes):
+    # Phase 1: Propose
+    proposals = broadcast(value, nodes)
+
+    # Phase 2: Vote
+    votes = collect_votes(proposals)
+    if len(votes) > 2*f + 1:
+        # Phase 3: Commit
+        return commit(votes)
+    else:
+        return retry()
+            \end{lstlisting}
+        \end{column}
+
+        \begin{column}{0.4\textwidth}
+            \emphtext{Complexity Analysis:}
+            \begin{itemize}
+                \item Time: $O(n \cdot f)$
+                \item Space: $O(n^2)$
+                \item Messages: $O(n^2)$
+            \end{itemize}
+
+            \vspace{0.5em}
+
+            \begin{block}{Optimization}
+                Using threshold signatures reduces message complexity to $O(n)$.
+            \end{block}
+        \end{column}
+    \end{columns}
