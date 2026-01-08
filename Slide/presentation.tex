@@ -142,90 +142,18 @@
 \setbeamertemplate{navigation symbols}{} % Remove navigation symbols
 \setbeamertemplate{background canvas}{
     \begin{tikzpicture}[remember picture,overlay]
-        % Dark base background for high contrast
-        \fill[black!90] (current page.south west) rectangle (current page.north east);
-
-        % Dramatic gradient overlay
-        \shade[top color=blue!30!black, bottom color=purple!50!black]
-            (current page.south west) rectangle (current page.north east);
-
-        % HUGE dramatic liquid waves with vibrant colors
-
-        % Bottom massive wave - Deep ocean blue
-        \fill[blue!60!cyan]
-            (current page.south west) --
-            ++(0,7cm)
-            .. controls ++(4cm,3cm) and ++(-4cm,3cm) .. ++(8cm,-1cm)
-            .. controls ++(3cm,-2cm) and ++(-3cm,4cm) .. ++(6cm,2cm)
-            .. controls ++(4cm,1cm) and ++(-2cm,3cm) .. ++(7cm,-1cm)
-            -- (current page.south east) -- cycle;
-
-        % Second layer - Vibrant purple wave
-        \fill[purple!70!blue, opacity=0.9]
-            ([yshift=3cm]current page.south west) --
-            ++(0,5cm)
-            .. controls ++(5cm,4cm) and ++(-3cm,2cm) .. ++(9cm,1cm)
-            .. controls ++(4cm,-3cm) and ++(-4cm,5cm) .. ++(8cm,0cm)
-            .. controls ++(3cm,2cm) and ++(-2cm,1cm) .. ++(6cm,-2cm)
-            -- ([yshift=3cm]current page.south east) -- cycle;
-
-        % Middle dramatic wave - Electric magenta
-        \fill[magenta!60!blue, opacity=0.8]
-            (current page.west) --
-            ++(0,6cm)
-            .. controls ++(6cm,5cm) and ++(-5cm,3cm) .. ++(10cm,-2cm)
-            .. controls ++(5cm,-4cm) and ++(-3cm,6cm) .. ++(8cm,3cm)
-            .. controls ++(4cm,1cm) and ++(-2cm,2cm) .. ++(7cm,-3cm)
-            -- (current page.east) -- cycle;
-
-        % Top wave - Bright cyan cascade
-        \fill[cyan!80!white, opacity=0.7]
-            ([yshift=-3cm]current page.north west) --
-            ++(0,-5cm)
-            .. controls ++(4cm,-4cm) and ++(-3cm,-2cm) .. ++(8cm,1cm)
-            .. controls ++(5cm,3cm) and ++(-4cm,-5cm) .. ++(9cm,-2cm)
-            .. controls ++(3cm,-1cm) and ++(-2cm,-3cm) .. ++(6cm,2cm)
-            -- ([yshift=-3cm]current page.north east) -- cycle;
-
-        % Extra floating liquid blobs for depth
-        \fill[blue!40!cyan, opacity=0.6]
-            ([xshift=3cm,yshift=4cm]current page.center)
-            .. controls ++(2cm,3cm) and ++(4cm,-2cm) .. ++(6cm,1cm)
-            .. controls ++(-1cm,2cm) and ++(-3cm,1cm) .. ++(-5cm,-2cm)
-            .. controls ++(-2cm,-3cm) and ++(1cm,-1cm) .. cycle;
-
-        \fill[purple!50!magenta, opacity=0.5]
-            ([xshift=-5cm,yshift=-2cm]current page.center)
-            .. controls ++(3cm,2cm) and ++(2cm,-3cm) .. ++(5cm,0cm)
-            .. controls ++(-2cm,4cm) and ++(-4cm,1cm) .. ++(-3cm,-3cm)
-            .. controls ++(-1cm,-2cm) and ++(2cm,0cm) .. cycle;
-
-        % Large glowing bubbles
-        \foreach \x/\y/\s in {2/3/0.8, 8/5/0.6, 14/2/0.7, 10/7/0.5, 5/8/0.9, 16/4/0.6, 3/6/0.4, 12/3/0.7} {
-            \fill[white, opacity=0.3] (\x,\y) circle (\s);
-            \fill[cyan!50!white, opacity=0.5] (\x,\y) circle (\s*0.8);
-            \fill[white, opacity=0.8] ([xshift=-0.2cm,yshift=0.2cm]\x,\y) circle (\s*0.3);
-        }
-
-        % Dramatic light streak across the top
-        \fill[white, opacity=0.25]
-            ([xshift=1cm,yshift=-1cm]current page.north west)
-            .. controls ++(6cm,-2cm) and ++(-8cm,1cm) .. ++(14cm,-1cm)
-            .. controls ++(3cm,1cm) and ++(-2cm,2cm) .. ++(5cm,0cm)
-            -- ([yshift=-0.5cm]current page.north east)
-            -- ([yshift=-3cm]current page.north east)
-            .. controls ++(-4cm,-1cm) and ++(3cm,-2cm) .. ++(-8cm,1cm)
-            .. controls ++(-5cm,2cm) and ++(2cm,1cm) .. ++(-10cm,0cm) -- cycle;
+        % Plain white background
+        \fill[white] (current page.south west) rectangle (current page.north east);
     \end{tikzpicture}
 }
 \begin{frame}[plain,noframenumbering]
     \vspace{1cm}
     \begin{center}
-        {\Huge \textbf{\textcolor{white}{\inserttitle}}}\\[1em]
-        {\Large \textcolor{cyan!80!white}{\insertsubtitle}}\\[2em]
-        {\large \textcolor{white!90}{\insertauthor}}\\[0.5em]
-        {\textcolor{white!80}{\insertinstitute}}\\[1em]
-        {\textcolor{white!80}{\insertdate}}
+        {\Huge \textbf{\textcolor{tikzblue}{\inserttitle}}}\\[1em]
+        {\Large \textcolor{tikzpurple}{\insertsubtitle}}\\[2em]
+        {\large \textcolor{black}{\insertauthor}}\\[0.5em]
+        {\textcolor{tikzgray}{\insertinstitute}}\\[1em]
+        {\textcolor{tikzgray}{\insertdate}}
     \end{center}
 \end{frame}
 \endgroup

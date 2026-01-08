@@ -1,0 +1,40 @@
+\documentclass[20pt, a1paper, portrait]{tikzposter}
+\usepackage[utf8]{inputenc}
+
+\title{Sample: Default Theme + Default Colors}
+\author{Your Name}
+\institute{Your Institution}
+
+\usetheme{Default}
+\usecolorstyle{Default}
+
+\begin{document}
+\maketitle
+
+\block{Introduction}{
+    This is the \textbf{Default} theme with \textbf{Default} color style. It has a clean, professional look suitable for most academic posters.
+}
+
+\begin{columns}
+    \column{0.5}
+    \block{Methods}{
+        The Default theme features:
+        \begin{itemize}
+            \item Rounded block corners
+            \item Clear title styling
+            \item Good readability
+        \end{itemize}
+    }
+    \column{0.5}
+    \block{Results}{
+        Example equation:
+        \begin{equation}
+            f(x) = \int_{-\infty}^{\infty} e^{-x^2} dx
+        \end{equation}
+    }
+\end{columns}
+
+\block{Conclusions}{
+    Default is a safe choice for any discipline.
+}
+\end{document}
