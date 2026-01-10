@@ -8,6 +8,7 @@ let currentTooltip = null;
 let currentHighlightedElements = new Set();
 let tooltipIsSticky = false;
 let stickyElementId = null;
+let mouseLeaveTimeout = null;  // Debounce timer for mouseleave
 
 /**
  * Create the tooltip element (only created once)
@@ -642,6 +643,12 @@ function highlightCirclesInBox(boxElementId) {
  * Handle mouse enter on an interactive element
  */
 function handleMouseEnter(event) {
+  // Cancel any pending mouseleave timeout
+  if (mouseLeaveTimeout) {
+    clearTimeout(mouseLeaveTimeout);
+    mouseLeaveTimeout = null;
+  }
+
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
@@ -766,8 +773,28 @@ function handleMouseLeave(event) {
     return;
   }
 
-  hideTooltip();
-  clearHighlights();
+  // Use a small delay before hiding to prevent flickering when moving between elements
+  if (mouseLeaveTimeout) {
+    clearTimeout(mouseLeaveTimeout);
+  }
+
+  mouseLeaveTimeout = setTimeout(() => {
+    // Check if we've moved to another interactive element
+    const hoveredElement = document.elementFromPoint(
+      event.clientX || 0,
+      event.clientY || 0
+    );
+    const isOnInteractive = hoveredElement && (
+      hoveredElement.closest('[data-interactive-id]') ||
+      hoveredElement.id === 'diagram-tooltip' ||
+      hoveredElement.closest('#diagram-tooltip')
+    );
+
+    if (!isOnInteractive) {
+      hideTooltip();
+      clearHighlights();
+    }
+  }, 50);  // 50ms delay to smooth out transitions
 }
 
 /**
@@ -804,6 +831,7 @@ function makeInteractive(element, elementId) {
 
   element.setAttribute('data-interactive-id', elementId);
   element.style.cursor = 'pointer';
+  element.style.pointerEvents = 'all';  // Ensure element always receives pointer events
 
   element.addEventListener('mouseenter', handleMouseEnter);
   element.addEventListener('mousemove', handleMouseMove);
@@ -820,6 +848,7 @@ function makeInteractiveHighlightOnly(element, elementId) {
 
   element.setAttribute('data-interactive-id', elementId);
   element.style.cursor = 'pointer';
+  element.style.pointerEvents = 'all';  // Ensure element always receives pointer events
 
   // Custom handler that only does highlighting, no tooltip
   element.addEventListener('mouseenter', (event) => {

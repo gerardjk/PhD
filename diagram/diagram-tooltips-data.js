@@ -635,6 +635,67 @@ const tooltipContent = {
       'Operated by SWIFT'
     ]
   },
+  'swift-pds-rect': {
+    title: 'SWIFT PDS',
+    subtitle: 'Payment Data Service',
+    description: 'SWIFT messaging gateway for Australian payment systems, providing standardised ISO 20022 message translation and routing',
+    details: [
+      'Translates domestic formats to ISO 20022 pacs messages',
+      'Routes payment instructions to RITS for settlement',
+      'Connects Australian systems to global SWIFT network',
+      'Handles pacs.009, pacs.008, and pacs.004 message types'
+    ],
+    link: 'https://www.swift.com/'
+  },
+  'swift-hvcs-box': {
+    title: 'SWIFT HVCS',
+    subtitle: 'High Value Clearing System',
+    description: 'SWIFT-based messaging system for high-value payments in Australia, processing payment instructions via ISO 20022 messages',
+    details: [
+      'Processes high-value interbank payments',
+      'Uses pacs.009 (Financial Institution Credit Transfer)',
+      'Uses pacs.008 (Customer Credit Transfer)',
+      'Uses pacs.004 (Payment Return)',
+      'Messages routed through SWIFT PDS to RITS'
+    ],
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/'
+  },
+  'pacs-009-box': {
+    title: 'pacs.009',
+    subtitle: 'Financial Institution Credit Transfer',
+    description: 'ISO 20022 message type for interbank credit transfers between financial institutions',
+    details: [
+      'Used for bank-to-bank transfers',
+      'Cover payments for underlying customer transactions',
+      'Settlement of interbank obligations',
+      'Processed through SWIFT PDS to RITS'
+    ],
+    link: 'https://www.iso20022.org/'
+  },
+  'pacs-008-box': {
+    title: 'pacs.008',
+    subtitle: 'Customer Credit Transfer',
+    description: 'ISO 20022 message type for customer-initiated credit transfers',
+    details: [
+      'Customer payment instructions',
+      'Contains full remittance information',
+      'Supports rich payment data',
+      'End-to-end payment tracking'
+    ],
+    link: 'https://www.iso20022.org/'
+  },
+  'pacs-004-box': {
+    title: 'pacs.004',
+    subtitle: 'Payment Return',
+    description: 'ISO 20022 message type for returning or rejecting payments',
+    details: [
+      'Returns previously sent payments',
+      'Includes reason codes for rejection',
+      'Maintains audit trail',
+      'Supports partial returns'
+    ],
+    link: 'https://www.iso20022.org/'
+  },
 
   // NPP ecosystem
   'npp-box': {

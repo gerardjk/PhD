@@ -871,6 +871,7 @@ function initializeDiagram() {
           // No rx attribute = square corners
         });
         swiftRect.setAttribute('id', 'swift-pds-rect'); // Add ID for easy reference
+        swiftRect.setAttribute('data-interactive-id', 'swift-pds-rect');
 
         // Add to labels group (so it appears on top)
         labelsGroup.appendChild(swiftRect);
@@ -901,7 +902,12 @@ function initializeDiagram() {
         swiftRectText.appendChild(swiftLine2);
 
         swiftRectText.setAttribute('id', 'swift-pds-text');
+        swiftRectText.setAttribute('data-interactive-id', 'swift-pds-rect');
         labelsGroup.appendChild(swiftRectText);
+
+        // Make SWIFT PDS box and text interactive
+        makeInteractive(swiftRect, 'swift-pds-rect');
+        makeInteractive(swiftRectText, 'swift-pds-rect');
 
         window.swiftPdsTextData = {
           element: swiftRectText,
@@ -953,6 +959,7 @@ function initializeDiagram() {
           const lineCenterY = swiftBoxTop + swiftBoxHeight * positions[j];
           const smallRectY = lineCenterY - smallRectHeight / 2;
 
+          const pacsIds = ['pacs-009-box', 'pacs-008-box', 'pacs-004-box'];
           const smallRect = createStyledRect(tempSmallRectX, smallRectY, pacsBoxWidth, smallRectHeight, {
             fill: '#7ce5ca', // Green SWIFT line color (brighter)
             stroke: '#ffffff', // Very thin white border
@@ -960,6 +967,8 @@ function initializeDiagram() {
             rx: '12', // More rounded corners
             ry: '12' // More rounded corners
           });
+          smallRect.setAttribute('id', pacsIds[j]);
+          smallRect.setAttribute('data-interactive-id', pacsIds[j]);
 
           labelsGroup.appendChild(smallRect);
 
@@ -976,6 +985,7 @@ function initializeDiagram() {
               fontSize: '11' // Match trade-by-trade font size
             }
           );
+          pacsText.setAttribute('data-interactive-id', pacsIds[j]);
           labelsGroup.appendChild(pacsText);
 
           // Store elements to update later
@@ -1013,9 +1023,11 @@ function initializeDiagram() {
             stroke: '#00ffdf', // Light mint green (swapped with fill)
             strokeWidth: '2',
             rx: '8', // Rounded corners
-            ry: '8' // Rounded corners
+            ry: '8', // Rounded corners
+            id: 'swift-hvcs-box'
           }
         );
+        boundingBox.setAttribute('data-interactive-id', 'swift-hvcs-box');
 
         // Insert into backgroundGroup to be behind everything
         const backgroundGroup = document.getElementById('background-elements');
@@ -1051,6 +1063,17 @@ function initializeDiagram() {
         window.swiftHvcsElements.pacsElements = pacsElements;
         window.swiftHvcsElements.hvcsLabel = hvcsLabel;
 
+        // Make SWIFT HVCS box and label interactive
+        makeInteractive(boundingBox, 'swift-hvcs-box');
+        makeInteractive(hvcsLabel, 'swift-hvcs-box');
+
+        // Make pacs boxes interactive
+        pacsElements.forEach((elem, idx) => {
+          const pacsId = ['pacs-009-box', 'pacs-008-box', 'pacs-004-box'][idx];
+          makeInteractive(elem.rect, pacsId);
+          makeInteractive(elem.text, pacsId);
+        });
+
         // Debug logging to calculate actual coordinates
         console.log('=== INITIAL COORDINATE DEBUGGING ===');
         console.log('SWIFT HVCS initial position:', {
@@ -1078,6 +1101,7 @@ function initializeDiagram() {
         });
 
         hvcsLine.classList.add('thick-line-to-adi');
+        hvcsLine.setAttribute('data-interactive-id', 'hvcs-horizontal-line');
 
         // Store start position for later use
         if (!window.hvcsLineData) window.hvcsLineData = {};
@@ -2796,7 +2820,10 @@ function initializeDiagram() {
 
           for (let j = 0; j < 3; j++) {
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('id', `pacs-to-swift-line-${j}`);
+            const lineId = `pacs-to-swift-line-${j}`;
+            line.setAttribute('id', lineId);
+            line.setAttribute('data-interactive-id', lineId);
+            line.classList.add('pacs-to-swift-line');
 
             // Get the actual pacs box element to find its exact position
             const pacsRect = window.swiftHvcsElements.pacsElements[j].rect;
@@ -6017,7 +6044,7 @@ function initializeDiagram() {
           const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
-          const pathStartY = asxLineStartY + 4; // Begin below the box edge so stroke (width 6) appears to come from under the box
+          const pathStartY = asxLineStartY; // Start exactly at box bottom - z-ordering will make it appear under the border
           const asxPath = `M ${asxLineStartX} ${pathStartY} ` +
                         `L ${asxLineStartX} ${pathStartY + goDownDistance} ` + // Go straight down
                         `Q ${asxLineStartX} ${pathStartY + goDownDistance + cornerRadius}, ` +
@@ -6041,8 +6068,12 @@ function initializeDiagram() {
             id: 'asx-to-hvcs-line'
           });
           asxToHvcsLineStyled.classList.add('thick-line-to-adi');
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
+          // Insert before ASX bounding box so line renders under it
+          if (window.asxBoundingBoxElement) {
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToHvcsLineStyled, window.asxBoundingBoxElement);
+          } else {
+            svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
+          }
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -6055,7 +6086,7 @@ function initializeDiagram() {
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
-          const line2StartYOffset = 4; // Start below box edge so stroke appears to come from under the box
+          const line2StartYOffset = 0; // Start at box bottom - z-ordering will make it appear under the border
           const asxPath2 = `M ${asxLine2StartX} ${asxLine2StartY + line2StartYOffset} ` +
                         `L ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine} ` + // Go straight down (extra to separate from first line)
                         `Q ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius}, ` +
@@ -6071,8 +6102,12 @@ function initializeDiagram() {
           });
           asxToAdiLineStyled.classList.add('thick-line-to-adi');
 
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
+          // Insert before ASX bounding box so line renders under it
+          if (window.asxBoundingBoxElement) {
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToAdiLineStyled, window.asxBoundingBoxElement);
+          } else {
+            svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
+          }
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -6086,13 +6121,29 @@ function initializeDiagram() {
           window.asxLine2Data.extraDown = extraDownForRightLine;
           window.asxLine2Data.baseGoDownDistance = goDownDistance;
 
-          // Final z-order fix: move all thick lines to render ON TOP of thin lines
-          const bgGroupFinal = document.getElementById('background-elements');
-          if (bgGroupFinal) {
-            const allThickLines = document.querySelectorAll('.thick-line-to-adi');
-            allThickLines.forEach(thickLine => {
-              bgGroupFinal.appendChild(thickLine);
-            });
+          // Final z-order fix: create a border-only overlay that renders ON TOP of the blue lines
+          // This keeps the original ASX box behind everything while the border covers the line
+          if (window.asxBoundingBoxElement) {
+            const boxX = parseFloat(window.asxBoundingBoxElement.getAttribute('x'));
+            const boxY = parseFloat(window.asxBoundingBoxElement.getAttribute('y'));
+            const boxW = parseFloat(window.asxBoundingBoxElement.getAttribute('width'));
+            const boxH = parseFloat(window.asxBoundingBoxElement.getAttribute('height'));
+
+            // Create border-only rect (no fill) to render on top of blue lines
+            const borderOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            borderOverlay.setAttribute('x', boxX);
+            borderOverlay.setAttribute('y', boxY);
+            borderOverlay.setAttribute('width', boxW);
+            borderOverlay.setAttribute('height', boxH);
+            borderOverlay.setAttribute('fill', 'none');
+            borderOverlay.setAttribute('stroke', '#ffffff');
+            borderOverlay.setAttribute('stroke-width', '3');
+            borderOverlay.setAttribute('rx', '8');
+            borderOverlay.setAttribute('ry', '8');
+            borderOverlay.setAttribute('pointer-events', 'none'); // Don't interfere with clicks
+
+            // Append to SVG so it renders on top of the lines
+            svg.appendChild(borderOverlay);
           }
         }
 
@@ -6485,7 +6536,13 @@ function initializeDiagram() {
           // Square corners - no rx/ry
         });
         bottomRect.setAttribute('id', 'cls-aud-rect'); // Add ID for later reference
+        bottomRect.setAttribute('data-interactive-id', 'cls-aud-rect');
         labelsGroup.appendChild(bottomRect);
+
+        // Make CLS AUD box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(bottomRect, 'cls-aud-rect');
+        }
 
         // Debug log CLS AUD box actual position
         console.log('CLS AUD box actual position:', {
@@ -6511,7 +6568,13 @@ function initializeDiagram() {
             textAnchor: 'middle' // Ensure horizontal centering
           }
         );
+        bottomText.setAttribute('data-interactive-id', 'cls-aud-rect');
         labelsGroup.appendChild(bottomText);
+
+        // Make CLS AUD text interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(bottomText, 'cls-aud-rect');
+        }
 
         // CLS AUD to RITS line will be added at the end of script after all adjustments
 
@@ -6648,6 +6711,14 @@ function initializeDiagram() {
               path.classList.add('chess-rtgs-to-rits-line');
             }
 
+            // Add IDs for SWIFT PDS to RITS lines (indices 0, 1, 2)
+            if (i < 3) {
+              const lineId = `swift-pds-to-rits-line-${i}`;
+              path.setAttribute('id', lineId);
+              path.setAttribute('data-interactive-id', lineId);
+              path.classList.add('swift-pds-to-rits-line');
+            }
+
             // Add IDs for Austraclear lines (indices 4, 5)
             if (i === 4) {
               path.classList.add('austraclear-to-rits-line');
@@ -6726,6 +6797,7 @@ function initializeDiagram() {
           clsPath.setAttribute('stroke-linecap', 'round');
           clsPath.setAttribute('stroke-linejoin', 'round');
           clsPath.setAttribute('id', 'cls-aud-line-new');
+          clsPath.setAttribute('data-interactive-id', 'cls-aud-line-new');
 
           curvedLineGroup.appendChild(clsPath);
 
@@ -8652,7 +8724,7 @@ function initializeDiagram() {
               `Q ${startX - 5 - cornerRadius} ${downToY}, ${startX - 5 - cornerRadius + bottomCornerRadius} ${downToY} ` + // Larger curve right
               `L ${curveStartX} ${downToY} ` + // Go right under the blue lines to where curve starts
               `C ${curveStartX + 60} ${downToY}, ` + // Same curve as blue line
-              `${orangeEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
+              `${orangeEndX - 35} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 35px before end (matches blue line shape)
               `${orangeEndX} ${endY}`; // Curve up to ADIs box
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
@@ -8719,7 +8791,7 @@ function initializeDiagram() {
               `Q ${controlX} ${downToY}, ${controlX + bottomCornerRadius} ${downToY} ` +
               `L ${curveStartX} ${downToY} ` +
               `C ${curveStartX + 60} ${downToY}, ` +
-                `${pinkEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
+                `${pinkEndX - 35} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 35px before end (matches blue line shape)
                 `${pinkEndX} ${endY}`;
 
             const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
@@ -9857,6 +9929,7 @@ clsToRitsLineFinal.setAttribute('stroke-width', '6'); // Thick line
 clsToRitsLineFinal.setAttribute('fill', 'none');
 clsToRitsLineFinal.setAttribute('stroke-linecap', 'round');
 clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
+clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final');
 
     // Insert at beginning of SVG so it goes behind the blue circle
     svg.insertBefore(clsToRitsLineFinal, svg.firstChild);
@@ -10021,6 +10094,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         sCurvePath.setAttribute('fill', 'none');
         sCurvePath.setAttribute('stroke-linecap', 'round');
         sCurvePath.setAttribute('stroke-linejoin', 'round');
+        sCurvePath.setAttribute('data-interactive-id', 'cls-s-curve');
       }
 
       console.log('CLS S-curve created from neon line to CLS dot.');

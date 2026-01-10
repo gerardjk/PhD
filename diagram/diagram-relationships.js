@@ -79,9 +79,77 @@ const elementRelationships = {
     related: ['bdf-box', 'bdf-line-52', 'bdf-line-53', 'bdf-line-54', 'blue-line-55', 'yellow-line-55', 'yellow-dot-55', 'dot-55']
   },
 
-  'swift-pds-box': {
-    groups: ['swift-network'],
-    related: ['swift-hvcs-box', 'swift-pds-line']
+  'swift-pds-rect': {
+    groups: ['swift-system', 'cls-system'],
+    related: [
+      // CLS elements (same as swift-hvcs-box hover)
+      'cls-circle', 'blue-line-99', 'cls-aud-line-new', 'cls-s-curve', 'cls-to-rits-line-final',
+      'cls-aud-rect', 'swift-hvcs-box',
+      // Pacs boxes
+      'pacs-009-box', 'pacs-008-box', 'pacs-004-box',
+      // SWIFT PDS to RITS lines
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      // Pacs to SWIFT PDS lines
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      // Turquoise line to ADIs
+      'hvcs-horizontal-line'
+    ]
+  },
+
+  // CLS circle - CLS settlement system
+  'cls-circle': {
+    groups: ['cls-system'],
+    related: [
+      'blue-line-99', 'cls-aud-line-new', 'cls-s-curve', 'cls-to-rits-line-final',
+      'swift-hvcs-box', 'cls-aud-rect', 'swift-pds-rect'
+    ]
+  },
+  'cls-aud-rect': {
+    groups: ['cls-system'],
+    related: [
+      'cls-circle', 'blue-line-99', 'cls-aud-line-new', 'cls-s-curve', 'cls-to-rits-line-final',
+      'swift-hvcs-box', 'swift-pds-rect'
+    ]
+  },
+  'swift-hvcs-box': {
+    groups: ['swift-system', 'cls-system'],
+    related: [
+      // CLS elements (same as cls-circle hover)
+      'cls-circle', 'blue-line-99', 'cls-aud-line-new', 'cls-s-curve', 'cls-to-rits-line-final',
+      'cls-aud-rect', 'swift-pds-rect',
+      // Pacs boxes
+      'pacs-009-box', 'pacs-008-box', 'pacs-004-box',
+      // SWIFT PDS to RITS lines
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      // Pacs to SWIFT PDS lines
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      // Turquoise line to ADIs
+      'hvcs-horizontal-line'
+    ]
+  },
+  'pacs-009-box': {
+    groups: ['swift-system'],
+    related: [
+      'swift-hvcs-box', 'swift-pds-rect',
+      'pacs-to-swift-line-0', 'swift-pds-to-rits-line-0',
+      'hvcs-horizontal-line'
+    ]
+  },
+  'pacs-008-box': {
+    groups: ['swift-system'],
+    related: [
+      'swift-hvcs-box', 'swift-pds-rect',
+      'pacs-to-swift-line-1', 'swift-pds-to-rits-line-1',
+      'hvcs-horizontal-line'
+    ]
+  },
+  'pacs-004-box': {
+    groups: ['swift-system'],
+    related: [
+      'swift-hvcs-box', 'swift-pds-rect',
+      'pacs-to-swift-line-2', 'swift-pds-to-rits-line-2',
+      'hvcs-horizontal-line'
+    ]
   },
 
   // Example: NPP ecosystem
