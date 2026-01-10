@@ -998,6 +998,7 @@ function initializeDiagram() {
         // Add path from SWIFT HVCS box going below ESAs to non-ADIs edge and up to ADIs
         // Start from right edge of SWIFT HVCS bounding box, low enough to go under ESAs
         const hvcsBoxRight = (smallRectX - boundingBoxPaddingH) + ((rightmostPacsRightEdge - smallRectX) + boundingBoxPaddingH * 2);
+        window.swiftHvcsElements.rightEdge = hvcsBoxRight;
         // Position line between ESAs bottom and SWIFT HVCS bottom
         const hvcsBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
         const hvcsLineY = hvcsBoxBottom - 25 - 15 + 8; // Was raised by 15, now lowered by 8 (net raise of 7)
@@ -1329,6 +1330,9 @@ function initializeDiagram() {
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
           const newPath = path.replace(/M [\d.]+ /, `M ${hvcsBoxRight} `);
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
+          if (window.hvcsLineData) {
+            window.hvcsLineData.startX = hvcsBoxRight;
+          }
 
           // Store the right edge position for later update
           window.swiftHvcsElements.rightEdge = hvcsBoxRight;
@@ -2403,7 +2407,7 @@ function initializeDiagram() {
           // Update line start position to new right edge
           const newHvcsBoxRight = hvcsBoxX_final + hvcsBoxWidth_final;
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-          const newPath = path.replace(/M ([\d.]+)/, `M ${newHvcsBoxRight.toFixed(2)}`);
+          const newPath = path.replace(/M ([\d.]+)/, `M ${newHvcsBoxRight.toFixed(2)}`); // Stop at the right edge
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
 
           console.log('=== FINAL COORDINATES FOR USER QUESTION ===');
@@ -2457,6 +2461,9 @@ function initializeDiagram() {
               const correctedPath = window.swiftHvcsElements.hvcsLine.getAttribute('d');
               const correctedNewPath = correctedPath.replace(/M ([\d.]+)/, `M ${correctedHvcsBoxRight.toFixed(2)}`);
               window.swiftHvcsElements.hvcsLine.setAttribute('d', correctedNewPath);
+              if (window.hvcsLineData) {
+                window.hvcsLineData.startX = correctedHvcsBoxRight; // Stop at the right edge
+              }
 
               console.log('   ✓ Fixed! New SWIFT HVCS right edge:', correctedHvcsBoxRight, 'pixels');
               console.log('   New horizontal gap:', swiftPdsX - correctedHvcsBoxRight, 'pixels');
@@ -5518,7 +5525,7 @@ function initializeDiagram() {
           'ASX',
           {
             fill: '#ffffff',
-            fontSize: '18',
+            fontSize: '20',
             fontWeight: 'bold'
           }
         );
@@ -8140,6 +8147,12 @@ function initializeDiagram() {
 
           // Update HVCS path to extend past non-ADIs and curve up to ADIs edge
           const hvcsHorizontalLine = document.getElementById('hvcs-horizontal-line');
+          console.log('GREEN LINE CHECK:', {
+            hasLine: !!hvcsHorizontalLine,
+            hasLineData: !!window.hvcsLineData,
+            hasAdiBoxData: !!window.adiBoxData,
+            hasBoundingBox: !!(window.swiftHvcsElements && window.swiftHvcsElements.boundingBox)
+          });
           if (hvcsHorizontalLine && window.hvcsLineData && window.adiBoxData) {
             console.log('=== HVCS TO ADI LINE CONNECTION ===');
             console.log('HVCS line start X:', window.hvcsLineData.startX);
@@ -8153,17 +8166,14 @@ function initializeDiagram() {
           const adiBottom = window.adiBoxData.y + window.adiBoxData.height;
 
           // Create path: horizontal to past non-ADIs, then symmetrical J-curve up to ADI bottom
-          // Adjust end point to account for stroke width (stop at edge, not past it)
-          const strokeWidth = 6; // Updated stroke width
-          const strokeHalf = strokeWidth / 2;
-          const adjustedAdiBottom = adiBottom + strokeHalf;
+          const strokeWidth = 6;
 
           // Calculate where to start the gradual curve
           // We need to stay below ESAs and non-ADIs boxes
           const esasRightEdgeApprox = window.hvcsLineData.startX + 200; // Stay well clear of ESAs
           const curveStartX = Math.max(esasRightEdgeApprox, nonAdiRightEdge - 80); // Start closer to non-ADIs right edge for more clearance
 
-          const verticalDistance = window.hvcsLineData.startY - adjustedAdiBottom;
+          const verticalDistance = window.hvcsLineData.startY - adiBottom;
 
           // Create path with very gradual curve that gets steeper
           // Use two cubic bezier curves for more control
@@ -8171,18 +8181,24 @@ function initializeDiagram() {
           const midPointY = window.hvcsLineData.startY - verticalDistance * 0.15; // Very gradual at first
 
           // Create a single smooth curve without kinks
-          // Adjust first control point to be further right for smoother transition
-          // Use the updated SWIFT HVCS right edge if available, otherwise fall back to stored value
-          const hvcsStartX = window.swiftHvcsElements && window.swiftHvcsElements.rightEdge ? 
-                             window.swiftHvcsElements.rightEdge : 
-                             window.hvcsLineData.startX;
+          // Read actual box position from DOM to get current right edge
+          let hvcsStartX = window.hvcsLineData.startX; // fallback
+          if (window.swiftHvcsElements && window.swiftHvcsElements.boundingBox) {
+            const boxX = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('x'));
+            const boxWidth = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('width'));
+            const boxStroke = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('stroke-width')) || 2;
+            hvcsStartX = boxX + boxWidth + (boxStroke / 2); // Actual visual right edge (including stroke)
+            console.log('GREEN LINE DEBUG: boxX=' + boxX + ', boxWidth=' + boxWidth + ', stroke=' + boxStroke + ', hvcsStartX=' + hvcsStartX);
+          } else {
+            console.log('GREEN LINE DEBUG: using fallback hvcsStartX=' + hvcsStartX);
+          }
 
           const hvcsEndX = extendPastNonAdi + 15;
           const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +
                       `L ${curveStartX} ${window.hvcsLineData.startY} ` +
                       `C ${curveStartX + 60} ${window.hvcsLineData.startY}, ` +
                       `${extendPastNonAdi} ${window.hvcsLineData.startY - verticalDistance * 0.15}, ` +
-                      `${hvcsEndX} ${adjustedAdiBottom}`;
+                      `${hvcsEndX} ${adiBottom}`;
 
           hvcsHorizontalLine.setAttribute('d', path);
 
@@ -8190,7 +8206,7 @@ function initializeDiagram() {
             window.clsEndpoints = {};
           }
           window.clsEndpoints.audLineEndX = hvcsEndX;
-          window.clsEndpoints.audLineEndY = adjustedAdiBottom;
+          window.clsEndpoints.audLineEndY = adiBottom;
           window.clsEndpoints.audLineExitX = hvcsEndX;
           window.clsEndpoints.audLineExitY = adjustedAdiBottom;
 

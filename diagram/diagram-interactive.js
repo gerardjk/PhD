@@ -97,7 +97,8 @@ function createTooltipElement() {
  * Handle mouse leaving the tooltip
  */
 function handleTooltipMouseLeave(event) {
-  if (!tooltipIsSticky) return;
+  // If tooltip is sticky, don't dismiss on mouse leave - require click to dismiss
+  if (tooltipIsSticky) return;
 
   // Check if moving back to the interactive element
   const relatedTarget = event.relatedTarget;
@@ -392,6 +393,24 @@ function highlightElement(elementId) {
       groupElement.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
       groupElement.style.opacity = '1';
       currentHighlightedElements.add(groupElement);
+      return;
+    }
+  }
+
+  // Try to find elements by class name (for lines with class-based identification)
+  if (!elements.length) {
+    const classBased = document.querySelectorAll(`.${elementId}`);
+    if (classBased.length) {
+      classBased.forEach(el => {
+        el.classList.add('highlighted');
+        if (!el.dataset.originalOpacity) {
+          el.dataset.originalOpacity = el.style.opacity || getComputedStyle(el).opacity || '1';
+          el.dataset.originalFilter = el.style.filter || 'none';
+        }
+        el.style.filter = 'brightness(1.8) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.9))';
+        el.style.opacity = '1';
+        currentHighlightedElements.add(el);
+      });
       return;
     }
   }
@@ -742,13 +761,9 @@ function handleMouseMove(event) {
  * Handle mouse leave on an interactive element
  */
 function handleMouseLeave(event) {
-  // If tooltip is stationary, check if mouse is moving to the tooltip
+  // If tooltip is sticky, don't dismiss on mouse leave - require click to dismiss
   if (tooltipIsSticky) {
-    const tooltip = document.getElementById('diagram-tooltip');
-    if (tooltip && event.relatedTarget && (tooltip === event.relatedTarget || tooltip.contains(event.relatedTarget))) {
-      // Moving to tooltip - don't dismiss
-      return;
-    }
+    return;
   }
 
   hideTooltip();
@@ -756,7 +771,7 @@ function handleMouseLeave(event) {
 }
 
 /**
- * Handle click on an interactive element - make tooltip stationary
+ * Handle click on an interactive element - toggle tooltip sticky state
  */
 function handleClick(event) {
   const elementId = event.currentTarget.dataset.interactiveId;
@@ -764,6 +779,14 @@ function handleClick(event) {
 
   const { targetId } = resolveHoverTarget(elementId);
   if (!targetId) return;
+
+  // If clicking on the same element that's already sticky, dismiss it
+  if (tooltipIsSticky && stickyElementId === targetId) {
+    hideTooltip();
+    clearHighlights();
+    event.stopPropagation();
+    return;
+  }
 
   // Make tooltip stationary (stop following mouse)
   tooltipIsSticky = true;

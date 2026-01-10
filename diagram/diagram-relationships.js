@@ -87,32 +87,92 @@ const elementRelationships = {
   // Example: NPP ecosystem
   'npp-box': {
     groups: ['npp-ecosystem', 'fast-payments'],
-    related: ['npp-to-adi-line', 'npp-to-fss-line', 'osko-box', 'payid-box', 'payto-box', 'bsct-box']
+    related: ['npp-purple-box', 'bsct-box', 'new-pacs-to-npp-line', 'npp-to-fss-path', 'npp-to-adi-line', 'fss-circle', 'swift-pds-rect']
+  },
+  'npp-purple-box': {
+    groups: ['npp-ecosystem', 'fast-payments'],
+    related: ['npp-box', 'osko-box', 'bpay-box', 'eftpos-box', 'osko-to-npp-line', 'npp-to-adi-line', 'payid-box', 'bsct-box', 'payto-box', 'new-pacs-to-npp-line', 'npp-to-fss-path']
   },
   'osko-box': {
     groups: ['npp-ecosystem', 'fast-payments'],
-    related: ['npp-box', 'npp-to-adi-line', 'osko-to-adi-lines']
+    related: ['npp-purple-box', 'osko-to-npp-line', 'bpay-box', 'eftpos-box']
   },
   'payid-box': {
     groups: ['npp-ecosystem'],
-    related: ['npp-box', 'payto-box']
+    related: ['npp-purple-box', 'npp-box', 'osko-box', 'npp-to-fss-path', 'npp-to-adi-line']
   },
   'payto-box': {
     groups: ['npp-ecosystem'],
-    related: ['npp-box', 'payid-box']
+    related: ['npp-purple-box', 'npp-box', 'osko-box', 'npp-to-fss-path', 'npp-to-adi-line']
+  },
+  'bsct-box': {
+    groups: ['npp-ecosystem'],
+    related: ['npp-purple-box', 'npp-box', 'osko-box', 'new-pacs-to-npp-line', 'npp-to-fss-path', 'npp-to-adi-line']
   },
 
   // Example: Card payments
   'eftpos-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['eftpos-left-line', 'eftpos-horizontal', 'essb-box', 'mastercard-box', 'visa-box', 'other-cards-box']
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal', 'essb-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
+  },
+  'essb-box': {
+    groups: ['card-payments', 'administered-batches'],
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal', 'eftpos-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
+  },
+  'mcau-box': {
+    groups: ['card-payments', 'administered-batches'],
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal', 'mastercard-to-mcau-line', 'mastercard-box', 'mcau-to-rits-line']
   },
   'mastercard-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['mastercard-left-line', 'mastercard-horizontal', 'mcau-box', 'eftpos-box', 'visa-box']
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal', 'mastercard-to-mcau-line', 'mcau-box', 'mcau-to-rits-line']
+  },
+  'pexa-convey-box': {
+    groups: ['property-settlement', 'administered-batches'],
+    related: ['pexa-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line']
+  },
+  'pexa-box': {
+    groups: ['property-settlement', 'administered-batches'],
+    related: ['pexa-convey-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line']
+  },
+  'sympli-box': {
+    groups: ['property-settlement', 'administered-batches'],
+    related: ['asxf-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line']
+  },
+  'asxf-box': {
+    groups: ['property-settlement', 'administered-batches'],
+    related: ['sympli-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line', 'asx-box']
+  },
+  'asxb-box': {
+    groups: ['asx-ecosystem', 'administered-batches'],
+    related: ['chess-box', 'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line', 'clearing-box', 'clearing-to-asxb-line', 'asxb-to-rits-line']
+  },
+  'administered-batches-box': {
+    groups: ['administered-batches'],
+    related: [
+      'mcau-box', 'essb-box', 'pexa-box', 'asxf-box', 'asxb-box',
+      'mcau-to-rits-line', 'essb-to-rits-line', 'pexa-to-rits-line', 'asxf-to-rits-line', 'asxb-to-rits-line',
+      'mastercard-to-mcau-line', 'eftpos-to-essb-line',
+      'pexa-horizontal-line-0', 'pexa-horizontal-line-1',
+      'sympli-horizontal-line-0', 'sympli-horizontal-line-1',
+      'clearing-to-asxb-line'
+    ]
   },
 
   // Example: ASX ecosystem
+  'asx-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'chess-box', 'asx-to-hvcs-line', 'asx-to-adi-line',
+      'austraclear-box', 'chess-rtgs-box',
+      'dvp-to-chess-rtgs-line', 'dvp-to-austraclear-line',
+      'austraclear-to-rits-line', 'chess-rtgs-to-rits-line',
+      'dvp-rtgs-box', 'rtgs-box',
+      'cash-transfer-to-rtgs-line', 'dvp-cash-leg-to-dvp-rtgs-line', 'trade-by-trade-to-dvp-rtgs-line',
+      'asxb-box', 'clearing-to-asxb-line', 'asxb-to-rits-line',
+      'sympli-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-box', 'asxf-to-rits-line'
+    ]
+  },
   'asx-settlement-dot': {
     groups: ['asx-ecosystem', 'securities'],
     related: ['asx-settlement-label', 'asx-clearing-dot', 'lch-dot', 'chess-rtgs-box', 'austraclear-box']
@@ -121,19 +181,69 @@ const elementRelationships = {
     groups: ['asx-ecosystem', 'securities'],
     related: ['asx-clearing-label', 'asx-settlement-dot', 'lch-dot']
   },
+  'austraclear-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'austraclear-to-rits-line', 'dvp-to-austraclear-line',
+      'rtgs-box', 'dvp-rtgs-box',
+      'cash-transfer-to-rtgs-line', 'cash-transfer-box',
+      'dvp-cash-leg-to-dvp-rtgs-line', 'dvp-cash-leg-box',
+      'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line'
+    ]
+  },
+  'chess-rtgs-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'chess-rtgs-to-rits-line', 'dvp-to-chess-rtgs-line',
+      'dvp-rtgs-box', 'trade-by-trade-to-dvp-rtgs-line', 'trade-by-trade-box',
+      'chess-box', 'asx-box'
+    ]
+  },
+  'chess-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line',
+      'clearing-box', 'clearing-to-asxb-line',
+      'asxb-box', 'asxb-to-rits-line'
+    ]
+  },
+  'clearing-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'chess-box', 'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line',
+      'clearing-to-asxb-line', 'asxb-box', 'asxb-to-rits-line'
+    ]
+  },
+  'trade-by-trade-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'chess-box', 'asx-box',
+      'trade-by-trade-to-dvp-rtgs-line', 'dvp-rtgs-box',
+      'dvp-to-chess-rtgs-line', 'chess-rtgs-box',
+      'chess-rtgs-to-rits-line'
+    ]
+  },
+  'dvp-cash-leg-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'dvp-cash-leg-to-dvp-rtgs-line', 'dvp-rtgs-box',
+      'dvp-rtgs-to-austraclear-line', 'austraclear-box', 'austraclear-to-rits-line-upper',
+      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line'
+    ]
+  },
+  'cash-transfer-box': {
+    groups: ['asx-ecosystem', 'securities'],
+    related: [
+      'cash-transfer-to-rtgs-line', 'rtgs-box',
+      'rtgs-to-austraclear-line', 'austraclear-box', 'austraclear-to-rits-line-lower',
+      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line'
+    ]
+  },
 
   // Example: Direct Entry / BECS ecosystem
-  'becn-box': {
-    groups: ['direct-entry', 'bulk-payments'],
-    related: ['becg-box', 'becs-line', 'direct-entry-stack', 'bpay-box']
-  },
-  'becg-box': {
-    groups: ['direct-entry', 'bulk-payments'],
-    related: ['becn-box', 'becs-line', 'direct-entry-stack']
-  },
   'bpay-box': {
     groups: ['direct-entry', 'bulk-payments'],
-    related: ['becn-box', 'becs-line', 'de-line']
+    related: ['becn-box', 'becs-line', 'de-line', 'npp-purple-box', 'osko-box', 'eftpos-box']
   },
 
   // Example: LVSS and clearing systems
@@ -174,7 +284,7 @@ const elementRelationships = {
     ]
   },
 
-  // IAC (Issuers and Acquirers Community) box - lights up CECS group and internal card boxes (Visa, Other Cards only)
+  // IAC (Issuers and Acquirers Community) box - lights up CECS group and internal card boxes
   'direct-entry-stack-bounding-box': {
     groups: ['iac-ecosystem', 'clearing-settlement'],
     related: [
@@ -182,8 +292,32 @@ const elementRelationships = {
       'cecs-to-iac-line-1', 'cecs-to-iac-line-2',
       'direct-entry-stack-line-blue', 'direct-entry-stack-line-yellow',
       'direct-entry-stack-line-green', 'direct-entry-stack-line-brown',
-      'visa-box', 'other-cards-box'
+      'visa-box', 'other-cards-box', 'atms-box', 'claims-box'
     ]
+  },
+
+  // ATMs box - lights up with brown line and its horizontal branch to Non-ADIs
+  'atms-box': {
+    groups: ['iac-ecosystem'],
+    related: ['direct-entry-stack-line-brown', 'direct-entry-stack-line-brown-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+
+  // Claims box - lights up with green line and its horizontal branch to Non-ADIs
+  'claims-box': {
+    groups: ['iac-ecosystem'],
+    related: ['direct-entry-stack-line-green', 'direct-entry-stack-line-green-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+
+  // Visa box - lights up with yellow line and its horizontal branch to Non-ADIs
+  'visa-box': {
+    groups: ['iac-ecosystem'],
+    related: ['direct-entry-stack-line-yellow', 'direct-entry-stack-line-yellow-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+
+  // Other Cards box - lights up with blue line and its horizontal branch to Non-ADIs
+  'other-cards-box': {
+    groups: ['iac-ecosystem'],
+    related: ['direct-entry-stack-line-blue', 'direct-entry-stack-line-blue-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
   },
 
   // GABS box - triggers glowie group including LVSS gear, grey lines, and OPA box
@@ -213,13 +347,13 @@ const elementRelationships = {
   // BECN box - lights up DE, BECN, BECS and associated lines
   'becn-box': {
     groups: ['becs-ecosystem', 'direct-entry'],
-    related: ['de-box', 'becs-box', 'becn-to-becs-line', 'lvss-gear-group', 'lvss-line-becs']
+    related: ['de-box', 'becs-box', 'becn-to-becs-line', 'lvss-gear-group', 'lvss-line-becs', 'directentry-to-adi-line', 'maroon-horizontal-branch']
   },
 
   // BECG box - lights up DE, BECG, BECS and associated lines
   'becg-box': {
     groups: ['becs-ecosystem', 'direct-entry'],
-    related: ['de-box', 'becs-box', 'becg-to-becs-line', 'lvss-gear-group', 'lvss-line-becs']
+    related: ['de-box', 'becs-box', 'becg-to-becs-line', 'lvss-gear-group', 'lvss-line-becs', 'directentry-to-adi-line', 'maroon-horizontal-branch']
   },
 
   // Example: ADI groups

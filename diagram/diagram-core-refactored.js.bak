@@ -1065,13 +1065,18 @@ function initializeDiagram() {
         window.swiftHvcsElements.rightEdge = hvcsBoxRight;
         // Position line between ESAs bottom and SWIFT HVCS bottom
         const hvcsBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
-        const hvcsLineY = hvcsBoxBottom - 25 - 15 + 8; // Was raised by 15, now lowered by 8 (net raise of 7)
+        const hvcsLineY = hvcsBoxBottom + 8; // Run the line just outside the box to avoid entering it
 
         // Create initial path (will be updated when we know box positions)
-        const initialPath = `M ${hvcsBoxRight} ${hvcsLineY} L ${hvcsBoxRight + 50} ${hvcsLineY}`;
+        const hvcsLineStrokeWidth = 6;
+        window.hvcsLineStrokeHalf = hvcsLineStrokeWidth / 2;
+        const hvcsLineStartExtra = hvcsLineStrokeWidth; // additional gap so line stays outside box
+        window.hvcsLineStartExtra = hvcsLineStartExtra;
+        const hvcsLineStartX = hvcsBoxRight + window.hvcsLineStrokeHalf + hvcsLineStartExtra;
+        const initialPath = `M ${hvcsLineStartX} ${hvcsLineY} L ${hvcsLineStartX + 50} ${hvcsLineY}`;
         const hvcsLine = createStyledPath(initialPath, {
           stroke: '#5dd9b8', // Same color as PACS to SWIFT PDS lines
-          strokeWidth: '6', // Same thickness as neon lines
+          strokeWidth: hvcsLineStrokeWidth.toString(), // Same thickness as neon lines
           fill: 'none',
           strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
           id: 'hvcs-horizontal-line'
@@ -1081,7 +1086,7 @@ function initializeDiagram() {
 
         // Store start position for later use
         if (!window.hvcsLineData) window.hvcsLineData = {};
-        window.hvcsLineData.startX = hvcsBoxRight;
+        window.hvcsLineData.startX = hvcsLineStartX;
         window.hvcsLineData.startY = hvcsLineY;
         const hvcsLineOffset = hvcsBoxBottom - hvcsLineY;
         if (!Number.isNaN(hvcsLineOffset)) {
@@ -1113,8 +1118,7 @@ function initializeDiagram() {
         const narrowRect = createStyledRect(chessBoxX, chessY, chessBoxWidth, smallRectHeight, {
           fill: '#071f6a', // Original dark blue
           stroke: '#e8ecf7', // Swapped with fill
-          strokeWidth: '2.5',
-          id: 'chess-rtgs-box'
+          strokeWidth: '2.5'
           // No rx attribute = square corners
         });
         labelsGroup.appendChild(narrowRect);
@@ -1133,18 +1137,11 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(chessText);
 
-        // Make CHESS-RTGS box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(narrowRect, 'chess-rtgs-box');
-          makeInteractive(chessText, 'chess-rtgs-box');
-        }
-
         // Add Austraclear box below CHESS-RTGS
         const austraclearRect = createStyledRect(baseX, austraclearY, rectWidth, austraclearHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Swapped with fill
-          strokeWidth: '2.5',
-          id: 'austraclear-box'
+          strokeWidth: '2.5'
           // No rx attribute = square corners like SWIFT box
         });
         labelsGroup.appendChild(austraclearRect);
@@ -1161,12 +1158,6 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(austraclearText);
 
-        // Make Austraclear box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(austraclearRect, 'austraclear-box');
-          makeInteractive(austraclearText, 'austraclear-box');
-        }
-
         // Add two boxes to the left of Austraclear
         // Top box: DvP RTGS
         // Calculate position halfway between Austraclear and dark blue boxes
@@ -1178,8 +1169,7 @@ function initializeDiagram() {
           stroke: 'none',
           opacity: '0.5',
           rx: '10',
-          ry: '10',
-          id: 'dvp-rtgs-box'
+          ry: '10'
         });
         labelsGroup.appendChild(dvpRtgsRect);
 
@@ -1213,12 +1203,6 @@ function initializeDiagram() {
         labelsGroup.appendChild(dvpRtgsText);
         window.dvpRtgsElements.text = dvpRtgsText;
 
-        // Make DvP RTGS box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(dvpRtgsRect, 'dvp-rtgs-box');
-          makeInteractive(dvpRtgsText, 'dvp-rtgs-box');
-        }
-
         // Add ASX Settlement as elongated hexagon
         let dvpRtgsCenterX = dvpRtgsX + rectWidth / 4; // Center of reduced-width DvP RTGS (will be updated)
         const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS
@@ -1232,8 +1216,7 @@ function initializeDiagram() {
         const bridgeBox = createStyledRect(bridgeX, bridgeY, bridgeWidth, hexHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Same as text color
-          strokeWidth: '2.5',
-          id: 'asxb-box'
+          strokeWidth: '2.5'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(bridgeBox);
@@ -1244,17 +1227,11 @@ function initializeDiagram() {
           bridgeY + hexHeight / 2 + 1.5,
           'ASXB',
           {
-            fontSize: '12',
+            fontSize: '11',
             fill: '#ffffff' // Swapped text color
           }
         );
         labelsGroup.appendChild(asxSettlementText);
-
-        // Make ASXB box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(bridgeBox, 'asxb-box');
-          makeInteractive(asxSettlementText, 'asxb-box');
-        }
 
         // Add ASXF hexagon aligned with ASX bounding box top
         // Temporarily use a placeholder position - will be updated after moneyMarketY is defined
@@ -1263,8 +1240,7 @@ function initializeDiagram() {
         const asxfBox = createStyledRect(bridgeX, asxfY, bridgeWidth, hexHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Same as text color
-          strokeWidth: '2.5',
-          id: 'asxf-box'
+          strokeWidth: '2.5'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(asxfBox);
@@ -1281,12 +1257,6 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(asxfText);
 
-        // Make ASXF box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(asxfBox, 'asxf-box');
-          makeInteractive(asxfText, 'asxf-box');
-        }
-
         // Bottom box: RTGS / DvP RTGS
         const rtgsY = dvpRtgsY + austraclearHeight + verticalGap;
         const rtgsRect = createStyledRect(dvpRtgsX, rtgsY, rectWidth / 2, smallRectHeight, {
@@ -1294,8 +1264,7 @@ function initializeDiagram() {
           stroke: 'none',
           opacity: '0.5',
           rx: '10',
-          ry: '10',
-          id: 'rtgs-box'
+          ry: '10'
         });
         labelsGroup.appendChild(rtgsRect);
 
@@ -1312,12 +1281,6 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
-
-        // Make RTGS box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(rtgsRect, 'rtgs-box');
-          makeInteractive(rtgsText, 'rtgs-box');
-        }
 
         // Money Market / Repo box - to the left of RTGS/DvP RTGS, above SWIFT HVCS
         let moneyMarketRect; // Will be created later after position calculations
@@ -1359,16 +1322,6 @@ function initializeDiagram() {
             strokeLinecap: 'round',
             strokeDasharray: j === 0 ? '5,5' : undefined
           });
-          // Add class for highlighting - first line goes to CHESS-RTGS, others to Austraclear
-          if (j === 0) {
-            austLine.classList.add('dvp-to-chess-rtgs-line');
-          } else if (j === 1) {
-            austLine.classList.add('dvp-to-austraclear-line');
-            austLine.classList.add('dvp-rtgs-to-austraclear-line');
-          } else {
-            austLine.classList.add('dvp-to-austraclear-line');
-            austLine.classList.add('rtgs-to-austraclear-line');
-          }
           svg.insertBefore(austLine, labelsGroup);
         }
 
@@ -1448,11 +1401,14 @@ function initializeDiagram() {
 
           // Update line start position
           const hvcsBoxRight = hvcsBoxX + hvcsBoxWidth;
+          const hvcsStrokeHalf = window.hvcsLineStrokeHalf || 3;
+          const hvcsExtra = window.hvcsLineStartExtra || 6;
+          const hvcsLineStartX = hvcsBoxRight + hvcsStrokeHalf + hvcsExtra;
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-          const newPath = path.replace(/M [\d.]+ /, `M ${hvcsBoxRight} `);
+          const newPath = path.replace(/M [\d.]+ /, `M ${hvcsLineStartX} `);
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
           if (window.hvcsLineData) {
-            window.hvcsLineData.startX = hvcsBoxRight;
+            window.hvcsLineData.startX = hvcsLineStartX;
           }
 
           // Store the right edge position for later update
@@ -1552,8 +1508,7 @@ function initializeDiagram() {
         const pexaBox = createStyledRect(widerAdminBoxX, pexaY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(110,28,100)', // Darker pink (similar darkness to ASXF)
           stroke: '#FDE2F9', // Same as text color
-          strokeWidth: '2.5',
-          id: 'pexa-box'
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(pexaBox);
 
@@ -1568,19 +1523,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(pexaText);
 
-        // Make PEXA box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(pexaBox, 'pexa-box');
-          makeInteractive(pexaText, 'pexa-box');
-        }
-
         // Create eftpos box above PEXA with same gap (apply same offset)
         const eftposY = pexaY - adminBatchGap - hexHeight;
         const eftposBox = createStyledRect(widerAdminBoxX, eftposY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(60,45,110)', // Darker purple (similar darkness to ASXF)
           stroke: '#D8D0F0', // Same as text color
-          strokeWidth: '2.5',
-          id: 'essb-box'
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(eftposBox);
 
@@ -1595,19 +1543,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(eftposText);
 
-        // Make ESSB box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(eftposBox, 'essb-box');
-          makeInteractive(eftposText, 'essb-box');
-        }
-
         // Create Mastercard box above eftpos with same gap
         const mastercardY = eftposY - adminBatchGap - hexHeight;
         const mastercardBox = createStyledRect(widerAdminBoxX, mastercardY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(150,30,28)', // Darker red (similar darkness to ASXF)
           stroke: 'rgb(255,230,230)', // Same as text color
-          strokeWidth: '2.5',
-          id: 'mcau-box'
+          strokeWidth: '2.5'
         });
         labelsGroup.appendChild(mastercardBox);
 
@@ -1621,12 +1562,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(mastercardText);
-
-        // Make MCAU box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(mastercardBox, 'mcau-box');
-          makeInteractive(mastercardText, 'mcau-box');
-        }
 
         // Now update the ASXF and ASX Settlement positions with the offset
         // Update box positions with offset applied
@@ -2376,8 +2311,7 @@ function initializeDiagram() {
           stroke: '#D0D0D0', // Light grey border
           strokeWidth: '1',
           rx: '10',
-          ry: '10',
-          id: 'administered-batches-box'
+          ry: '10'
         });
         adminBatchesBox.setAttribute('opacity', '0.8');
         // Store admin box to insert later - we need it behind everything
@@ -2417,12 +2351,6 @@ function initializeDiagram() {
             }
           );
           labelsGroup.appendChild(adminBatchesText);
-
-          // Make Administered Batches box interactive
-          if (typeof makeInteractive === 'function') {
-            makeInteractive(adminBatchesBox, 'administered-batches-box');
-            makeInteractive(adminBatchesText, 'administered-batches-box');
-          }
 
           // Now insert the admin batches box at the very beginning so it's behind all the lines
           if (window.adminBatchesBoxElement) {
@@ -2514,8 +2442,7 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8', // Rounded corners
-          ry: '8', // Rounded corners
-          id: 'cash-transfer-box'
+          ry: '8' // Rounded corners
         });
         labelsGroup.appendChild(moneyMarketRect);
 
@@ -2531,12 +2458,6 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(moneyMarketText);
 
-        // Make cash transfer box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(moneyMarketRect, 'cash-transfer-box');
-          makeInteractive(moneyMarketText, 'cash-transfer-box');
-        }
-
         // Sympli line extension moved to after ADI box creation
 
         // Add horizontal line connecting RTGS / DvP RTGS to Money Market / Repo
@@ -2551,7 +2472,6 @@ function initializeDiagram() {
             strokeLinecap: 'round'
           }
         );
-        rtgsToMoneyMarketLine.classList.add('cash-transfer-to-rtgs-line');
         svg.insertBefore(rtgsToMoneyMarketLine, labelsGroup);
 
         // Calculate CHESS equities position first
@@ -2594,8 +2514,11 @@ function initializeDiagram() {
           }
 
           // Update line start position since SWIFT HVCS box has moved
+          const hvcsStrokeHalfFinal = window.hvcsLineStrokeHalf || 3;
+          const hvcsExtraFinal = window.hvcsLineStartExtra || 6;
+          const hvcsLineStartXFinal = hvcsBoxX_final + hvcsBoxWidth_final + hvcsStrokeHalfFinal + hvcsExtraFinal;
           if (window.hvcsLineData) {
-            window.hvcsLineData.startX = hvcsBoxX_final + hvcsBoxWidth_final;
+            window.hvcsLineData.startX = hvcsLineStartXFinal;
           }
 
           // Update PACS boxes inside with padding
@@ -2616,7 +2539,7 @@ function initializeDiagram() {
           // Update line start position to new right edge
           const newHvcsBoxRight = hvcsBoxX_final + hvcsBoxWidth_final;
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-          const newPath = path.replace(/M ([\d.]+)/, `M ${newHvcsBoxRight.toFixed(2)}`);
+          const newPath = path.replace(/M ([\d.]+)/, `M ${(newHvcsBoxRight + hvcsStrokeHalfFinal + hvcsExtraFinal).toFixed(2)}`);
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
 
           console.log('=== FINAL COORDINATES FOR USER QUESTION ===');
@@ -2668,12 +2591,13 @@ function initializeDiagram() {
               // Update line start position
               const correctedHvcsBoxRight = correctedHvcsBoxX + hvcsBoxWidth_final;
               const hvcsStrokeHalfCorrected = window.hvcsLineStrokeHalf || 3;
+              const hvcsExtraCorrected = window.hvcsLineStartExtra || 6;
               const correctedPath = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-              const correctedNewPath = correctedPath.replace(/M ([\d.]+)/, `M ${(correctedHvcsBoxRight + hvcsStrokeHalfCorrected).toFixed(2)}`);
+              const correctedNewPath = correctedPath.replace(/M ([\d.]+)/, `M ${(correctedHvcsBoxRight + hvcsStrokeHalfCorrected + hvcsExtraCorrected).toFixed(2)}`);
               window.swiftHvcsElements.hvcsLine.setAttribute('d', correctedNewPath);
 
               if (window.hvcsLineData) {
-                window.hvcsLineData.startX = correctedHvcsBoxRight + hvcsStrokeHalfCorrected;
+                window.hvcsLineData.startX = correctedHvcsBoxRight + hvcsStrokeHalfCorrected + hvcsExtraCorrected;
               }
 
               console.log('   ✓ Fixed! New SWIFT HVCS right edge:', correctedHvcsBoxRight, 'pixels');
@@ -2872,8 +2796,7 @@ function initializeDiagram() {
           stroke: 'white', // Thin white border
           strokeWidth: '0.5',
           rx: '8',
-          ry: '8',
-          id: 'chess-box'
+          ry: '8'
         });
         // Remove opacity for white background
         svg.insertBefore(chessEquitiesRect, labelsGroup); // Insert behind other elements
@@ -2889,12 +2812,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(chessEquitiesText);
-
-        // Make CHESS box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(chessEquitiesRect, 'chess-box');
-          makeInteractive(chessEquitiesText, 'chess-box');
-        }
 
         // ASX bounding box will be created after SSS/CCP box is defined
 
@@ -2924,8 +2841,7 @@ function initializeDiagram() {
         const sympliBox = createStyledRect(sympliX, sympliY, sympliWidth, sympliHeight, {
           fill: 'rgb(239,136,51)', // Sympli original color
           stroke: '#ffffff', // Very thin white border
-          strokeWidth: '0.5',
-          id: 'sympli-box'
+          strokeWidth: '0.5'
         });
         sympliBox.setAttribute('rx', '8'); // Rounded corners
         sympliBox.setAttribute('ry', '8'); // Rounded corners
@@ -2942,12 +2858,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(sympliText);
-
-        // Make Sympli e-conveyancing box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(sympliBox, 'sympli-box');
-          makeInteractive(sympliText, 'sympli-box');
-        }
 
         // Store Sympli box data for creating orange line to ADIs later
         window.sympliBoxData = {
@@ -3017,8 +2927,7 @@ function initializeDiagram() {
           stroke: '#ffffff', // Very thin white border
           strokeWidth: '0.5',
           rx: '8', // Rounded corners
-          ry: '8', // Rounded corners
-          id: 'pexa-convey-box'
+          ry: '8' // Rounded corners
         });
         labelsGroup.appendChild(pexaConveyBox);
 
@@ -3033,12 +2942,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(pexaConveyText);
-
-        // Make PEXA e-conveyancing box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(pexaConveyBox, 'pexa-convey-box');
-          makeInteractive(pexaConveyText, 'pexa-convey-box');
-        }
 
         window.pexaConveyBoxData = {
           x: pexaConveyX,
@@ -4527,7 +4430,6 @@ function initializeDiagram() {
           // Single thick red line from DE to ADIs
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           line.setAttribute('id', 'directentry-to-adi-line');
-          line.setAttribute('data-interactive-id', 'directentry-to-adi-line');
           line.setAttribute('stroke', '#ff073a'); // Red
           line.setAttribute('stroke-width', '4');
           line.setAttribute('stroke-linecap', 'round');
@@ -4539,7 +4441,6 @@ function initializeDiagram() {
           // Single visible duplicate that will mirror the invisible original
           const duplicate = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           duplicate.setAttribute('id', 'maroon-line-duplicate');
-          duplicate.setAttribute('data-interactive-id', 'directentry-to-adi-line');
           duplicate.setAttribute('stroke', '#ff073a'); // Red
           duplicate.setAttribute('stroke-width', '4');
           duplicate.setAttribute('stroke-linecap', 'round');
@@ -4554,7 +4455,6 @@ function initializeDiagram() {
           const maroonHorizontalBranches = [];
           const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           horizontalBranch.setAttribute('id', 'maroon-horizontal-branch');
-          horizontalBranch.setAttribute('data-interactive-id', 'maroon-horizontal-branch');
           horizontalBranch.setAttribute('stroke', '#ff073a'); // Red
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
           horizontalBranch.setAttribute('stroke-linecap', 'butt'); // Square cap so it stops exactly at edge
@@ -5228,8 +5128,7 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8',
-          id: 'trade-by-trade-box'
+          ry: '8'
         });
         labelsGroup.appendChild(tradeByTradeRect);
 
@@ -5244,12 +5143,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(tradeByTradeText);
-
-        // Make trade-by-trade box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(tradeByTradeRect, 'trade-by-trade-box');
-          makeInteractive(tradeByTradeText, 'trade-by-trade-box');
-        }
 
         // Clearing/netting box - above trade by trade
         // Make clearing box use more of the bounding box width
@@ -5269,8 +5162,7 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8',
-          id: 'clearing-box'
+          ry: '8'
         });
         labelsGroup.appendChild(clearingRect);
 
@@ -5285,12 +5177,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(clearingText);
-
-        // Make clearing/netting box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(clearingRect, 'clearing-box');
-          makeInteractive(clearingText, 'clearing-box');
-        }
 
         // SSS/CCP cash legs box - above Money Market/Repo
         const sssCcpX = moneyMarketX;
@@ -5307,8 +5193,7 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8',
-          id: 'dvp-cash-leg-box'
+          ry: '8'
         });
         labelsGroup.appendChild(sssCcpRect);
 
@@ -5323,12 +5208,6 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(sssCcpText);
-
-        // Make DvP cash leg box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(sssCcpRect, 'dvp-cash-leg-box');
-          makeInteractive(sssCcpText, 'dvp-cash-leg-box');
-        }
 
         // Create ASX bounding box around CHESS equities, DvP cash leg, and cash transfer only
         const symmetricPaddingForBox = 13 - 2; // Reduced by 2 pixels on each side
@@ -5366,16 +5245,10 @@ function initializeDiagram() {
           stroke: '#e8ecf7', // Swapped with fill
           strokeWidth: '2.5', // Thicker border
           rx: '8',
-          ry: '8',
-          id: 'asx-box'
+          ry: '8'
         });
         // Insert at the very beginning of SVG so it's behind EVERYTHING
         svg.insertBefore(asxBoundingBox, svg.firstChild);
-
-        // Make ASX box interactive
-        if (typeof makeInteractive === 'function') {
-          makeInteractive(asxBoundingBox, 'asx-box');
-        }
 
         // Store reference to ASX box for z-ordering lines
         window.asxBoundingBoxElement = asxBoundingBox;
@@ -5995,8 +5868,8 @@ function initializeDiagram() {
           'ASX',
           {
             fill: '#ffffff',
-            fontSize: '24',
-            fontWeight: 'normal'
+            fontSize: '20',
+            fontWeight: 'bold'
           }
         );
         labelsGroup.appendChild(asxLabel);
@@ -6119,7 +5992,6 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        clearingToAsxPath1.classList.add('clearing-to-asxb-line');
         // Insert at beginning so lines go under ASXB box
         labelsGroup.insertBefore(clearingToAsxPath1, labelsGroup.firstChild);
 
@@ -6134,7 +6006,6 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        clearingToAsxPath2.classList.add('clearing-to-asxb-line');
         // Insert at beginning so lines go under ASXB box
         labelsGroup.insertBefore(clearingToAsxPath2, labelsGroup.firstChild);
 
@@ -6410,7 +6281,6 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            line.classList.add('eftpos-to-essb-line');
             adminLinesGroup.appendChild(line);
           });
 
@@ -6429,7 +6299,6 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
-            line.classList.add('mastercard-to-mcau-line');
             adminLinesGroup.appendChild(line);
           });
         }
@@ -6446,7 +6315,6 @@ function initializeDiagram() {
             strokeLinecap: 'round'
           }
         );
-        sssCcpLine.classList.add('dvp-cash-leg-to-dvp-rtgs-line');
         svg.insertBefore(sssCcpLine, labelsGroup);
 
         // Get the actual trade-by-trade width and position for the dotted line
@@ -6469,7 +6337,6 @@ function initializeDiagram() {
             strokeDasharray: '5,5'
           }
         );
-        dottedLine.classList.add('trade-by-trade-to-dvp-rtgs-line');
         svg.insertBefore(dottedLine, labelsGroup);
 
 
@@ -6645,17 +6512,6 @@ function initializeDiagram() {
             // Make CHESS-RTGS line dotted (index 6)
             if (i === 6) {
               path.setAttribute('stroke-dasharray', '5,5');
-              path.classList.add('chess-rtgs-to-rits-line');
-            }
-
-            // Add IDs for Austraclear lines (indices 4, 5)
-            if (i === 4) {
-              path.classList.add('austraclear-to-rits-line');
-              path.classList.add('austraclear-to-rits-line-upper');
-            }
-            if (i === 5) {
-              path.classList.add('austraclear-to-rits-line');
-              path.classList.add('austraclear-to-rits-line-lower');
             }
 
             curvedLineGroup.appendChild(path);
@@ -7294,7 +7150,7 @@ function initializeDiagram() {
   removeAdminLines(redLinesGroup);
   removeAdminLines(yellowLinesGroup);
 
-  const drawCurvedDoubleLine = (startX, startY, strokeColor, targetGroup, lineId) => {
+  const drawCurvedDoubleLine = (startX, startY, strokeColor, targetGroup) => {
     if (!targetGroup) {
       return;
     }
@@ -7339,7 +7195,6 @@ function initializeDiagram() {
         line.setAttribute('stroke-width', strokeWidth);
         line.setAttribute('stroke-linecap', 'round');
         line.classList.add('admin-double-line');
-        if (lineId) line.classList.add(lineId);
         targetGroup.appendChild(line);
       });
       return;
@@ -7423,7 +7278,6 @@ function initializeDiagram() {
         strokeLinejoin: 'round'
       });
       path.classList.add('admin-double-line');
-      if (lineId) path.classList.add(lineId);
       targetGroup.appendChild(path);
     });
   };
@@ -7436,23 +7290,23 @@ function initializeDiagram() {
 
       const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
       const pexaStartY = window.hexagonPositions.pexaY + hexHeightValue / 2;
-      drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup, 'pexa-to-rits-line');
+      drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup);
 
         const asxfStartX = window.hexagonPositions.asxfX + window.hexagonPositions.asxfWidth;
         const asxfStartY = window.hexagonPositions.asxfY + window.hexagonPositions.asxfHeight / 2;
-        drawCurvedDoubleLine(asxfStartX, asxfStartY, redColor, redLinesGroup, 'asxf-to-rits-line');
+        drawCurvedDoubleLine(asxfStartX, asxfStartY, redColor, redLinesGroup);
 
         const mcauStartX = window.hexagonPositions.mastercardX + window.hexagonPositions.mastercardWidth;
         const mcauStartY = window.hexagonPositions.mastercardY + hexHeightValue / 2;
-        drawCurvedDoubleLine(mcauStartX, mcauStartY, yellowColor, yellowLinesGroup, 'mcau-to-rits-line');
+        drawCurvedDoubleLine(mcauStartX, mcauStartY, yellowColor, yellowLinesGroup);
 
         const essbStartX = window.hexagonPositions.mastercardX + window.hexagonPositions.mastercardWidth;
         const essbStartY = window.hexagonPositions.eftposY + hexHeightValue / 2;
-        drawCurvedDoubleLine(essbStartX, essbStartY, yellowColor, yellowLinesGroup, 'essb-to-rits-line');
+        drawCurvedDoubleLine(essbStartX, essbStartY, yellowColor, yellowLinesGroup);
 
         const asxbStartX = window.bridgePositions.bridgeX + window.bridgePositions.bridgeWidth;
         const asxbStartY = window.bridgePositions.bridgeY + hexHeightValue / 2;
-        drawCurvedDoubleLine(asxbStartX, asxbStartY, yellowColor, yellowLinesGroup, 'asxb-to-rits-line');
+        drawCurvedDoubleLine(asxbStartX, asxbStartY, yellowColor, yellowLinesGroup);
       }
 
   // Add background rectangle for all blue dots
@@ -8990,15 +8844,12 @@ function initializeDiagram() {
             const midPointY = window.hvcsLineData.startY - verticalDistance * 0.15; // Very gradual at first
 
             // Create a single smooth curve without kinks
-            // Read actual box position from DOM to get current right edge
-            let hvcsStartX = window.hvcsLineData.startX; // fallback
-            if (window.swiftHvcsElements && window.swiftHvcsElements.boundingBox) {
-              const boxX = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('x'));
-              const boxWidth = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('width'));
-              const boxStroke = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('stroke-width')) || 2;
-              // Start path at visual right edge of box
-              hvcsStartX = boxX + boxWidth + (boxStroke / 2);
-            }
+            // Adjust first control point to be further right for smoother transition
+            // Use the updated SWIFT HVCS right edge if available, otherwise fall back to stored value
+            const hvcsStrokeHalfForPath = window.hvcsLineStrokeHalf || 3;
+            const hvcsStartX = window.swiftHvcsElements && Number.isFinite(window.swiftHvcsElements.rightEdge)
+                               ? window.swiftHvcsElements.rightEdge + hvcsStrokeHalfForPath
+                               : window.hvcsLineData.startX;
 
             const hvcsEndX = extendPastNonAdi + 15;
             const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +

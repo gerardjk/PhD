@@ -649,6 +649,19 @@ const tooltipContent = {
     ],
     hours: '24/7 availability'
   },
+  'npp-purple-box': {
+    title: 'NPP',
+    subtitle: 'New Payments Platform',
+    description: 'Australia\'s real-time payments infrastructure enabling instant fund transfers between participating financial institutions',
+    details: [
+      'Real-time clearing and settlement 24/7/365',
+      'Supports Osko fast payments',
+      'PayID addressing service',
+      'PayTo for third-party initiated payments',
+      'ISO 20022 messaging standard'
+    ],
+    link: 'https://nppa.com.au/'
+  },
   'osko-box': {
     title: 'Osko',
     subtitle: 'Fast payment service',
@@ -657,6 +670,16 @@ const tooltipContent = {
       'Real-time account-to-account payments',
       'PayID address resolution',
       'Payment with message capability'
+    ]
+  },
+  'bsct-box': {
+    title: 'BSCT',
+    subtitle: 'Basic Single Credit Transfer',
+    description: 'ISO 20022 message type for NPP credit transfers',
+    details: [
+      'Standard message format for NPP payments',
+      'Supports real-time fund transfers',
+      'Enables rich payment data'
     ]
   },
   'payid-box': {
@@ -751,6 +774,76 @@ const tooltipContent = {
       'Settled through administered batches'
     ]
   },
+  'mcau-box': {
+    title: 'MCAU',
+    subtitle: 'Mastercard Australia',
+    description: 'Australian settlement entity for Mastercard transactions',
+    details: [
+      'Settles Mastercard card payments in Australia',
+      'Administered batch settlement through RITS',
+      'Processes domestic Mastercard transactions'
+    ]
+  },
+  'essb-box': {
+    title: 'ESSB',
+    subtitle: 'eftpos Shared Services Bridge',
+    description: 'Settlement entity for eftpos transactions',
+    details: [
+      'Settles eftpos debit card payments',
+      'Administered batch settlement through RITS',
+      'Processes domestic eftpos transactions'
+    ]
+  },
+  'pexa-convey-box': {
+    title: 'PEXA e-conveyancing',
+    subtitle: 'Property Exchange Australia',
+    description: 'Electronic property settlement platform',
+    details: [
+      'Digital platform for property transactions',
+      'Enables electronic lodgement and settlement',
+      'Settles through PEXA administered batches in RITS'
+    ]
+  },
+  'sympli-box': {
+    title: 'Sympli e-conveyancing',
+    subtitle: 'Electronic Property Settlement',
+    description: 'Alternative electronic property settlement platform',
+    details: [
+      'Competing e-conveyancing platform to PEXA',
+      'Digital property transaction settlement',
+      'Settles through ASXF administered batches in RITS'
+    ]
+  },
+  'pexa-box': {
+    title: 'PEXA',
+    subtitle: 'PEXA Settlement',
+    description: 'Settlement entity for PEXA property transactions',
+    details: [
+      'Processes PEXA e-conveyancing settlements',
+      'Administered batch settlement through RITS',
+      'Handles property transfer payments'
+    ]
+  },
+  'asxf-box': {
+    title: 'ASXF',
+    subtitle: 'ASX Feeder',
+    description: 'Settlement entity for Sympli and ASX-related transactions',
+    details: [
+      'Processes Sympli e-conveyancing settlements',
+      'Administered batch settlement through RITS',
+      'Feeds settlement instructions to RITS'
+    ]
+  },
+  'asxb-box': {
+    title: 'ASXB',
+    subtitle: 'ASX Batch',
+    description: 'Batch settlement facility for ASX clearing and settlement',
+    details: [
+      'Processes batch settlements from CHESS clearing/netting',
+      'Administered batch settlement through RITS',
+      'Handles equities and fixed income settlement'
+    ]
+  },
   'visa-box': {
     title: 'Visa',
     subtitle: 'International card scheme',
@@ -769,6 +862,26 @@ const tooltipContent = {
       'American Express, Diners, etc.',
       'Various settlement arrangements',
       'Batch settlement to ADIs'
+    ]
+  },
+  'atms-box': {
+    title: 'ATMs',
+    subtitle: 'Automated Teller Machines',
+    description: 'ATM transaction clearing and settlement',
+    details: [
+      'Cash withdrawal transactions',
+      'Interbank ATM settlements',
+      'Cleared through IAC/CECS'
+    ]
+  },
+  'claims-box': {
+    title: 'Claims',
+    subtitle: 'Medicare and health claims',
+    description: 'Health insurance and Medicare claim processing',
+    details: [
+      'Medicare rebate claims',
+      'Health fund claims',
+      'Cleared through IAC/CECS'
     ]
   },
 
@@ -803,6 +916,17 @@ const tooltipContent = {
       'Operated by BPAY Group'
     ]
   },
+  'de-box': {
+    title: 'Direct Entry',
+    subtitle: 'Bulk electronic funds transfer',
+    description: 'System for processing batched credit and debit transfers between bank accounts',
+    details: [
+      'Salary payments and superannuation',
+      'Direct debits and credits',
+      'Processed through BECS',
+      'Next-day or same-day settlement'
+    ]
+  },
 
   // LVSS and clearing
   'lvss-circle': {
@@ -828,13 +952,23 @@ const tooltipContent = {
     link: 'https://www.rba.gov.au/payments-and-infrastructure/payments-system.html'
   },
   'cecs-box': {
+    title: 'CECS',
+    subtitle: 'Consumer Electronic Clearing System',
+    description: 'Clears card-based transactions for settlement',
+    details: [
+      'Processes card payment clearing',
+      'Settled through LVSS',
+      'Connects to IAC (Issuers and Acquirers Community)'
+    ]
+  },
+  'direct-entry-stack-bounding-box': {
     title: 'IAC',
     subtitle: 'Issuers and Acquirers Community',
     description: 'Card payment schemes and clearing arrangements',
     details: [
       'Card payment clearing (eftpos, Mastercard, Visa)',
-      'Settled through LVSS',
-      'Industry-managed clearing streams'
+      'Industry-managed clearing streams',
+      'Connects to CECS for settlement'
     ]
   },
   'becs-box': {
@@ -878,6 +1012,28 @@ const tooltipContent = {
       'Now defunct or integrated into other systems'
     ]
   },
+  'cheques-box': {
+    title: 'Cheques',
+    subtitle: 'Paper-based payment instruments',
+    description: 'Traditional paper-based payment method cleared through the Australian cheque system',
+    details: [
+      'Declining usage in Australia',
+      'Cleared through APCS (Australian Paper Clearing System)',
+      'Settlement through LVSS in RITS',
+      'Subject to the Cheques Act 1986'
+    ]
+  },
+  'administered-batches-box': {
+    title: 'Administered Batches',
+    subtitle: 'Batch settlement facilities in RITS',
+    description: 'Settlement arrangements where the Reserve Bank administers batch processing on behalf of external systems',
+    details: [
+      'Includes MCAU, ESSB, PEXA, ASXF, and ASXB',
+      'Processes batched settlement instructions from card schemes and property settlement',
+      'Settles net positions across Exchange Settlement Accounts',
+      'Operated as part of RITS infrastructure'
+    ]
+  },
 
   // ASX ecosystem
   'asx-settlement-dot': {
@@ -908,6 +1064,94 @@ const tooltipContent = {
       'Clears OTC derivatives and repos',
       'Multi-asset clearing',
       'Part of LSEG Group'
+    ]
+  },
+  'asx-box': {
+    title: 'ASX',
+    subtitle: 'Australian Securities Exchange',
+    description: 'Australia\'s primary securities exchange and market operator',
+    details: [
+      'Operates equities, derivatives and fixed income markets',
+      'Owns ASX Settlement, ASX Clearing and Austraclear',
+      'CHESS provides settlement and subregister services',
+      'Part-owner of Sympli e-conveyancing platform'
+    ]
+  },
+  'chess-box': {
+    title: 'CHESS',
+    subtitle: 'Clearing House Electronic Subregister System',
+    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
+    details: [
+      'Settles equities on T+2 basis',
+      'Maintains electronic subregister of shareholdings',
+      'Processes corporate actions',
+      'Links to CHESS-RTGS for DvP settlement'
+    ]
+  },
+  'chess-rtgs-box': {
+    title: 'CHESS-RTGS',
+    subtitle: 'CHESS Real-Time Gross Settlement',
+    description: 'Interface between CHESS and RITS for real-time delivery versus payment settlement',
+    details: [
+      'Enables DvP Model 1 settlement',
+      'Real-time securities against cash settlement',
+      'Reduces settlement risk for high-value transactions',
+      'Operated by ASX Settlement'
+    ]
+  },
+  'austraclear-box': {
+    title: 'Austraclear',
+    subtitle: 'Debt securities depository and settlement',
+    description: 'Central securities depository for debt securities and repurchase agreements',
+    details: [
+      'Settles government and corporate bonds',
+      'Processes money market instruments',
+      'Provides custody and settlement services',
+      'Connects to RITS for cash settlement'
+    ]
+  },
+  'clearing-box': {
+    title: 'CHESS',
+    subtitle: 'Clearing House Electronic Subregister System',
+    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
+    details: [
+      'Settles equities on T+2 basis',
+      'Maintains electronic subregister of shareholdings',
+      'Processes corporate actions',
+      'Links to CHESS-RTGS for DvP settlement'
+    ]
+  },
+  'trade-by-trade-box': {
+    title: 'CHESS',
+    subtitle: 'Clearing House Electronic Subregister System',
+    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
+    details: [
+      'Settles equities on T+2 basis',
+      'Maintains electronic subregister of shareholdings',
+      'Processes corporate actions',
+      'Links to CHESS-RTGS for DvP settlement'
+    ]
+  },
+  'dvp-cash-leg-box': {
+    title: 'Austraclear',
+    subtitle: 'Debt securities depository and settlement',
+    description: 'Central securities depository for debt securities and repurchase agreements',
+    details: [
+      'Settles government and corporate bonds',
+      'Processes money market instruments',
+      'Provides custody and settlement services',
+      'Connects to RITS for cash settlement'
+    ]
+  },
+  'cash-transfer-box': {
+    title: 'Austraclear',
+    subtitle: 'Debt securities depository and settlement',
+    description: 'Central securities depository for debt securities and repurchase agreements',
+    details: [
+      'Settles government and corporate bonds',
+      'Processes money market instruments',
+      'Provides custody and settlement services',
+      'Connects to RITS for cash settlement'
     ]
   },
 
