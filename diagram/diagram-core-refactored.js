@@ -3028,7 +3028,7 @@ function initializeDiagram() {
           const reducedHeight = stackedHeight * 0.81; // 10% less tall (was 0.9)
           const reducedFont = 11;
 
-          const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard', 'mastercard-box');
+          const mastercard = createAlignedRect(mastercardY, '#a52c28', 'Mastercard', 'mastercard-box');
           const visaGap = gapSympliPexa * 2;
           const gapHalf = gapSympliPexa / 2;
           const visaY = mastercardY - visaGap - reducedHeight;
@@ -3564,14 +3564,8 @@ function initializeDiagram() {
                   let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    const nonAdiEdgePoint = getBoxEdgePoint(
-                      window.nonAdiBoxData,
-                      'right',
-                      entry.strokeWidth || 0,
-                      entry.lineCap || 'round',
-                      'from-left'
-                    );
-                    nonAdiEntryX = nonAdiEdgePoint.x;
+                    // Subtract 2px so lines stop cleanly at visible box edge
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width + 1;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
@@ -3580,7 +3574,10 @@ function initializeDiagram() {
                     else if (entry.color === '#FFA500') nonAdiEntryY += 3; // Yellow - 4th from top (Visa box color)
                     else if (entry.color === '#5AC8FA') nonAdiEntryY += 4; // Blue - 5th from top
                   }
-                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+                  // Calculate curve radius so it ends exactly at the box edge
+                  const naturalCurveEndX = horizontalExtendX - 170;
+                  // Adjust radius so curve ends exactly at nonAdiEntryX
+                  const actualLeftCurveRadius = horizontalExtendX - nonAdiEntryX;
 
                   const horizontalPath = [
                     `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
@@ -3590,9 +3587,8 @@ function initializeDiagram() {
                     `Q ${verticalX.toFixed(2)} ${horizontalY.toFixed(2)}, ${(verticalX + topCornerRadius).toFixed(2)} ${horizontalY.toFixed(2)}`,
                     `L ${(horizontalExtendX - curveRadius).toFixed(2)} ${horizontalY.toFixed(2)}`, // Horizontal to curve start
                     `Q ${horizontalExtendX.toFixed(2)} ${horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(horizontalY + curveRadius).toFixed(2)}`, // Curve down
-                    `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}`, // Vertical down to curve start
-                    `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`, // Curve left
-                    `L ${(nonAdiEntryX).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` // Horizontal to non-ADIs box edge (not into it)
+                    `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - actualLeftCurveRadius).toFixed(2)}`, // Vertical down to curve start
+                    `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}` // Curve left to box edge
                   ].join(' ');
 
                   return horizontalPath;
@@ -4101,23 +4097,16 @@ function initializeDiagram() {
                   let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    const branchStrokeWidth = 1; // Matches stroke-width set below
-                    const branchCap = 'butt';
-                    const nonAdiEdgePoint = getBoxEdgePoint(
-                      window.nonAdiBoxData,
-                      'right',
-                      branchStrokeWidth,
-                      branchCap,
-                      'from-left'
-                    );
-                    nonAdiEntryX = nonAdiEdgePoint.x;
+                    // Subtract 2px so lines stop cleanly at visible box edge
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width + 1;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
 
                     // Offset each line by 1px vertically in order: maroon(0), brown(1), green(2), yellow(3), blue(4), red(5), purple(6)
                     if (id.includes('mastercard')) nonAdiEntryY += 5; // Red (Mastercard) - 6th from top
                     else if (id.includes('eftpos')) nonAdiEntryY += 6; // Purple (Eftpos) - 7th from top
                   }
-                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+                  // Calculate curve radius so it ends exactly at the box edge
+                  const actualLeftCurveRadius = horizontalExtendX - nonAdiEntryX;
 
                   // Find the last 'L' command before the curve 'C' command
                   const lastCIndex = segments.pathString.lastIndexOf(' C ');
@@ -4127,9 +4116,8 @@ function initializeDiagram() {
                     const horizontalPathData = pathBeforeCurve +
                                              ` L ${(horizontalExtendX - curveRadius).toFixed(2)} ${segments.horizontalY.toFixed(2)}` + // Horizontal to curve start
                                              ` Q ${horizontalExtendX.toFixed(2)} ${segments.horizontalY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(segments.horizontalY + curveRadius).toFixed(2)}` + // Curve down
-                                             ` L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
-                                             ` Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)}` + // Curve left
-                                             ` L ${(nonAdiEntryX).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
+                                             ` L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - actualLeftCurveRadius).toFixed(2)}` + // Vertical down to curve start
+                                             ` Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${nonAdiEntryX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Curve left to box edge
                     horizontalPath.setAttribute('d', horizontalPathData);
                   }
                 }
@@ -4254,23 +4242,23 @@ function initializeDiagram() {
                   let nonAdiEntryX = adiData.x + adiData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    // Subtract 2px so lines stop cleanly at visible box edge
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width + 1;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
                   }
-                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
-
                   if (data.eftposHorizontalPath && updatedEftposSegments.horizontalY && updatedEftposSegments.curveStartX) {
                     const eftposExtendX = adiRightEdge + eftposXOffset;
                     let eftposEntryY = nonAdiEntryY + 6; // Purple (Eftpos) - 7th from top (last)
+                    // Calculate curve radius so it ends exactly at the box edge
+                    const eftposActualRadius = eftposExtendX - nonAdiEntryX;
                     const lastCIndex = updatedEftposSegments.pathString.lastIndexOf(' C ');
                     if (lastCIndex > -1) {
                       const pathBeforeCurve = updatedEftposSegments.pathString.substring(0, lastCIndex);
                       const horizontalPathData = pathBeforeCurve +
                                                ` L ${(eftposExtendX - curveRadius).toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}` +
                                                ` Q ${eftposExtendX.toFixed(2)} ${updatedEftposSegments.horizontalY.toFixed(2)}, ${eftposExtendX.toFixed(2)} ${(updatedEftposSegments.horizontalY + curveRadius).toFixed(2)}` +
-                                               ` L ${eftposExtendX.toFixed(2)} ${(eftposEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
-                                               ` Q ${eftposExtendX.toFixed(2)} ${eftposEntryY.toFixed(2)}, ${(eftposExtendX - leftCurveRadius).toFixed(2)} ${eftposEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${(nonAdiEntryX).toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
+                                               ` L ${eftposExtendX.toFixed(2)} ${(eftposEntryY - eftposActualRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${eftposExtendX.toFixed(2)} ${eftposEntryY.toFixed(2)}, ${nonAdiEntryX.toFixed(2)} ${eftposEntryY.toFixed(2)}`; // Curve left to box edge
                       data.eftposHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
@@ -4278,15 +4266,16 @@ function initializeDiagram() {
                   if (data.mastercardHorizontalPath && updatedMastercardSegments.horizontalY && updatedMastercardSegments.curveStartX) {
                     const mastercardExtendX = adiRightEdge + mastercardXOffset;
                     let mastercardEntryY = nonAdiEntryY + 5; // Red (Mastercard) - 6th from top
+                    // Calculate curve radius so it ends exactly at the box edge
+                    const mastercardActualRadius = mastercardExtendX - nonAdiEntryX;
                     const lastCIndex = updatedMastercardSegments.pathString.lastIndexOf(' C ');
                     if (lastCIndex > -1) {
                       const pathBeforeCurve = updatedMastercardSegments.pathString.substring(0, lastCIndex);
                       const horizontalPathData = pathBeforeCurve +
                                                ` L ${(mastercardExtendX - curveRadius).toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}` +
                                                ` Q ${mastercardExtendX.toFixed(2)} ${updatedMastercardSegments.horizontalY.toFixed(2)}, ${mastercardExtendX.toFixed(2)} ${(updatedMastercardSegments.horizontalY + curveRadius).toFixed(2)}` +
-                                               ` L ${mastercardExtendX.toFixed(2)} ${(mastercardEntryY - leftCurveRadius).toFixed(2)}` + // Vertical down to curve start
-                                               ` Q ${mastercardExtendX.toFixed(2)} ${mastercardEntryY.toFixed(2)}, ${(mastercardExtendX - leftCurveRadius).toFixed(2)} ${mastercardEntryY.toFixed(2)}` + // Curve left
-                                               ` L ${(nonAdiEntryX).toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge (not into it)
+                                               ` L ${mastercardExtendX.toFixed(2)} ${(mastercardEntryY - mastercardActualRadius).toFixed(2)}` + // Vertical down to curve start
+                                               ` Q ${mastercardExtendX.toFixed(2)} ${mastercardEntryY.toFixed(2)}, ${nonAdiEntryX.toFixed(2)} ${mastercardEntryY.toFixed(2)}`; // Curve left to box edge
                       data.mastercardHorizontalPath.setAttribute('d', horizontalPathData);
                     }
                   }
@@ -4594,23 +4583,24 @@ function initializeDiagram() {
                   let nonAdiEntryX = window.adiBoxData.x + window.adiBoxData.width; // Default to ADI right edge if non-ADI not available
                   let nonAdiEntryY = verticalDropY + 100; // Default position
                   if (window.nonAdiBoxData) {
-                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width;
+                    // Subtract 2px so lines stop cleanly at visible box edge
+                    nonAdiEntryX = window.nonAdiBoxData.x + window.nonAdiBoxData.width + 1;
                     nonAdiEntryY = window.nonAdiBoxData.y + window.nonAdiBoxData.height * 0.8; // 20% above bottom
                     // Maroon is first (topmost) - no offset needed (offset = 0)
                   }
-                  const leftCurveRadius = 170; // Radius for the left curve into non-ADIs box
+                  // Calculate curve radius so it ends exactly at the box edge
+                  const maroonTargetX = nonAdiEntryX; // Same endpoint as other lines
+                  const maroonActualRadius = horizontalExtendX - maroonTargetX;
 
                   // Build horizontal branch path that continues from where the curve would normally go down
-                  const maroonStrokeWidth = 2; // From line 4136
                   const horizontalBranchPath = `M ${cStartX.toFixed(2)} ${cStartY.toFixed(2)} ` + // Start at DE center
                                               `C ${cCtrlX.toFixed(2)} ${cCtrl1Y.toFixed(2)}, ` + // First control point
                                               `${cCtrlX.toFixed(2)} ${cCtrl2Y.toFixed(2)}, ` + // Second control point
                                               `${cConnectionX.toFixed(2)} ${cConnectionY.toFixed(2)} ` + // End of C-curve at OSKO
                                               `L ${(horizontalExtendX - curveRadius).toFixed(2)} ${cConnectionY.toFixed(2)} ` + // Horizontal to curve start
                                               `Q ${horizontalExtendX.toFixed(2)} ${cConnectionY.toFixed(2)}, ${horizontalExtendX.toFixed(2)} ${(cConnectionY + curveRadius).toFixed(2)} ` + // Curve down
-                                              `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - leftCurveRadius).toFixed(2)} ` + // Vertical down to curve start
-                                              `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${(horizontalExtendX - leftCurveRadius).toFixed(2)} ${nonAdiEntryY.toFixed(2)} ` + // Curve left
-                                              `L ${(nonAdiEntryX - maroonStrokeWidth / 2).toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Horizontal to non-ADIs box edge, endpoint before edge to hide round cap inside
+                                              `L ${horizontalExtendX.toFixed(2)} ${(nonAdiEntryY - maroonActualRadius).toFixed(2)} ` + // Vertical down to curve start
+                                              `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${maroonTargetX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Curve left to box edge
 
                   window.maroonHorizontalBranches[0].setAttribute('d', horizontalBranchPath);
                 }
@@ -5819,9 +5809,9 @@ function initializeDiagram() {
           asxBoxY + asxBoxHeight - 19, // Moved down by 3 pixels (was -22, now -19)
           'ASX',
           {
-            fill: '#e8ecf7', // Swapped text color
-            fontSize: '26', // Bigger font size
-            fontWeight: 'normal' // Explicitly set to normal weight
+            fill: '#ffffff',
+            fontSize: '18',
+            fontWeight: 'bold'
           }
         );
         labelsGroup.appendChild(asxLabel);
@@ -8973,12 +8963,13 @@ function initializeDiagram() {
 
         const pspsText = createStyledText(
           redRectX + reducedRedWidth - 15,
-          redRectY + redRectHeight / 2 + 5,
+          redRectY + redRectHeight / 2,
           'PSPs',
           {
             textAnchor: 'end',
             fill: '#ffffff', // White text
-            fontSize: '13'
+            fontSize: '13',
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(pspsText);
@@ -9045,12 +9036,13 @@ function initializeDiagram() {
 
         const csText = createStyledText(
           greenRectX + reducedCsWidth - 15,
-          greenRectY + greenRectHeight / 2 + 5,
+          greenRectY + greenRectHeight / 2,
           'CS',
           {
             textAnchor: 'end',
             fill: '#ffffff', // White text
-            fontSize: '13'
+            fontSize: '13',
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(csText);

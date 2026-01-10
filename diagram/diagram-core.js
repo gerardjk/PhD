@@ -2911,7 +2911,7 @@ function initializeDiagram() {
           const reducedHeight = stackedHeight * 0.9;
           const reducedFont = 11;
 
-          const mastercard = createAlignedRect(mastercardY, 'rgb(216,46,43)', 'Mastercard');
+          const mastercard = createAlignedRect(mastercardY, '#a52c28', 'Mastercard');
           const visaGap = gapSympliPexa * 2;
           const gapHalf = gapSympliPexa / 2;
           const visaY = mastercardY - visaGap - reducedHeight;
@@ -5517,9 +5517,9 @@ function initializeDiagram() {
           asxBoxY + asxBoxHeight - 19, // Moved down by 3 pixels (was -22, now -19)
           'ASX',
           {
-            fill: '#071f6a', // Dark blue text
-            fontSize: '22', // Slightly larger label
-            fontWeight: 'normal' // Explicitly set to normal weight
+            fill: '#ffffff',
+            fontSize: '18',
+            fontWeight: 'bold'
           }
         );
         labelsGroup.appendChild(asxLabel);
@@ -7870,12 +7870,13 @@ function initializeDiagram() {
         // Position in right side, vertically centered
         const specialisedADIsText = createStyledText(
           group5aRectX + group5aRectWidth - 15,
-          group5aRectY + group5aRectHeight / 2 + 5,
+          group5aRectY + group5aRectHeight / 2,
           'Specialised ADIs',
           {
             textAnchor: 'end',
             fill: '#8129a0', // Intermediate purple
-            fontSize: '13' // Between 12 and 14
+            fontSize: '13', // Between 12 and 14
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(specialisedADIsText);
@@ -7927,12 +7928,13 @@ function initializeDiagram() {
         // Position in right side, vertically centered
         const otherADIsText = createStyledText(
           group5bRectX + group5bRectWidth - 15,
-          group5bRectY + group5bRectHeight / 2 + 5,
+          group5bRectY + group5bRectHeight / 2,
           'Other ADIs',
           {
             textAnchor: 'end',
             fill: '#942193', // Based on hex 942193
-            fontSize: '13' // Between 12 and 14
+            fontSize: '13', // Between 12 and 14
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(otherADIsText);
@@ -8339,12 +8341,13 @@ function initializeDiagram() {
 
         const pspsText = createStyledText(
           redRectX + reducedRedWidth - 15,
-          redRectY + redRectHeight / 2 + 5,
+          redRectY + redRectHeight / 2,
           'PSPs',
           {
             textAnchor: 'end',
             fill: '#ef4444', // Red color matching border
-            fontSize: '13'
+            fontSize: '13',
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(pspsText);
@@ -8400,12 +8403,13 @@ function initializeDiagram() {
 
         const csText = createStyledText(
           greenRectX + reducedCsWidth - 15,
-          greenRectY + greenRectHeight / 2 + 5,
+          greenRectY + greenRectHeight / 2,
           'CS',
           {
             textAnchor: 'end',
             fill: '#4CAF50', // Green color matching border
-            fontSize: '13'
+            fontSize: '13',
+            dominantBaseline: 'middle'
           }
         );
         labelsGroup.appendChild(csText);

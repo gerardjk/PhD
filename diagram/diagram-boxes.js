@@ -270,7 +270,7 @@ function createAdministeredBatchesBoxes(widerAdminBoxX, mastercardY, eftposY, pe
 
   // Mastercard box
   boxes.mastercard = createStyledRect(widerAdminBoxX, mastercardY, widerAdminBoxWidth, hexHeight, {
-    fill: 'rgb(255,230,230)',
+    fill: '#a52c28',
     stroke: 'white',
     strokeWidth: '0.5'
   });

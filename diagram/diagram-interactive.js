@@ -42,7 +42,7 @@ function createTooltipElement() {
     tooltip.style.background = 'transparent';
     tooltip.style.color = 'white';
     tooltip.style.padding = '12px 14px';
-    tooltip.style.borderRadius = '0';
+    tooltip.style.borderRadius = '8px';
     tooltip.style.fontFamily = 'Courier New, monospace';
     tooltip.style.fontSize = '13px';
     tooltip.style.lineHeight = '1.4';
@@ -59,14 +59,16 @@ function createTooltipElement() {
     // Dismiss tooltip when mouse leaves it (if sticky)
     wrapper.addEventListener('mouseleave', handleTooltipMouseLeave);
   } else {
-    // Chrome: simple single div
+    // Chrome: apply same scaling as Firefox for consistent size
+    const chromeScaleFactor = 2 / dpr; // Match Firefox scaling
+
     tooltip = document.createElement('div');
     tooltip.id = 'diagram-tooltip';
     tooltip.style.position = 'fixed';
     tooltip.style.background = 'transparent';
     tooltip.style.color = 'white';
     tooltip.style.padding = '12px 14px';
-    tooltip.style.borderRadius = '0';
+    tooltip.style.borderRadius = '8px';
     tooltip.style.fontFamily = 'Courier New, monospace';
     tooltip.style.fontSize = '13px';
     tooltip.style.lineHeight = '1.4';
@@ -79,6 +81,7 @@ function createTooltipElement() {
     tooltip.style.transition = 'opacity 0.15s ease';
     tooltip.style.border = '2px solid rgba(255, 255, 255, 0.45)';
     tooltip.style.transformOrigin = 'top left';
+    tooltip.style.transform = `scale(${chromeScaleFactor})`; // Scale down to match Firefox
     tooltip.style.cursor = 'pointer';
     tooltip.style.whiteSpace = 'normal';
     tooltip.style.overflowWrap = 'break-word';
@@ -778,7 +781,6 @@ function makeInteractive(element, elementId) {
 
   element.setAttribute('data-interactive-id', elementId);
   element.style.cursor = 'pointer';
-  element.style.willChange = 'filter, opacity';
 
   element.addEventListener('mouseenter', handleMouseEnter);
   element.addEventListener('mousemove', handleMouseMove);
@@ -806,24 +808,6 @@ function makeInteractiveHighlightOnly(element, elementId) {
   element.addEventListener('mouseleave', handleMouseLeave);
 }
 
-/**
- * Pre-hint elements that may be highlighted for better performance
- * Adds will-change to elements in groups that get bulk-highlighted
- */
-function preHintHighlightableElements() {
-  // Groups whose children get highlighted
-  const groupIds = ['blue-connecting-lines', 'yellow-circles', 'big-group', 'small-group', 'lvss-gear-group'];
-
-  groupIds.forEach(groupId => {
-    const group = document.getElementById(groupId);
-    if (group) {
-      const children = group.querySelectorAll('line, path, circle');
-      children.forEach(child => {
-        child.style.willChange = 'filter, opacity, stroke-width';
-      });
-    }
-  });
-}
 
 /**
  * Handle document click to dismiss sticky tooltip
@@ -843,15 +827,99 @@ function handleDocumentClick(event) {
 }
 
 /**
+ * Proximity-based hover detection for small blue dots
+ * Finds the closest dot to the mouse cursor within a threshold
+ */
+let dotPositions = null;
+let currentProximityDot = null;
+
+function cacheDotPositions() {
+  dotPositions = [];
+  const svg = document.querySelector('svg');
+  if (!svg) return;
+
+  // Find all small blue dots (circles with dot-N IDs, excluding CLS which is large)
+  const dots = document.querySelectorAll('circle[data-interactive-id^="dot-"]');
+  dots.forEach(dot => {
+    const id = dot.dataset.interactiveId;
+    const cx = parseFloat(dot.getAttribute('cx'));
+    const cy = parseFloat(dot.getAttribute('cy'));
+    const r = parseFloat(dot.getAttribute('r'));
+    // Only include small dots (radius < 15)
+    if (!isNaN(cx) && !isNaN(cy) && r < 15) {
+      dotPositions.push({ id, cx, cy, r, element: dot });
+    }
+  });
+}
+
+function handleSvgMouseMove(event) {
+  if (!dotPositions || dotPositions.length === 0) {
+    cacheDotPositions();
+  }
+  if (!dotPositions || dotPositions.length === 0) return;
+
+  const svg = event.currentTarget;
+  const pt = svg.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  const svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+  // Find closest dot within threshold
+  const threshold = 8; // Extra pixels beyond the dot radius
+  let closestDot = null;
+  let closestDist = Infinity;
+
+  for (const dot of dotPositions) {
+    const dx = svgPt.x - dot.cx;
+    const dy = svgPt.y - dot.cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const effectiveRadius = dot.r + threshold;
+
+    if (dist < effectiveRadius && dist < closestDist) {
+      closestDist = dist;
+      closestDot = dot;
+    }
+  }
+
+  // If we found a dot and it's different from current, trigger hover
+  if (closestDot && closestDot.id !== currentProximityDot) {
+    currentProximityDot = closestDot.id;
+    // Simulate mouseenter on the dot
+    const fakeEvent = {
+      currentTarget: closestDot.element,
+      clientX: event.clientX,
+      clientY: event.clientY
+    };
+    handleMouseEnter(fakeEvent);
+  } else if (!closestDot && currentProximityDot) {
+    // Mouse moved away from all dots
+    currentProximityDot = null;
+    // Don't clear if tooltip is sticky
+    if (!tooltipIsSticky) {
+      hideTooltip();
+      clearHighlights();
+    }
+  }
+}
+
+/**
  * Initialize the interactive system
  * Call this once after the diagram is rendered
  */
 function initializeInteractive() {
   createTooltipElement();
-  // Delay pre-hinting slightly to ensure diagram is fully rendered
-  setTimeout(preHintHighlightableElements, 100);
   // Listen for clicks outside to dismiss sticky tooltip
   document.addEventListener('click', handleDocumentClick);
+
+  // Add proximity-based hover detection for small dots
+  setTimeout(() => {
+    const svg = document.querySelector('svg');
+    if (svg) {
+      cacheDotPositions();
+      svg.addEventListener('mousemove', handleSvgMouseMove);
+    }
+  }, 200); // Delay to ensure diagram is rendered
+
   console.log('Interactive tooltip system initialized');
 }
 

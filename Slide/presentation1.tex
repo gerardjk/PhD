@@ -142,9 +142,8 @@
 \newenvironment{autosubsection}[1]{%
     \refstepcounter{framesubsection}%
     \vspace{0.2em}%
-    \noindent{\normalsize \textbf{\thesection.\theframesubsection\quad #1}}\par%
-    \small%
-}{\normalsize}
+    \noindent{\normalsize\bfseries \thesection.\theframesubsection\quad #1}\par%
+}{}
 
 \newcounter{framesubsubsection}[framesubsection]
 
@@ -182,7 +181,6 @@
 
 % Title
 \title{Liquidity \& Token Interchange}
-\subtitle{Problems in Computational Settlement}
 \author{Gerard Kelly}
 \institute{University of New South Wales\\School of Computer Science \& Engineering}
 \date{\monthname\ \the\year}
@@ -200,8 +198,7 @@
 \begin{frame}[plain,noframenumbering]
     \vspace{1cm}
     \begin{center}
-        {\Huge \textbf{\inserttitle}}\\[0.5em]
-        {\Large \insertsubtitle}\\[1.5em]
+        {\Huge \textbf{\inserttitle}}\\[2em]
         {\large \insertauthor}\\[0.5em]
         {\insertinstitute}\\[1em]
         {\insertdate}
@@ -214,38 +211,46 @@
     \tableofcontents
 \end{frame}
 
-% Section 1: Introduction 
+% Section 1: Introduction & Literature Review
 \section{1. Introduction}
 
 \begin{frame}{1. Introduction}
 
-    \begin{autosubsection}{The Hard Problem of Settlement}
-        Introduction to payments settlement as a computational problem; historical background. 
+    \begin{autosubsection}{Outline}
+        
+        \begin{autosubsubsection}{Executive Summary}
+        \end{autosubsubsection}
+
+        \begin{autosubsubsection}{Definitions}
+        \end{autosubsubsection}
+
+        \begin{autosubsubsection}{Research Questions}
+        \end{autosubsubsection}
+
     \end{autosubsection}
 
-    \begin{autosubsection}{Liquidity \& Tokenisation}
-        Definitions of liquidity, tokens, interchange, and the contemporary industry context.
+    \begin{autosubsection}{Background \& Approach}
+        
+        \begin{autosubsubsection}{Motivation}
+        \end{autosubsubsection}
+
+        \begin{autosubsubsection}{Industry Context}
+        \end{autosubsubsection}
+
+        \begin{autosubsubsection}{Project Scope \& Methodology}
+        \end{autosubsubsection}
+
     \end{autosubsection}
 
-    \begin{autosubsection}{Computer Science \& Digital Finance}
-        Overview of formal methods in Computer Science with application to finance.
+        \begin{autosubsection}{Contributions \& Structure}
+        
+        \begin{autosubsubsection}{Research Outcomes}
+        \end{autosubsubsection}
+
+        \begin{autosubsubsection}{Thesis Organisation}
+        \end{autosubsubsection}
+
     \end{autosubsection}
-
-    \begin{autosubsection}{Research Questions}
-        Enumeration of primary research questions addressed by this project.
-    \end{autosubsection}
-
-    \begin{autosubsection}{Structure \& Contributions}
-        Outline of subsequent sections; methodologies, publications, and key research outcomes. 
-    \end{autosubsection}
-
-\end{frame}
-
-\begin{frame}{1. Introduction}
-
-\textbf{1.4 Research Questions}
-
-
 
 \end{frame}
 
@@ -253,14 +258,8 @@
 \section{2. Liquidity Automata}
 
 \begin{frame}{2. Liquidity Automata}
-
-\textbf{Liquidity Automata: A Computational Hierarchy of Money Forms}
-\\[1em]
-\small
-This chapter (and corresponding paper) will propose a correspondence between the Chomsky heirarchy of computational complexity and various monetary architectures that have successively evolved over the course of economic history, arguing that the resulting taxonomy provides a useful means of conceptualising the material distinctions.\\
- The chapter will include a review of the canonical literature on complexity theory and monetary history, and will argue that tokenisation introduces an imperative to develop agentic systems to manage settlement risks.\\ 
-
-While abstract, concepts introduced in this chapter will inform and motivate subsequent chapters.
+    
+Liquidity Automata: A Computational Hierarchy of Money Forms
 
 \end{frame}
 
