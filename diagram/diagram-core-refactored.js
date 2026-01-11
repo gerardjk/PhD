@@ -4842,10 +4842,14 @@ function initializeDiagram() {
           oskoToAdiLine.setAttribute('stroke-width', '2');
           oskoToAdiLine.setAttribute('stroke-linecap', 'round');
           oskoToAdiLine.setAttribute('fill', 'none');
-          // Disable pointer events - horizontal segment spans across diagram capturing wrong events
-          // Users can hover on cheques-to-apcs-line for APCS tooltip
-          oskoToAdiLine.style.pointerEvents = 'none';
+          // Use stroke-only pointer events so only the visible line is interactive
+          oskoToAdiLine.style.pointerEvents = 'stroke';
           labelsGroup.insertBefore(oskoToAdiLine, labelsGroup.firstChild);
+
+          // Make interactive for APCS Truncated tooltip
+          if (typeof window.makeInteractive === 'function') {
+            window.makeInteractive(oskoToAdiLine, 'osko-to-adi-line');
+          }
 
           const updateOskoToAdiLine = () => {
             if (!window.chequesBoxData || !window.adiBoxData) return;

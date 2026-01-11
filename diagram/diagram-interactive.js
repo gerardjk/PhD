@@ -730,7 +730,15 @@ function handleMouseEnter(event) {
 
   const { targetId, dotIndex, isYellowDot } = resolveHoverTarget(elementId);
   if (!targetId) return;
-  if (shouldDeferToHigherPriority(event, targetId)) return;
+  const overrideTarget = getHigherPriorityInteractive(event, targetId);
+  if (overrideTarget) {
+    handleMouseEnter({
+      currentTarget: overrideTarget,
+      clientX: event.clientX,
+      clientY: event.clientY
+    });
+    return;
+  }
 
   // Clear any lingering highlights before applying new ones (unless we're re-entering the sticky element)
   if (!tooltipIsSticky || stickyElementId !== targetId) {
@@ -860,7 +868,15 @@ function handleClick(event) {
 
   const { targetId } = resolveHoverTarget(elementId);
   if (!targetId) return;
-  if (shouldDeferToHigherPriority(event, targetId)) return;
+  const overrideTarget = getHigherPriorityInteractive(event, targetId);
+  if (overrideTarget) {
+    handleClick({
+      currentTarget: overrideTarget,
+      clientX: event.clientX,
+      clientY: event.clientY
+    });
+    return;
+  }
 
   // If clicking on the same element that's already sticky, dismiss it
   if (tooltipIsSticky && stickyElementId === targetId) {
@@ -886,7 +902,10 @@ function makeInteractive(element, elementId) {
 
   element.setAttribute('data-interactive-id', elementId);
   element.style.cursor = 'pointer';
-  element.style.pointerEvents = 'all';  // Ensure element always receives pointer events
+  // Only set pointerEvents if not already set (allows 'stroke' etc. to be preserved)
+  if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
+    element.style.pointerEvents = 'all';
+  }
 
   element.addEventListener('mouseenter', handleMouseEnter);
   element.addEventListener('mousemove', handleMouseMove);
@@ -894,26 +913,31 @@ function makeInteractive(element, elementId) {
   element.addEventListener('click', handleClick);
 }
 
-function shouldDeferToHigherPriority(event, targetId) {
+function getHigherPriorityInteractive(event, targetId) {
   if (!event || !targetId || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-    return false;
+    return null;
   }
-  const suppressedIds = new Set(['directentry-to-adi-line']);
-  if (!suppressedIds.has(targetId)) return false;
+  const overrideMap = {
+    'directentry-to-adi-line': new Set(['osko-to-adi-line', 'cheques-to-apcs-line'])
+  };
+  const overrides = overrideMap[targetId];
+  if (!overrides) return null;
 
-  if (typeof document.elementsFromPoint !== 'function') return false;
+  if (typeof document.elementsFromPoint !== 'function') return null;
   const stack = document.elementsFromPoint(event.clientX, event.clientY);
-  if (!Array.isArray(stack)) return false;
+  if (!Array.isArray(stack)) return null;
 
   for (const el of stack) {
     if (!el) continue;
-    if (el === event.currentTarget) continue;
     const interactiveEl = el.closest ? el.closest('[data-interactive-id]') : null;
-    if (interactiveEl && interactiveEl.dataset.interactiveId && interactiveEl.dataset.interactiveId !== targetId) {
-      return true;
+    if (!interactiveEl) continue;
+    const id = interactiveEl.dataset.interactiveId;
+    if (!id) continue;
+    if (overrides.has(id)) {
+      return interactiveEl;
     }
   }
-  return false;
+  return null;
 }
 
 /**
