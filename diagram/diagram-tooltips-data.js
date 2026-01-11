@@ -1172,48 +1172,34 @@ const tooltipContent = {
     ]
   },
   'clearing-box': {
-    title: 'CHESS',
-    subtitle: 'Clearing House Electronic Subregister System',
-    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
-    details: [
-      'Settles equities on T+2 basis',
-      'Maintains electronic subregister of shareholdings',
-      'Processes corporate actions',
-      'Links to CHESS-RTGS for DvP settlement'
-    ]
+    title: 'Clearing/Netting',
+    subtitle: 'Batch netting of securities transactions',
+    description: 'Multilateral netting reduces the number and value of settlements',
+    smallStyle: true
   },
   'trade-by-trade-box': {
-    title: 'CHESS',
-    subtitle: 'Clearing House Electronic Subregister System',
-    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
+    title: 'CHESS-RTGS',
+    subtitle: 'CHESS Real-Time Gross Settlement',
+    description: 'Interface between CHESS and RITS for real-time delivery versus payment settlement',
     details: [
-      'Settles equities on T+2 basis',
-      'Maintains electronic subregister of shareholdings',
-      'Processes corporate actions',
-      'Links to CHESS-RTGS for DvP settlement'
-    ]
+      'Enables DvP Model 1 settlement',
+      'Real-time securities against cash settlement',
+      'Reduces settlement risk for high-value transactions',
+      'Operated by ASX Settlement'
+    ],
+    colorFrom: 'chess-rtgs-box'  // Use color from CHESS-RTGS box
   },
   'dvp-cash-leg-box': {
-    title: 'Austraclear',
-    subtitle: 'Debt securities depository and settlement',
-    description: 'Central securities depository for debt securities and repurchase agreements',
-    details: [
-      'Settles government and corporate bonds',
-      'Processes money market instruments',
-      'Provides custody and settlement services',
-      'Connects to RITS for cash settlement'
-    ]
+    title: 'DvP Cash Leg',
+    subtitle: 'Cash side of delivery versus payment',
+    description: 'Cash settlement component of DvP transactions in Austraclear',
+    smallStyle: true
   },
   'cash-transfer-box': {
-    title: 'Austraclear',
-    subtitle: 'Debt securities depository and settlement',
-    description: 'Central securities depository for debt securities and repurchase agreements',
-    details: [
-      'Settles government and corporate bonds',
-      'Processes money market instruments',
-      'Provides custody and settlement services',
-      'Connects to RITS for cash settlement'
-    ]
+    title: 'Cash Transfer',
+    subtitle: 'Pure cash movements',
+    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
+    smallStyle: true
   },
 
   // Participant groups
@@ -1501,6 +1487,150 @@ const tooltipContent = {
     details: [
       'Multi-currency FX settlement system'
     ]
+  },
+
+  // ========== LINE TOOLTIPS ==========
+  // ISO 20022 (SWIFT) lines - turquoise color (#5dd9b8)
+  // All turquoise lines share the same tooltip style
+  'hvcs-horizontal-line': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'pacs-to-swift-line-0': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'pacs-to-swift-line-1': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'pacs-to-swift-line-2': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'swift-pds-to-rits-line-0': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'swift-pds-to-rits-line-1': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'swift-pds-to-rits-line-2': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  // NPP-related turquoise lines
+  'npp-to-adi-line': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'new-pacs-to-npp-line': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+  'npp-to-fss-path': {
+    title: 'ISO 20022 (SWIFT)',
+    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
+    lineStyle: true
+  },
+
+  // CLS PvP lines - neon green color (#00FF33)
+  'cls-aud-line-new': {
+    title: 'ISO 20022 CLS PvP',
+    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
+    lineStyle: true
+  },
+  'cls-to-rits-line-final': {
+    title: 'ISO 20022 CLS PvP',
+    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
+    lineStyle: true
+  },
+  'cls-s-curve': {
+    title: 'ISO 20022 CLS PvP',
+    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
+    lineStyle: true
+  },
+
+  // Direct Entry ABA lines - red color (#ff073a)
+  'directentry-to-adi-line': {
+    title: 'DE (ABA) File Format',
+    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
+    lineStyle: true
+  },
+  'maroon-horizontal-branch': {
+    title: 'DE (ABA) File Format',
+    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
+    lineStyle: true
+  },
+  'becn-to-becs-line': {
+    title: 'DE (ABA) File Format',
+    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
+    lineStyle: true
+  },
+  'becg-to-becs-line': {
+    title: 'DE (ABA) File Format',
+    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
+    lineStyle: true
+  },
+
+  // APCS Cheques lines - grey color (#e5e7eb)
+  'cheques-to-apcs-line': {
+    title: 'APCS Truncated Presentment',
+    description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
+    lineStyle: true
+  },
+  'osko-to-adi-line': {
+    title: 'APCS Truncated Presentment',
+    description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
+    lineStyle: true
+  },
+
+  // LVSS FSI XML lines - grey double lines through LVSS circle
+  'lvss-line-gabs': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  'lvss-line-cecs': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  'lvss-line-cshd': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  'lvss-line-becs': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  'lvss-line-apcs': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  // CECS to IAC lines - also LVSS FSI XML
+  'cecs-to-iac-line-1': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
+  },
+  'cecs-to-iac-line-2': {
+    title: 'LVSS FSI XML',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    lineStyle: true
   }
 };
 

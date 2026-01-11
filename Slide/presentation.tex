@@ -141,10 +141,12 @@
 % Custom invisible block style for subsections with auto-numbering
 \newenvironment{autosubsection}[1]{%
     \refstepcounter{framesubsection}%
-    \vspace{0.2em}%
+    \vspace{0.6em}%
     \noindent{\normalsize \textbf{\thesection.\theframesubsection\quad #1}}\par%
+    \vspace{0.2em}%
     \small%
-}{\normalsize}
+    \leftskip=1.5em%
+}{\par\leftskip=0em\normalsize}
 
 \newcounter{framesubsubsection}[framesubsection]
 
@@ -257,10 +259,11 @@
 \textbf{Liquidity Automata: A Computational Hierarchy of Money Forms}
 \\[1em]
 \small
-This chapter (and corresponding paper) will propose a correspondence between the Chomsky heirarchy of computational complexity and various monetary architectures that have successively evolved over the course of economic history, arguing that the resulting taxonomy provides a useful means of conceptualising the material distinctions.\\
- The chapter will include a review of the canonical literature on complexity theory and monetary history, and will argue that tokenisation introduces an imperative to develop agentic systems to manage settlement risks.\\ 
-
-While abstract, concepts introduced in this chapter will inform and motivate subsequent chapters.
+This chapter (and corresponding paper) will propose a correspondence between the Chomsky heirarchy of computational complexity and distinctive forms of money and settlement that have emerged over time. \\
+[1em]
+The proposed hierarchy provides a theoretical framework for the relatioship between liqudity and technology that identifies four key innovations in its evolution - a process culminating with digital tokenisation and the arrival of computational universality.\\
+[1em]
+The chapter will include a review of the canonical literature relating to computation and economics. It will argue that the complexity of tokenised monetary systems introduce an imperative to manage settlement risks through the development of autonomous agents. Although abstract, concepts introduced in this chapter will provide theoretical foundations for subsequent chapters.
 
 \end{frame}
 

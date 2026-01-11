@@ -8,7 +8,7 @@ let currentTooltip = null;
 let currentHighlightedElements = new Set();
 let tooltipIsSticky = false;
 let stickyElementId = null;
-let mouseLeaveTimeout = null;  // Debounce timer for mouseleave
+let lastHoveredElementId = null;  // Track for delegation-based hover
 
 /**
  * Create the tooltip element (only created once)
@@ -104,7 +104,6 @@ function handleTooltipMouseLeave(event) {
   // Check if moving back to the interactive element
   const relatedTarget = event.relatedTarget;
   if (relatedTarget && relatedTarget.closest && relatedTarget.closest('[data-interactive-id]')) {
-    // Moving back to an interactive element - don't dismiss yet
     return;
   }
 
@@ -174,6 +173,44 @@ function darkenColor(color, factor = 0.3) {
 }
 
 /**
+ * Lighten a color for use as tooltip background (for line tooltips)
+ */
+function lightenColor(color, factor = 0.7) {
+  if (!color || color === 'none' || color === 'transparent') return null;
+
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    let hex = color.slice(1);
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    // Blend with white to lighten
+    const newR = Math.floor(r + (255 - r) * factor);
+    const newG = Math.floor(g + (255 - g) * factor);
+    const newB = Math.floor(b + (255 - b) * factor);
+    return `rgba(${newR}, ${newG}, ${newB}, 0.94)`;
+  }
+
+  // Handle rgb/rgba colors
+  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    // Blend with white to lighten
+    const newR = Math.floor(r + (255 - r) * factor);
+    const newG = Math.floor(g + (255 - g) * factor);
+    const newB = Math.floor(b + (255 - b) * factor);
+    return `rgba(${newR}, ${newG}, ${newB}, 0.94)`;
+  }
+
+  return null;
+}
+
+/**
  * Normalize an interactive element ID so variants (e.g., yellow-dot-#) map to their base entity
  */
 function resolveHoverTarget(elementId) {
@@ -216,32 +253,77 @@ function showTooltip(elementId, event) {
   }
 
   // Get element color and apply to tooltip background
-  const elementColor = getElementColor(elementId, event);
-  const tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.94)';
+  // Use colorFrom property if specified (to match another element's color)
+  const colorSourceId = content.colorFrom || elementId;
+  const elementColor = getElementColor(colorSourceId, event);
+
+  // Line style: light background with dark text
+  const isLineStyle = content.lineStyle === true;
+  let tooltipBgColor;
+  if (isLineStyle) {
+    tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.94)';
+    tooltipContentElement.style.borderColor = elementColor || 'rgba(100, 100, 100, 0.6)';
+  } else {
+    tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.94)';
+    tooltipContentElement.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+  }
   tooltipContentElement.style.background = tooltipBgColor;
+
+  // Determine tooltip size based on element type
+  const largerTooltipIds = ['rits-circle', 'asx-box', 'cls-circle'];
+  const isRba = elementId === 'dot-0';
+  const isDot = !isRba && (elementId.startsWith('dot-') || elementId.startsWith('yellow-dot-'));
+  const isSmallStyle = isDot || content.smallStyle;  // Use small style for dots or elements with smallStyle flag
+
+  if (isSmallStyle) {
+    // Smaller tooltips for ESA dots and elements with smallStyle
+    tooltipContentElement.style.width = '240px';
+    tooltipContentElement.style.padding = '8px 10px';
+    tooltipContentElement.style.borderWidth = '1px';
+  } else if (largerTooltipIds.includes(elementId)) {
+    tooltipContentElement.style.width = '380px';
+    tooltipContentElement.style.padding = '12px 14px';
+    tooltipContentElement.style.borderWidth = '2px';
+  } else {
+    tooltipContentElement.style.width = '320px';
+    tooltipContentElement.style.padding = '12px 14px';
+    tooltipContentElement.style.borderWidth = '2px';
+  }
 
   // Build tooltip HTML with new design
   let html = '';
 
-  // Title - larger, white, bold
+  // Font sizes - smaller for small style tooltips
+  const titleSize = isSmallStyle ? '13px' : '17px';
+  const subtitleSize = isSmallStyle ? '10px' : '13px';
+  const textSize = isSmallStyle ? '9px' : '11px';
+
+  // Text colors - dark for line style, light for normal
+  const titleColor = isLineStyle ? '#222' : 'white';
+  const subtitleColor = isLineStyle ? '#333' : 'white';
+  const textColor = isLineStyle ? '#444' : 'white';
+  const detailColor = isLineStyle ? '#555' : '#aaa';
+
+  // Title - larger, bold (italicised for line tooltips and small tooltips)
   if (content.title) {
-    html += `<div style="font-weight: bold; font-size: 17px; color: white; margin-bottom: 4px;">${content.title}</div>`;
+    const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${isSmallStyle ? '2px' : '4px'};">${content.title}</div>`;
   }
 
-  // Subtitle - normal size, white, bold
-  if (content.subtitle) {
-    html += `<div style="font-size: 13px; color: white; font-weight: bold; margin-bottom: 8px;">${content.subtitle}</div>`;
+  // Subtitle - normal size, bold (skip for line tooltips)
+  if (content.subtitle && !isLineStyle) {
+    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; margin-bottom: ${isSmallStyle ? '4px' : '8px'};">${content.subtitle}</div>`;
   }
 
-  // Description - smaller, white
+  // Description - smaller
   if (content.description) {
-    html += `<div style="font-size: 11px; color: white; line-height: 1.45; margin-bottom: 4px;">${content.description}</div>`;
+    html += `<div style="font-size: ${textSize}; color: ${textColor}; line-height: 1.4; margin-bottom: ${isSmallStyle ? '2px' : '4px'};">${content.description}</div>`;
   }
 
-  // Details - each on new line, smaller, grey, no bullet points
+  // Details - each on new line, smaller, no bullet points
   if (content.details && content.details.length > 0) {
     content.details.forEach(detail => {
-      html += `<div style="font-size: 11px; color: #aaa; line-height: 1.45;">${detail}</div>`;
+      html += `<div style="font-size: ${textSize}; color: ${detailColor}; line-height: 1.4;">${detail}</div>`;
     });
   }
 
@@ -643,17 +725,12 @@ function highlightCirclesInBox(boxElementId) {
  * Handle mouse enter on an interactive element
  */
 function handleMouseEnter(event) {
-  // Cancel any pending mouseleave timeout
-  if (mouseLeaveTimeout) {
-    clearTimeout(mouseLeaveTimeout);
-    mouseLeaveTimeout = null;
-  }
-
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
   const { targetId, dotIndex, isYellowDot } = resolveHoverTarget(elementId);
   if (!targetId) return;
+  if (shouldDeferToHigherPriority(event, targetId)) return;
 
   // Clear any lingering highlights before applying new ones (unless we're re-entering the sticky element)
   if (!tooltipIsSticky || stickyElementId !== targetId) {
@@ -665,19 +742,16 @@ function handleMouseEnter(event) {
 
   // Special handling for boxes that should highlight contained dots
   if (targetId === 'blue-dots-background') {
-    // ESA box - highlight all blue and yellow dots (excluding RBA)
+    // ESA box - highlight all blue and yellow dots (including RBA)
     highlightElement(targetId);
 
     const allCircles = document.querySelectorAll('circle');
     allCircles.forEach(circle => {
-      if (circle.dataset.interactiveId === 'dot-0') {
-        return;
-      }
-
       const cx = parseFloat(circle.getAttribute('cx'));
       const cy = parseFloat(circle.getAttribute('cy'));
       const r = parseFloat(circle.getAttribute('r'));
 
+      // Highlight small dots (r < 20), including RBA's blue and yellow dots
       if (r && r < 20 && cx && cy) {
         circle.classList.add('highlighted');
         if (!circle.dataset.originalOpacity) {
@@ -773,28 +847,8 @@ function handleMouseLeave(event) {
     return;
   }
 
-  // Use a small delay before hiding to prevent flickering when moving between elements
-  if (mouseLeaveTimeout) {
-    clearTimeout(mouseLeaveTimeout);
-  }
-
-  mouseLeaveTimeout = setTimeout(() => {
-    // Check if we've moved to another interactive element
-    const hoveredElement = document.elementFromPoint(
-      event.clientX || 0,
-      event.clientY || 0
-    );
-    const isOnInteractive = hoveredElement && (
-      hoveredElement.closest('[data-interactive-id]') ||
-      hoveredElement.id === 'diagram-tooltip' ||
-      hoveredElement.closest('#diagram-tooltip')
-    );
-
-    if (!isOnInteractive) {
-      hideTooltip();
-      clearHighlights();
-    }
-  }, 50);  // 50ms delay to smooth out transitions
+  hideTooltip();
+  clearHighlights();
 }
 
 /**
@@ -806,6 +860,7 @@ function handleClick(event) {
 
   const { targetId } = resolveHoverTarget(elementId);
   if (!targetId) return;
+  if (shouldDeferToHigherPriority(event, targetId)) return;
 
   // If clicking on the same element that's already sticky, dismiss it
   if (tooltipIsSticky && stickyElementId === targetId) {
@@ -837,6 +892,28 @@ function makeInteractive(element, elementId) {
   element.addEventListener('mousemove', handleMouseMove);
   element.addEventListener('mouseleave', handleMouseLeave);
   element.addEventListener('click', handleClick);
+}
+
+function shouldDeferToHigherPriority(event, targetId) {
+  if (!event || !targetId || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+    return false;
+  }
+  const suppressedIds = new Set(['directentry-to-adi-line']);
+  if (!suppressedIds.has(targetId)) return false;
+
+  if (typeof document.elementsFromPoint !== 'function') return false;
+  const stack = document.elementsFromPoint(event.clientX, event.clientY);
+  if (!Array.isArray(stack)) return false;
+
+  for (const el of stack) {
+    if (!el) continue;
+    if (el === event.currentTarget) continue;
+    const interactiveEl = el.closest ? el.closest('[data-interactive-id]') : null;
+    if (interactiveEl && interactiveEl.dataset.interactiveId && interactiveEl.dataset.interactiveId !== targetId) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -917,7 +994,7 @@ function handleSvgMouseMove(event) {
   const svgPt = pt.matrixTransform(svg.getScreenCTM().inverse());
 
   // Find closest dot within threshold
-  const threshold = 8; // Extra pixels beyond the dot radius
+  const threshold = 15; // Extra pixels beyond the dot radius
   let closestDot = null;
   let closestDist = Infinity;
 
@@ -955,6 +1032,48 @@ function handleSvgMouseMove(event) {
 }
 
 /**
+ * Handle delegated mouseover on SVG - more reliable than individual mouseenter
+ */
+function handleSvgMouseOver(event) {
+  // Find the interactive element under the mouse
+  const interactiveEl = event.target.closest('[data-interactive-id]');
+
+  if (interactiveEl) {
+    const elementId = interactiveEl.dataset.interactiveId;
+    const { targetId } = resolveHoverTarget(elementId);
+
+    // Only trigger if this is a different element than before
+    if (targetId && targetId !== lastHoveredElementId) {
+      lastHoveredElementId = targetId;
+
+      // Create a fake event for handleMouseEnter
+      const fakeEvent = {
+        currentTarget: interactiveEl,
+        clientX: event.clientX,
+        clientY: event.clientY
+      };
+      handleMouseEnter(fakeEvent);
+    }
+  }
+}
+
+/**
+ * Handle delegated mouseout on SVG
+ */
+function handleSvgMouseOut(event) {
+  // Check if we're leaving to a non-interactive element
+  const relatedTarget = event.relatedTarget;
+  const leavingToInteractive = relatedTarget && relatedTarget.closest && relatedTarget.closest('[data-interactive-id]');
+  const leavingToTooltip = relatedTarget && (relatedTarget.id === 'diagram-tooltip' || relatedTarget.closest('#diagram-tooltip'));
+
+  if (!leavingToInteractive && !leavingToTooltip && !tooltipIsSticky) {
+    lastHoveredElementId = null;
+    hideTooltip();
+    clearHighlights();
+  }
+}
+
+/**
  * Initialize the interactive system
  * Call this once after the diagram is rendered
  */
@@ -963,16 +1082,17 @@ function initializeInteractive() {
   // Listen for clicks outside to dismiss sticky tooltip
   document.addEventListener('click', handleDocumentClick);
 
-  // Add proximity-based hover detection for small dots
+  // Add delegated event handling on SVG for more reliable hover detection
   setTimeout(() => {
     const svg = document.querySelector('svg');
     if (svg) {
       cacheDotPositions();
       svg.addEventListener('mousemove', handleSvgMouseMove);
+      // Add delegated mouseover/mouseout for reliability
+      svg.addEventListener('mouseover', handleSvgMouseOver);
+      svg.addEventListener('mouseout', handleSvgMouseOut);
     }
   }, 200); // Delay to ensure diagram is rendered
-
-  console.log('Interactive tooltip system initialized');
 }
 
 // Auto-initialize when DOM is ready

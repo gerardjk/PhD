@@ -2,7 +2,19 @@
  * Refactored Diagram Core - Complete Original Functionality
  */
 
+// Suppress console output - set to true to enable debug logging
+const DIAGRAM_DEBUG = false;
+const diagramLog = DIAGRAM_DEBUG ? console.log.bind(console) : () => {};
+
 function initializeDiagram() {
+  // Override console.log for this function if debug is disabled
+  const originalConsoleLog = console.log;
+  if (!DIAGRAM_DEBUG) {
+    console.log = () => {};
+  }
+
+  // Restore console.log when function completes
+  const restoreConsole = () => { console.log = originalConsoleLog; };
   // ----- Compute precise positions and the arc path deterministically -----
   // Global constant for CLS sigmoid curve expansion
   const CLS_SIGMOID_EXPANSION = 1.5; // How much to expand horizontally (1.5 = 150% wider on each side)
@@ -355,24 +367,18 @@ function initializeDiagram() {
           id: 'npp-to-adi-line'
         });
         path.classList.add('thick-line-to-adi');
+        path.setAttribute('data-interactive-id', 'npp-to-adi-line');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(path, 'npp-to-adi-line');
+        }
       }
 
       path.setAttribute('d', pathData);
       path.setAttribute('stroke-linecap', 'butt');
 
-      const purpleBoxParent = document.getElementById('npp-purple-box') || document.getElementById('npp-box');
-      if (purpleBoxParent && purpleBoxParent.parentNode) {
-        if (path.parentNode !== purpleBoxParent.parentNode || path.nextSibling !== purpleBoxParent) {
-          purpleBoxParent.parentNode.insertBefore(path, purpleBoxParent);
-        }
-      } else {
-        const foregroundGroupRef = document.getElementById('foreground-lines');
-        if (foregroundGroupRef) {
-          foregroundGroupRef.appendChild(path);
-        } else if (!path.parentNode) {
-          svg.appendChild(path);
-        }
-      }
+      // Append directly to SVG for highest z-order (above oskoToAdiLine which overlaps this path)
+      svg.appendChild(path); // appendChild moves existing elements to end, ensures highest z-order
 
       window.nppToAdiGeometry = {
         startX,
@@ -1102,6 +1108,10 @@ function initializeDiagram() {
 
         hvcsLine.classList.add('thick-line-to-adi');
         hvcsLine.setAttribute('data-interactive-id', 'hvcs-horizontal-line');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(hvcsLine, 'hvcs-horizontal-line');
+        }
 
         // Store start position for later use
         if (!window.hvcsLineData) window.hvcsLineData = {};
@@ -2030,7 +2040,13 @@ function initializeDiagram() {
             id: 'cheques-to-apcs-line'
           }
         );
-        labelsGroup.insertBefore(chequesToApcsLine, newChequesBox);
+        chequesToApcsLine.setAttribute('data-interactive-id', 'cheques-to-apcs-line');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(chequesToApcsLine, 'cheques-to-apcs-line');
+        }
+        // Append to labelsGroup end for proper z-order (above DE lines that may overlap)
+        labelsGroup.appendChild(chequesToApcsLine);
 
         // REMOVED: Old connecting lines from APCE/APCR/APCT to APCS
         // // Vertical line from new APCE to APCS
@@ -2184,6 +2200,11 @@ function initializeDiagram() {
           fill: 'none'
         });
         nppToFssPathStyled.setAttribute('id', 'npp-to-fss-path');
+        nppToFssPathStyled.setAttribute('data-interactive-id', 'npp-to-fss-path');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(nppToFssPathStyled, 'npp-to-fss-path');
+        }
         // Insert the path at the beginning so it appears behind all circles
         const smallGroup = document.getElementById('small-group');
         svg.insertBefore(nppToFssPathStyled, smallGroup);
@@ -2576,6 +2597,8 @@ function initializeDiagram() {
           }
         );
         rtgsToMoneyMarketLine.classList.add('cash-transfer-to-rtgs-line');
+        // Store reference to move later (after ASX box is created)
+        window.cashTransferToRtgsLine = rtgsToMoneyMarketLine;
         svg.insertBefore(rtgsToMoneyMarketLine, labelsGroup);
 
         // Calculate CHESS equities position first
@@ -2856,6 +2879,11 @@ function initializeDiagram() {
 
             // Insert lines before labels so they appear behind
             svg.insertBefore(line, labelsGroup);
+
+            // Make line interactive for tooltips
+            if (window.makeInteractive) {
+              window.makeInteractive(line, lineId);
+            }
 
             // Store line for updates
             window.pacsToSwiftLines.push(line);
@@ -3865,6 +3893,11 @@ function initializeDiagram() {
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
               line.setAttribute('id', `cecs-to-iac-line-${index + 1}`);
+              line.setAttribute('data-interactive-id', `cecs-to-iac-line-${index + 1}`);
+              // Make line interactive for tooltips
+              if (window.makeInteractive) {
+                window.makeInteractive(line, `cecs-to-iac-line-${index + 1}`);
+              }
 
               // Add to admin lines group so lines appear behind all boxes
               adminLinesGroup.appendChild(line);
@@ -4549,8 +4582,6 @@ function initializeDiagram() {
 
           // Create maroon lines from Direct Entry to ADIs
           const directEntryToAdiLines = [];
-          const maroonLineDuplicates = [];
-
           // Single thick red line from DE to ADIs
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           line.setAttribute('id', 'directentry-to-adi-line');
@@ -4559,33 +4590,26 @@ function initializeDiagram() {
           line.setAttribute('stroke-width', '4');
           line.setAttribute('stroke-linecap', 'round');
           line.setAttribute('fill', 'none');
+          // Let the visible maroon stroke handle pointer events directly
+          line.style.pointerEvents = 'stroke';
+          if (window.makeInteractive) {
+            window.makeInteractive(line, 'directentry-to-adi-line');
+          }
           // Insert at very beginning so line renders under all boxes
           svg.insertBefore(line, svg.firstChild);
           directEntryToAdiLines.push(line);
-
-          // Single visible duplicate that will mirror the invisible original
-          const duplicate = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          duplicate.setAttribute('id', 'maroon-line-duplicate');
-          duplicate.setAttribute('data-interactive-id', 'directentry-to-adi-line');
-          duplicate.setAttribute('stroke', '#ff073a'); // Red
-          duplicate.setAttribute('stroke-width', '4');
-          duplicate.setAttribute('stroke-linecap', 'round');
-          duplicate.setAttribute('fill', 'none');
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(duplicate, svg.firstChild);
-          maroonLineDuplicates.push(duplicate);
-
-          window.maroonLineDuplicates = maroonLineDuplicates;
 
           // Create horizontal branch for red line
           const maroonHorizontalBranches = [];
           const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           horizontalBranch.setAttribute('id', 'maroon-horizontal-branch');
-          horizontalBranch.setAttribute('data-interactive-id', 'maroon-horizontal-branch');
+          horizontalBranch.setAttribute('data-interactive-id', 'directentry-to-adi-line');
           horizontalBranch.setAttribute('stroke', '#ff073a'); // Red
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
           horizontalBranch.setAttribute('stroke-linecap', 'butt'); // Square cap so it stops exactly at edge
           horizontalBranch.setAttribute('fill', 'none');
+          // Visual line only; let the main curved stroke handle interactivity
+          horizontalBranch.style.pointerEvents = 'none';
           // Insert at very beginning so line renders under all boxes
           svg.insertBefore(horizontalBranch, svg.firstChild);
           maroonHorizontalBranches.push(horizontalBranch);
@@ -4700,19 +4724,8 @@ function initializeDiagram() {
             const control2X = extendPastReference + 15;
             const control2Y = startY + verticalDistance * 0.15;
 
-            // Create single thick red path
-            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
-                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-            directEntryToAdiLines[0].setAttribute('d', pathData);
-            // Make line invisible (duplicate will be visible)
-            directEntryToAdiLines[0].setAttribute('opacity', '0');
-
-            // Step 2: Update the duplicate with C-CURVE path instead
-            if (window.maroonLineDuplicates && window.maroonLineDuplicates.length > 0) {
+            // Create the visible C-curve path directly on the main line
+            {
                 // Start point (bottom of C) - CENTER of DE box instead of top
                 const cStartX = deX + deWidth / 2;
                 const cStartY = deY + deHeight / 2; // Center Y of DE box
@@ -4749,7 +4762,7 @@ function initializeDiagram() {
                                        `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
                                        `${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
-                window.maroonLineDuplicates[0].setAttribute('d', cCurvePathData);
+                directEntryToAdiLines[0].setAttribute('d', cCurvePathData);
 
                 // Update horizontal branch for red line
                 if (window.maroonHorizontalBranches && window.maroonHorizontalBranches[0] && window.adiBoxData) {
@@ -4824,10 +4837,14 @@ function initializeDiagram() {
           // Create grey curve from OSKO to ADI with same shape as green/maroon curves
           const oskoToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           oskoToAdiLine.setAttribute('id', 'osko-to-adi-line');
+          oskoToAdiLine.setAttribute('data-interactive-id', 'osko-to-adi-line');
           oskoToAdiLine.setAttribute('stroke', '#e5e7eb'); // Match APCS to Cheques line color
           oskoToAdiLine.setAttribute('stroke-width', '2');
           oskoToAdiLine.setAttribute('stroke-linecap', 'round');
           oskoToAdiLine.setAttribute('fill', 'none');
+          // Disable pointer events - horizontal segment spans across diagram capturing wrong events
+          // Users can hover on cheques-to-apcs-line for APCS tooltip
+          oskoToAdiLine.style.pointerEvents = 'none';
           labelsGroup.insertBefore(oskoToAdiLine, labelsGroup.firstChild);
 
           const updateOskoToAdiLine = () => {
@@ -5407,6 +5424,32 @@ function initializeDiagram() {
         // Store reference to ASX box for z-ordering lines
         window.asxBoundingBoxElement = asxBoundingBox;
 
+        // Move cash-transfer-to-rtgs line ON TOP of ASX box border
+        if (window.cashTransferToRtgsLine) {
+          window.cashTransferToRtgsLine.parentNode.removeChild(window.cashTransferToRtgsLine);
+          svg.appendChild(window.cashTransferToRtgsLine);
+        }
+
+        // Move RTGS box ON TOP of horizontal lines passing through it
+        if (window.rtgsElements && window.rtgsElements.rect) {
+          window.rtgsElements.rect.parentNode.removeChild(window.rtgsElements.rect);
+          svg.appendChild(window.rtgsElements.rect);
+          if (window.rtgsElements.text) {
+            window.rtgsElements.text.parentNode.removeChild(window.rtgsElements.text);
+            svg.appendChild(window.rtgsElements.text);
+          }
+        }
+
+        // Move DvP RTGS box ON TOP of horizontal lines passing through it
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
+
         // Store ASX box right edge for SWIFT PDS alignment
         window.asxBoxRightEdge = asxBoxX + asxBoxWidth;
 
@@ -5918,6 +5961,11 @@ function initializeDiagram() {
                 becnToBecsPath.setAttribute('fill', 'none');
                 becnToBecsPath.setAttribute('stroke-linecap', 'round');
                 becnToBecsPath.setAttribute('id', 'becn-to-becs-line');
+                becnToBecsPath.setAttribute('data-interactive-id', 'becn-to-becs-line');
+                // Make line interactive for tooltips
+                if (window.makeInteractive) {
+                  window.makeInteractive(becnToBecsPath, 'becn-to-becs-line');
+                }
                 labelsGroup.insertBefore(becnToBecsPath, labelsGroup.firstChild);
 
                 // BECG to BECS curved line
@@ -5935,6 +5983,11 @@ function initializeDiagram() {
                 becgToBecsPath.setAttribute('fill', 'none');
                 becgToBecsPath.setAttribute('stroke-linecap', 'round');
                 becgToBecsPath.setAttribute('id', 'becg-to-becs-line');
+                becgToBecsPath.setAttribute('data-interactive-id', 'becg-to-becs-line');
+                // Make line interactive for tooltips
+                if (window.makeInteractive) {
+                  window.makeInteractive(becgToBecsPath, 'becg-to-becs-line');
+                }
                 labelsGroup.insertBefore(becgToBecsPath, labelsGroup.firstChild);
               }
             }
@@ -6498,7 +6551,8 @@ function initializeDiagram() {
           }
         );
         sssCcpLine.classList.add('dvp-cash-leg-to-dvp-rtgs-line');
-        svg.insertBefore(sssCcpLine, labelsGroup);
+        // Append to end of SVG so it renders on top of ASX box border
+        svg.appendChild(sssCcpLine);
 
         // Get the actual trade-by-trade width and position for the dotted line
         const actualTradeByTradeWidth = rectWidth;
@@ -6523,8 +6577,15 @@ function initializeDiagram() {
         dottedLine.classList.add('trade-by-trade-to-dvp-rtgs-line');
         svg.insertBefore(dottedLine, labelsGroup);
 
-
-
+        // Re-move DvP RTGS box ON TOP of lines (after all lines to it are created)
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
 
         // Rectangle above SWIFT box
         // CLS AUD uses adjusted position if available
@@ -6717,6 +6778,10 @@ function initializeDiagram() {
               path.setAttribute('id', lineId);
               path.setAttribute('data-interactive-id', lineId);
               path.classList.add('swift-pds-to-rits-line');
+              // Make line interactive for tooltips
+              if (window.makeInteractive) {
+                window.makeInteractive(path, lineId);
+              }
             }
 
             // Add IDs for Austraclear lines (indices 4, 5)
@@ -6798,6 +6863,10 @@ function initializeDiagram() {
           clsPath.setAttribute('stroke-linejoin', 'round');
           clsPath.setAttribute('id', 'cls-aud-line-new');
           clsPath.setAttribute('data-interactive-id', 'cls-aud-line-new');
+          // Make line interactive for tooltips
+          if (window.makeInteractive) {
+            window.makeInteractive(clsPath, 'cls-aud-line-new');
+          }
 
           curvedLineGroup.appendChild(clsPath);
 
@@ -8076,7 +8145,16 @@ function initializeDiagram() {
               strokeLinecap: 'round'
             });
             parallelPath.setAttribute('data-interactive-id', `lvss-line-${visualName}`);
-            svg.insertBefore(parallelPath, svg.firstChild);
+            // Make line interactive for tooltips
+            if (window.makeInteractive) {
+              window.makeInteractive(parallelPath, `lvss-line-${visualName}`);
+            }
+            // Insert into adminLinesGroup for proper z-order (above DE lines)
+            if (adminLinesGroup) {
+              adminLinesGroup.appendChild(parallelPath);
+            } else {
+              svg.insertBefore(parallelPath, svg.firstChild);
+            }
           }
         });
       }
@@ -9694,6 +9772,11 @@ const connectingLine = createStyledLine(
     id: 'new-pacs-to-npp-line'
   }
 );
+connectingLine.setAttribute('data-interactive-id', 'new-pacs-to-npp-line');
+// Make line interactive for tooltips
+if (window.makeInteractive) {
+  window.makeInteractive(connectingLine, 'new-pacs-to-npp-line');
+}
 
 // Insert line before labels so it appears behind
 svg.insertBefore(connectingLine, labelsGroup);
@@ -9930,6 +10013,10 @@ clsToRitsLineFinal.setAttribute('fill', 'none');
 clsToRitsLineFinal.setAttribute('stroke-linecap', 'round');
 clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
 clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final');
+// Make line interactive for tooltips
+if (window.makeInteractive) {
+  window.makeInteractive(clsToRitsLineFinal, 'cls-to-rits-line-final');
+}
 
     // Insert at beginning of SVG so it goes behind the blue circle
     svg.insertBefore(clsToRitsLineFinal, svg.firstChild);
@@ -10095,6 +10182,10 @@ clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final')
         sCurvePath.setAttribute('stroke-linecap', 'round');
         sCurvePath.setAttribute('stroke-linejoin', 'round');
         sCurvePath.setAttribute('data-interactive-id', 'cls-s-curve');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(sCurvePath, 'cls-s-curve');
+        }
       }
 
       console.log('CLS S-curve created from neon line to CLS dot.');
@@ -10370,9 +10461,22 @@ clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final')
   }
   typeWriter();
 
-  console.log('Test 4: After IIFE');
+  // Move priority elements to top z-order (append to svg last)
+  setTimeout(() => {
+    const priorityElements = [
+      document.getElementById('de-line-hit-area'),
+      document.getElementById('cheques-to-apcs-line'),
+      document.getElementById('npp-to-adi-line')
+    ];
+    priorityElements.forEach(el => {
+      if (el) {
+        svg.appendChild(el);
+      }
+    });
+  }, 100);
 
-
+  // Restore console.log before function ends
+  restoreConsole();
 }
 
 window.initializeDiagram = initializeDiagram;

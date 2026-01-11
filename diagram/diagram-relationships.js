@@ -256,7 +256,8 @@ const elementRelationships = {
       'rtgs-box', 'dvp-rtgs-box',
       'cash-transfer-to-rtgs-line', 'cash-transfer-box',
       'dvp-cash-leg-to-dvp-rtgs-line', 'dvp-cash-leg-box',
-      'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line'
+      'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line',
+      'clearing-box'
     ]
   },
   'chess-rtgs-box': {
@@ -279,7 +280,13 @@ const elementRelationships = {
     groups: ['asx-ecosystem', 'securities'],
     related: [
       'chess-box', 'asx-box', 'asx-to-hvcs-line', 'asx-to-adi-line',
-      'clearing-to-asxb-line', 'asxb-box', 'asxb-to-rits-line'
+      'clearing-to-asxb-line', 'asxb-box', 'asxb-to-rits-line',
+      // From dvp-cash-leg-box
+      'dvp-cash-leg-box', 'dvp-cash-leg-to-dvp-rtgs-line', 'dvp-rtgs-box',
+      'dvp-rtgs-to-austraclear-line', 'austraclear-box', 'austraclear-to-rits-line-upper',
+      // From cash-transfer-box
+      'cash-transfer-box', 'cash-transfer-to-rtgs-line', 'rtgs-box',
+      'rtgs-to-austraclear-line', 'austraclear-to-rits-line-lower'
     ]
   },
   'trade-by-trade-box': {
@@ -296,7 +303,8 @@ const elementRelationships = {
     related: [
       'dvp-cash-leg-to-dvp-rtgs-line', 'dvp-rtgs-box',
       'dvp-rtgs-to-austraclear-line', 'austraclear-box', 'austraclear-to-rits-line-upper',
-      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line'
+      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line',
+      'clearing-box'
     ]
   },
   'cash-transfer-box': {
@@ -304,7 +312,8 @@ const elementRelationships = {
     related: [
       'cash-transfer-to-rtgs-line', 'rtgs-box',
       'rtgs-to-austraclear-line', 'austraclear-box', 'austraclear-to-rits-line-lower',
-      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line'
+      'asx-box', 'asx-to-adi-line', 'asx-to-hvcs-line',
+      'clearing-box'
     ]
   },
 
@@ -337,7 +346,7 @@ const elementRelationships = {
   // BECS box - triggers glowie group including BECN, BECG, DE boxes and red lines
   'becs-box': {
     groups: ['lvss-ecosystem', 'clearing-settlement', 'direct-entry'],
-    related: ['becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'de-box', 'directentry-to-adi-line', 'maroon-line-duplicate', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs']
+    related: ['becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'de-box', 'directentry-to-adi-line', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs']
   },
 
   // CECS box - triggers glowie group including LVSS gear, grey lines, IAC box and colored lines
@@ -409,7 +418,7 @@ const elementRelationships = {
   // DE (Direct Entry) box - triggers entire BECS group plus BPAY
   'de-box': {
     groups: ['becs-ecosystem', 'direct-entry'],
-    related: ['becs-box', 'becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'directentry-to-adi-line', 'maroon-line-duplicate', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs', 'bpay-box']
+    related: ['becs-box', 'becn-box', 'becg-box', 'becn-to-becs-line', 'becg-to-becs-line', 'directentry-to-adi-line', 'maroon-horizontal-branch', 'lvss-gear-group', 'lvss-line-becs', 'bpay-box']
   },
 
   // BECN box - lights up DE, BECN, BECS and associated lines
@@ -484,6 +493,171 @@ const elementRelationships = {
   'yellow-dot-2': { // JPMorgan yellow dot
     groups: ['fss-members'],
     related: ['dot-2', 'blue-line-2', 'yellow-line-2']
+  },
+
+  // ISO 20022 (SWIFT) lines - all turquoise lines highlight together
+  // Includes: HVCS, pacs-to-swift, swift-pds-to-rits, npp-to-adi, new-pacs-to-npp, npp-to-fss
+  'hvcs-horizontal-line': {
+    groups: ['iso20022-lines'],
+    related: [
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'pacs-to-swift-line-0': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'pacs-to-swift-line-1': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'pacs-to-swift-line-2': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'swift-pds-to-rits-line-0': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'swift-pds-to-rits-line-1': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'swift-pds-to-rits-line-2': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1',
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  // NPP-related turquoise lines
+  'npp-to-adi-line': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'new-pacs-to-npp-line', 'npp-to-fss-path'
+    ]
+  },
+  'new-pacs-to-npp-line': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'npp-to-fss-path'
+    ]
+  },
+  'npp-to-fss-path': {
+    groups: ['iso20022-lines'],
+    related: [
+      'hvcs-horizontal-line',
+      'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
+      'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
+      'npp-to-adi-line', 'new-pacs-to-npp-line'
+    ]
+  },
+
+  // CLS PvP lines - neon green (#00FF33) - all highlight together
+  'cls-aud-line-new': {
+    groups: ['cls-pvp-lines'],
+    related: ['cls-to-rits-line-final', 'cls-s-curve']
+  },
+  'cls-to-rits-line-final': {
+    groups: ['cls-pvp-lines'],
+    related: ['cls-aud-line-new', 'cls-s-curve']
+  },
+  'cls-s-curve': {
+    groups: ['cls-pvp-lines'],
+    related: ['cls-aud-line-new', 'cls-to-rits-line-final']
+  },
+
+  // Direct Entry ABA lines - red (#ff073a) - all highlight together
+  'directentry-to-adi-line': {
+    groups: ['de-aba-lines'],
+    related: ['maroon-horizontal-branch', 'becn-to-becs-line', 'becg-to-becs-line']
+  },
+  'maroon-horizontal-branch': {
+    groups: ['de-aba-lines'],
+    related: ['directentry-to-adi-line', 'becn-to-becs-line', 'becg-to-becs-line']
+  },
+  'becn-to-becs-line': {
+    groups: ['de-aba-lines'],
+    related: ['directentry-to-adi-line', 'maroon-horizontal-branch', 'becg-to-becs-line']
+  },
+  'becg-to-becs-line': {
+    groups: ['de-aba-lines'],
+    related: ['directentry-to-adi-line', 'maroon-horizontal-branch', 'becn-to-becs-line']
+  },
+
+  // APCS Cheques lines - grey (#e5e7eb) - all highlight together
+  'cheques-to-apcs-line': {
+    groups: ['apcs-cheques-lines'],
+    related: ['osko-to-adi-line']
+  },
+  'osko-to-adi-line': {
+    groups: ['apcs-cheques-lines'],
+    related: ['cheques-to-apcs-line']
+  },
+
+  // LVSS FSI XML lines - all highlight together
+  'lvss-line-gabs': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-cecs', 'lvss-line-cshd', 'lvss-line-becs', 'lvss-line-apcs', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+  'lvss-line-cecs': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cshd', 'lvss-line-becs', 'lvss-line-apcs', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+  'lvss-line-cshd': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cecs', 'lvss-line-becs', 'lvss-line-apcs', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+  'lvss-line-becs': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cecs', 'lvss-line-cshd', 'lvss-line-apcs', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+  'lvss-line-apcs': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cecs', 'lvss-line-cshd', 'lvss-line-becs', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+  },
+  'cecs-to-iac-line-1': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cecs', 'lvss-line-cshd', 'lvss-line-becs', 'lvss-line-apcs', 'cecs-to-iac-line-2']
+  },
+  'cecs-to-iac-line-2': {
+    groups: ['lvss-fsi-lines'],
+    related: ['lvss-line-gabs', 'lvss-line-cecs', 'lvss-line-cshd', 'lvss-line-becs', 'lvss-line-apcs', 'cecs-to-iac-line-1']
   }
 };
 

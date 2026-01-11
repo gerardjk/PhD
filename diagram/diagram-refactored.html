@@ -19,6 +19,24 @@
         .small-fill { fill: #f59e0b; }     /* orange/yellow fill */
         .small-stroke { stroke: #9a3412; } /* dark orange stroke */
         .arc-stroke { stroke: #111827; }   /* very dark grey arc */
+
+        /* Ensure all interactive elements receive pointer events */
+        [data-interactive-id] {
+          pointer-events: all;
+          cursor: pointer;
+        }
+
+        /* Text inside interactive elements shouldn't block parent hover */
+        [data-interactive-id] text,
+        [data-interactive-id] tspan {
+          pointer-events: none;
+        }
+
+        /* But text that IS the interactive element should work */
+        text[data-interactive-id],
+        tspan[data-interactive-id] {
+          pointer-events: all;
+        }
       </style>
       <!-- Gradient for figure-8 effect -->
       <radialGradient id="darkEdgeGradient">
