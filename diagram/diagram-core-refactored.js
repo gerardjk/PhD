@@ -238,9 +238,11 @@ function initializeDiagram() {
     // 5. Small-group (large FSS yellow circle - already in DOM)
     const blueCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     blueCirclesGroup.setAttribute('id', 'blue-circles');
+    blueCirclesGroup.setAttribute('class', 'diagram-content');
 
     const yellowCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     yellowCirclesGroup.setAttribute('id', 'yellow-circles');
+    yellowCirclesGroup.setAttribute('class', 'diagram-content');
 
     // Insert groups in correct order for layering
     // yellowCirclesGroup now contains both yellow lines and circles in interleaved order
@@ -271,17 +273,62 @@ function initializeDiagram() {
     // Create a group for background elements (rendered first)
     const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     backgroundGroup.setAttribute('id', 'background-elements');
+    backgroundGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(backgroundGroup);
 
     // Foreground lines group sits above background elements but below labels
     const foregroundLinesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     foregroundLinesGroup.setAttribute('id', 'foreground-lines');
+    foregroundLinesGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(foregroundLinesGroup);
 
     // Create a group for labels (rendered last so they appear on top)
     const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     labelsGroup.setAttribute('id', 'dot-labels');
+    labelsGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(labelsGroup);
+
+    // Hide ALL SVG children initially (will be revealed after title typewriter)
+    // This catches everything - groups, paths, rects, circles, text, etc.
+    Array.from(svg.children).forEach(child => {
+      if (child.tagName !== 'defs') { // Don't hide defs (filters, gradients, etc.)
+        child.classList.add('diagram-hidden');
+      }
+    });
+
+    // Store reveal function for use after title types out - staged animation
+    window.revealDiagramContent = () => {
+      const stageDelay = 800; // ms between stages
+
+      // Stage 2: Blue ESA dots only (lines come later)
+      setTimeout(() => {
+        ['blue-circles'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('diagram-visible');
+        });
+      }, 0);
+
+      // Stage 3: All boxes, FSS circle, labels, arc (no lines)
+      setTimeout(() => {
+        ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('diagram-visible');
+        });
+      }, stageDelay);
+
+      // Stage 4: ALL lines last
+      setTimeout(() => {
+        ['blue-connecting-lines', 'red-connecting-lines', 'orange-connecting-lines',
+         'admin-connecting-lines', 'yellow-circles', 'foreground-lines'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('diagram-visible');
+        });
+        // Catch any remaining hidden elements
+        document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
+          el.classList.add('diagram-visible');
+        });
+      }, stageDelay * 2);
+    };
 
     const updateNppToAdiLine = () => {
       if (!svg || !window.adiBoxData || !window.nonAdiBoxData) {
@@ -653,7 +700,7 @@ function initializeDiagram() {
       // Create invisible hit area line (wider for easier hovering)
       const blueLineHitArea = createStyledLine(blueCircleX, cyBig, actualCircleX, actualCircleY, {
         stroke: 'transparent',
-        strokeWidth: '3',
+        strokeWidth: '8',
         opacity: '0',
         pointerEvents: 'auto'
       });
@@ -907,7 +954,7 @@ function initializeDiagram() {
         swiftRectText.setAttribute('text-anchor', 'middle');
         swiftRectText.setAttribute('dominant-baseline', 'middle');
         swiftRectText.setAttribute('fill', '#ffffff');
-        swiftRectText.setAttribute('font-family', 'Arial, sans-serif');
+        swiftRectText.setAttribute('font-family', "'Nunito Sans', sans-serif");
         swiftRectText.setAttribute('font-size', '18');
         swiftRectText.setAttribute('font-weight', 'bold');
 
@@ -1247,7 +1294,7 @@ function initializeDiagram() {
         dvpRtgsText.setAttribute('text-anchor', 'middle');
         dvpRtgsText.setAttribute('dominant-baseline', 'middle');
         dvpRtgsText.setAttribute('fill', '#ffffff'); // White text
-        dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
+        dvpRtgsText.setAttribute('font-family', "'Nunito Sans', sans-serif");
         dvpRtgsText.setAttribute('font-size', '11'); // Slightly bigger font
         dvpRtgsText.setAttribute('font-weight', 'normal');
         // Split into two lines: "DvP" over "RTGS"
@@ -6442,8 +6489,8 @@ function initializeDiagram() {
         if (window.makeInteractive) {
           window.makeInteractive(clearingToAsxPath1, 'clearing-to-asxb-line');
         }
-        // Insert at beginning so lines go under ASXB box
-        labelsGroup.insertBefore(clearingToAsxPath1, labelsGroup.firstChild);
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath1);
 
         // Create second yellow line with offset for double line effect
         const pathData2 = `M ${clearingRightX} ${clearingCenterY + 3}
@@ -6459,8 +6506,8 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('id', 'clearing-to-asxb-line-1');
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
-        // Insert at beginning so lines go under ASXB box
-        labelsGroup.insertBefore(clearingToAsxPath2, labelsGroup.firstChild);
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath2);
 
         // Add hit area for clearing-to-asxb double line (center path with wide stroke)
         const clearingHitPathData = `M ${clearingRightX} ${clearingCenterY + 1.5}
@@ -7481,7 +7528,7 @@ function initializeDiagram() {
         text.setAttribute('dominant-baseline', 'middle');
         // All labels white
         text.setAttribute('fill', '#ffffff'); // white for all ESA account labels
-        text.setAttribute('font-family', 'Arial, sans-serif');
+        text.setAttribute('font-family', "'Nunito Sans', sans-serif");
         text.setAttribute('font-size', '10');
         text.setAttribute('pointer-events', 'none'); // Don't block box hover events
         text.textContent = label;
@@ -8631,6 +8678,7 @@ function initializeDiagram() {
            fontSize: '24' // Slightly bigger
          }
        );
+       adisText.setAttribute('id', 'adis-label');
        labelsGroup.appendChild(adisText);
         console.log('ADIs label coords:', {
           rectX: adiRectX,
@@ -9646,6 +9694,7 @@ function initializeDiagram() {
             fontSize: '24' // Match ADIs font size
           }
         );
+        nonADIsText.setAttribute('id', 'non-adis-label');
         labelsGroup.appendChild(nonADIsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(nonADIsText, 'non-adis-box');
@@ -10793,6 +10842,13 @@ if (window.makeInteractive) {
     }
   }
 
+  // Hide ALL SVG content right before starting typewriter (catches dynamically created elements)
+  Array.from(svg.children).forEach(child => {
+    if (child.tagName !== 'defs') {
+      child.classList.add('diagram-hidden');
+    }
+  });
+
   // Add title label at the top of the diagram with typewriter effect
   const titleX = (window.dividerLineCenterX || (-600 + (1550 / 2))) - (1550 * 0.05); // Shift 5% left
   const titleY = -148; // Near top of viewBox
@@ -10800,7 +10856,7 @@ if (window.makeInteractive) {
   const titleText = createStyledText(
     titleX,
     titleY,
-    '',
+    '', // Start empty for typewriter effect
     {
       textAnchor: 'start',
       fill: '#9BFFCD',
@@ -10810,11 +10866,12 @@ if (window.makeInteractive) {
     }
   );
   titleText.setAttribute('letter-spacing', '4');
-  labelsGroup.appendChild(titleText);
+  titleText.classList.add('intro-title'); // Keep visible during intro animation
+  svg.appendChild(titleText);
 
-  // Typewriter effect
+  // Typewriter effect on SVG title
   let charIndex = 0;
-  const typeSpeed = 50; // milliseconds per character
+  const typeSpeed = 40; // milliseconds per character
   let skipAnimation = false;
 
   // Allow skipping animation with click or any key press
@@ -10822,6 +10879,10 @@ if (window.makeInteractive) {
     skipAnimation = true;
     titleText.textContent = fullTitle;
     charIndex = fullTitle.length;
+    // Also reveal diagram immediately when skipping
+    if (typeof window.revealDiagramContent === 'function') {
+      window.revealDiagramContent();
+    }
   };
 
   document.addEventListener('click', skipAnimationHandler, { once: true });
@@ -10839,7 +10900,13 @@ if (window.makeInteractive) {
       setTimeout(typeWriter, typeSpeed);
     } else {
       titleText.textContent = fullTitle;
-      // Animate divider elements once typing completes
+
+      // First, reveal the diagram content with fade-in
+      if (typeof window.revealDiagramContent === 'function') {
+        window.revealDiagramContent();
+      }
+
+      // Then animate divider elements after diagram fades in
       if (window.dividerElements) {
         window.setTimeout(() => {
           // First, animate the white line extending from right to left
@@ -10870,7 +10937,7 @@ if (window.makeInteractive) {
             }
             if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
           }, 850); // Wait for line animation (800ms) + small buffer
-        }, 200);
+        }, 1000); // Wait for diagram fade-in (1s) before starting divider animation
       }
     }
   }
@@ -10886,6 +10953,19 @@ if (window.makeInteractive) {
     priorityElements.forEach(el => {
       if (el) {
         svg.appendChild(el);
+      }
+    });
+
+    // Move CLS neon green lines above turquoise SWIFT lines but below RITS circle
+    const bigGroupRef = document.getElementById('big-group');
+    const clsLines = [
+      document.getElementById('cls-aud-line-new'),
+      document.getElementById('cls-to-rits-line-final'),
+      document.getElementById('cls-s-curve')
+    ];
+    clsLines.forEach(el => {
+      if (el && bigGroupRef) {
+        svg.insertBefore(el, bigGroupRef);
       }
     });
   }, 100);

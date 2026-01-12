@@ -693,6 +693,7 @@ const tooltipContent = {
     hours: '24/7 availability'
   },
   'npp-purple-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'NPP',
     subtitle: 'New Payments Platform',
     description: 'Australia\'s real-time payments infrastructure enabling instant fund transfers between participating financial institutions',
@@ -706,6 +707,7 @@ const tooltipContent = {
     link: 'https://nppa.com.au/'
   },
   'osko-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'Osko',
     subtitle: 'Fast payment service',
     description: 'Consumer-facing brand for NPP payments',
@@ -726,6 +728,7 @@ const tooltipContent = {
     ]
   },
   'payid-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'PayID / PayTo',
     subtitle: 'NPP Overlay Services',
     description: 'PayID enables simplified payment addressing using mobile, email, or ABN. PayTo provides real-time payment authorization as a digital alternative to direct debits.',
@@ -736,6 +739,7 @@ const tooltipContent = {
     ]
   },
   'payto-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'IPS',
     subtitle: 'International Payment Service',
     description: 'Cross-border payment capability for the NPP enabling real-time international transfers',
@@ -798,6 +802,7 @@ const tooltipContent = {
 
   // Card payments
   'eftpos-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'eftpos',
     subtitle: 'Electronic Funds Transfer at Point of Sale',
     description: 'Australian domestic debit card scheme',
@@ -821,21 +826,13 @@ const tooltipContent = {
     title: 'MCAU',
     subtitle: 'Mastercard Australia',
     description: 'Australian settlement entity for Mastercard transactions',
-    details: [
-      'Settles Mastercard card payments in Australia',
-      'Administered batch settlement through RITS',
-      'Processes domestic Mastercard transactions'
-    ]
+    compactStyle: true
   },
   'essb-box': {
     title: 'ESSB',
     subtitle: 'eftpos Shared Services Bridge',
     description: 'Settlement entity for eftpos transactions',
-    details: [
-      'Settles eftpos debit card payments',
-      'Administered batch settlement through RITS',
-      'Processes domestic eftpos transactions'
-    ]
+    compactStyle: true
   },
   'pexa-convey-box': {
     title: 'PEXA e-conveyancing',
@@ -861,31 +858,19 @@ const tooltipContent = {
     title: 'PEXA',
     subtitle: 'PEXA Settlement',
     description: 'Settlement entity for PEXA property transactions',
-    details: [
-      'Processes PEXA e-conveyancing settlements',
-      'Administered batch settlement through RITS',
-      'Handles property transfer payments'
-    ]
+    compactStyle: true
   },
   'asxf-box': {
     title: 'ASXF',
     subtitle: 'ASX Feeder',
     description: 'Settlement entity for Sympli and ASX-related transactions',
-    details: [
-      'Processes Sympli e-conveyancing settlements',
-      'Administered batch settlement through RITS',
-      'Feeds settlement instructions to RITS'
-    ]
+    compactStyle: true
   },
   'asxb-box': {
     title: 'ASXB',
     subtitle: 'ASX Batch',
     description: 'Batch settlement facility for ASX clearing and settlement',
-    details: [
-      'Processes batch settlements from CHESS clearing/netting',
-      'Administered batch settlement through RITS',
-      'Handles equities and fixed income settlement'
-    ]
+    compactStyle: true
   },
   'visa-box': {
     title: 'Visa',
@@ -950,6 +935,7 @@ const tooltipContent = {
     ]
   },
   'bpay-box': {
+    preHeading: 'Australia Payments Plus',
     title: 'BPAY',
     subtitle: 'Bill payment service',
     description: 'Electronic bill payment system',
@@ -1604,6 +1590,12 @@ const tooltipContent = {
     title: 'ISO 20022 CLS PvP',
     description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
     lineStyle: true
+  },
+  'cls-aud-rect': {
+    title: 'ISO 20022 CLS PvP',
+    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
+    lineStyle: true,
+    colorFrom: 'cls-aud-line-new'
   },
 
   // Direct Entry ABA lines - red color (#ff073a)

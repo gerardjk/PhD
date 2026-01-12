@@ -10,6 +10,9 @@ let tooltipIsSticky = false;
 let stickyElementId = null;
 let lastHoveredElementId = null;  // Track for delegation-based hover
 let justMadeSticky = false;  // Prevent document click from immediately dismissing
+const highlightElementCache = new Map();
+const boxCircleCache = new Map();
+let allCircleElements = null;
 
 /**
  * Create the tooltip element (only created once)
@@ -158,7 +161,7 @@ function darkenColor(color, factor = 0.3) {
     const r = Math.floor(parseInt(hex.slice(0, 2), 16) * factor);
     const g = Math.floor(parseInt(hex.slice(2, 4), 16) * factor);
     const b = Math.floor(parseInt(hex.slice(4, 6), 16) * factor);
-    return `rgba(${r}, ${g}, ${b}, 0.94)`;
+    return `rgba(${r}, ${g}, ${b}, 0.97)`;
   }
 
   // Handle rgb/rgba colors
@@ -167,7 +170,7 @@ function darkenColor(color, factor = 0.3) {
     const r = Math.floor(parseInt(rgbMatch[1]) * factor);
     const g = Math.floor(parseInt(rgbMatch[2]) * factor);
     const b = Math.floor(parseInt(rgbMatch[3]) * factor);
-    return `rgba(${r}, ${g}, ${b}, 0.94)`;
+    return `rgba(${r}, ${g}, ${b}, 0.97)`;
   }
 
   return null;
@@ -192,7 +195,7 @@ function lightenColor(color, factor = 0.7) {
     const newR = Math.floor(r + (255 - r) * factor);
     const newG = Math.floor(g + (255 - g) * factor);
     const newB = Math.floor(b + (255 - b) * factor);
-    return `rgba(${newR}, ${newG}, ${newB}, 0.94)`;
+    return `rgba(${newR}, ${newG}, ${newB}, 0.97)`;
   }
 
   // Handle rgb/rgba colors
@@ -205,7 +208,7 @@ function lightenColor(color, factor = 0.7) {
     const newR = Math.floor(r + (255 - r) * factor);
     const newG = Math.floor(g + (255 - g) * factor);
     const newB = Math.floor(b + (255 - b) * factor);
-    return `rgba(${newR}, ${newG}, ${newB}, 0.94)`;
+    return `rgba(${newR}, ${newG}, ${newB}, 0.97)`;
   }
 
   return null;
@@ -214,7 +217,7 @@ function lightenColor(color, factor = 0.7) {
 /**
  * Add alpha transparency to a color (keep original RGB values)
  */
-function addAlpha(color, alpha = 0.94) {
+function addAlpha(color, alpha = 0.97) {
   if (!color || color === 'none' || color === 'transparent') return null;
 
   // Handle hex colors
@@ -320,14 +323,14 @@ function showTooltip(elementId, event, originalElementId) {
 
   let tooltipBgColor;
   if (isLineStyle) {
-    tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.94)';
+    tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.97)';
     tooltipContentElement.style.borderColor = elementColor || 'rgba(100, 100, 100, 0.6)';
   } else if (isEsaElement) {
     // ESA dots and lines: use actual color (slightly transparent) with black text
-    tooltipBgColor = addAlpha(elementColor, 0.94) || 'rgba(100, 150, 255, 0.94)';
+    tooltipBgColor = addAlpha(elementColor, 0.97) || 'rgba(100, 150, 255, 0.97)';
     tooltipContentElement.style.borderColor = 'rgba(0, 0, 0, 0.3)';
   } else {
-    tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.94)';
+    tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.97)';
     tooltipContentElement.style.borderColor = 'rgba(255, 255, 255, 0.45)';
   }
   tooltipContentElement.style.background = tooltipBgColor;
@@ -337,8 +340,15 @@ function showTooltip(elementId, event, originalElementId) {
   const isDot = !isRba && (elementId.startsWith('dot-') || elementId.startsWith('yellow-dot-'));
   const isLine = elementId.startsWith('blue-line-') || elementId.startsWith('yellow-line-');
   const isSmallStyle = isDot || isLine || content.smallStyle;  // Use small style for dots, their lines, or elements with smallStyle flag
+  const isCompactStyle = content.compactStyle;  // Compact style for batch boxes (MCAU, ESSB, PEXA, ASXF, ASXB)
 
-  if (isSmallStyle) {
+  if (isCompactStyle) {
+    // Compact tooltips for batch boxes - between small (240px) and normal (320px)
+    tooltipContentElement.style.width = '280px';
+    tooltipContentElement.style.minWidth = '';
+    tooltipContentElement.style.padding = '10px 12px';
+    tooltipContentElement.style.borderWidth = '2px';
+  } else if (isSmallStyle) {
     // Smaller tooltips for ESA dots and elements with smallStyle
     tooltipContentElement.style.width = '240px';
     tooltipContentElement.style.minWidth = '';
@@ -361,11 +371,11 @@ function showTooltip(elementId, event, originalElementId) {
   // Build tooltip HTML with new design
   let html = '';
 
-  // Font sizes - smaller for small style tooltips
-  const titleSize = isSmallStyle ? '13px' : '18px';
-  const subtitleSize = isSmallStyle ? '10px' : '15px';
-  const textSize = isSmallStyle ? '9px' : '13px';
-  const detailSize = isSmallStyle ? '9px' : '11px';
+  // Font sizes - smaller for small style tooltips, medium for compact style
+  const titleSize = isCompactStyle ? '15px' : (isSmallStyle ? '13px' : '18px');
+  const subtitleSize = isCompactStyle ? '12px' : (isSmallStyle ? '10px' : '15px');
+  const textSize = isCompactStyle ? '11px' : (isSmallStyle ? '9px' : '13px');
+  const detailSize = isSmallStyle ? '9px' : '11px';  // Not used for compactStyle
 
   // Text colors - dark for line style, ESA dots and ESA lines, light for normal
   const useDarkText = isLineStyle || isEsaElement;
@@ -374,37 +384,43 @@ function showTooltip(elementId, event, originalElementId) {
   const textColor = useDarkText ? '#444' : 'white';
   const detailColor = useDarkText ? '#555' : 'white';
 
-  // Title - larger, bold (italicised for line tooltips and small tooltips, no wrap for normal and lineStyle)
+  // PreHeading - smaller, not bold (for Australian Payments Plus elements)
+  if (content.preHeading) {
+    html += `<div style="font-weight: normal; font-size: 11px; color: ${subtitleColor}; margin-bottom: 10px;">${content.preHeading}</div>`;
+  }
+
+  // Title - larger, bold (italicised for line tooltips and small tooltips, no wrap for normal, lineStyle and compact)
   if (content.title) {
     const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
-    const titleMargin = content.title2 ? '4px' : (isSmallStyle ? '2px' : '10px');
-    const titleNoWrap = !isSmallStyle ? 'white-space: nowrap;' : '';
+    const titleMargin = content.title2 ? '4px' : (isSmallStyle ? '2px' : (isCompactStyle ? '6px' : '10px'));
+    const titleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
     html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} ${titleNoWrap} margin-bottom: ${titleMargin};">${content.title}</div>`;
   }
 
   // Title2 - same size as title, for double-heading tooltips
   if (content.title2) {
     const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
-    const titleNoWrap = !isSmallStyle ? 'white-space: nowrap;' : '';
-    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} ${titleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : '12px'};">${content.title2}</div>`;
+    const titleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} ${titleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.title2}</div>`;
   }
 
-  // Subtitle - normal size, bold (show for lineStyle if present, no wrap for normal and lineStyle)
+  // Subtitle - normal size, bold (show for lineStyle if present, no wrap for normal, lineStyle and compact)
   if (content.subtitle) {
     const subtitleStyle = isLineStyle ? 'font-style: italic;' : '';
-    const subtitleNoWrap = !isSmallStyle ? 'white-space: nowrap;' : '';
-    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; ${subtitleStyle} ${subtitleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : '12px'};">${content.subtitle}</div>`;
+    const subtitleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
+    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; ${subtitleStyle} ${subtitleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.subtitle}</div>`;
   }
 
-  // Description - smaller, italic for normal style, bold for lineStyle
+  // Description - smaller, italic for normal style (not compact), bold for lineStyle
   if (content.description) {
-    const descStyle = (!isLineStyle && !isSmallStyle && !isEsaElement) ? 'font-style: italic;' : '';
+    const descStyle = (!isLineStyle && !isSmallStyle && !isEsaElement && !isCompactStyle) ? 'font-style: italic;' : '';
     const descWeight = isLineStyle ? 'font-weight: bold;' : '';
-    html += `<div style="font-size: ${textSize}; color: ${textColor}; ${descStyle} ${descWeight} line-height: 1.4; margin-bottom: ${isSmallStyle ? '4px' : '12px'};">${content.description}</div>`;
+    html += `<div style="font-size: ${textSize}; color: ${textColor}; ${descStyle} ${descWeight} line-height: 1.4; margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '0px' : '12px')};">${content.description}</div>`;
   }
 
   // Details - each on new line, smaller, no bullet points, bold for lineStyle
-  if (content.details && content.details.length > 0) {
+  // Skip details for compactStyle tooltips
+  if (content.details && content.details.length > 0 && !isCompactStyle) {
     const detailWeight = isLineStyle ? 'font-weight: bold;' : '';
     content.details.forEach(detail => {
       html += `<div style="font-size: ${detailSize}; color: ${detailColor}; ${detailWeight} line-height: 1.4;">${detail}</div>`;
@@ -468,7 +484,13 @@ function hideTooltip() {
  * Handles multiple elements with the same ID
  */
 function highlightElement(elementId) {
-  const elements = document.querySelectorAll(`[data-interactive-id="${elementId}"]`);
+  let elements = highlightElementCache.get(elementId);
+  if (!elements) {
+    elements = Array.from(document.querySelectorAll(`[data-interactive-id="${elementId}"]`));
+    if (elements.length) {
+      highlightElementCache.set(elementId, elements);
+    }
+  }
 
   // Special handling for dots (e.g., dot-50, dot-51, etc.)
   if (!elements.length && elementId.startsWith('dot-')) {
@@ -476,8 +498,11 @@ function highlightElement(elementId) {
     if (window.dotPositions && window.dotPositions[dotIndex]) {
       const dotPos = window.dotPositions[dotIndex];
       // Find circles at this position (both blue and yellow)
-      const allCircles = document.querySelectorAll('circle');
-      allCircles.forEach(circle => {
+      if (!allCircleElements) {
+        allCircleElements = Array.from(document.querySelectorAll('circle'));
+      }
+      const matchingCircles = [];
+      allCircleElements.forEach(circle => {
         const cx = parseFloat(circle.getAttribute('cx'));
         const cy = parseFloat(circle.getAttribute('cy'));
         const r = parseFloat(circle.getAttribute('r'));
@@ -490,8 +515,12 @@ function highlightElement(elementId) {
           }
           circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
           currentHighlightedElements.add(circle);
+          matchingCircles.push(circle);
         }
       });
+      if (matchingCircles.length) {
+        highlightElementCache.set(elementId, matchingCircles);
+      }
     }
     return;
   }
@@ -502,13 +531,14 @@ function highlightElement(elementId) {
     const groupElement = document.getElementById(elementId);
     if (groupElement) {
       // For groups with many children, apply glow to the group as a whole (faster than per-child)
-      if (elementId === 'blue-connecting-lines' || elementId === 'yellow-circles' || elementId === 'small-group') {
+      if (elementId === 'blue-connecting-lines' || elementId === 'yellow-circles') {
         groupElement.classList.add('highlighted');
         if (!groupElement.dataset.originalFilter) {
           groupElement.dataset.originalFilter = groupElement.style.filter || 'none';
         }
         groupElement.style.filter = 'brightness(1.5) drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 5px rgba(255,255,255,0.8))';
         currentHighlightedElements.add(groupElement);
+        highlightElementCache.set(elementId, [groupElement]);
         return;
       }
 
@@ -519,6 +549,7 @@ function highlightElement(elementId) {
       }
       groupElement.style.filter = 'brightness(1.4) drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 5px rgba(255,255,255,0.8))';
       currentHighlightedElements.add(groupElement);
+      highlightElementCache.set(elementId, [groupElement]);
       return;
     }
   }
@@ -542,35 +573,37 @@ function highlightElement(elementId) {
   if (!elements.length) return;
 
   elements.forEach(element => {
-    // Special handling for RITS circle - just brightness (complex gear is slow with glow)
+    // Special handling for RITS circle - skip filter to avoid interfering with rotation animation
     if (elementId === 'rits-circle' && element.id === 'big-group') {
-      element.classList.add('highlighted');
-      if (!element.dataset.originalFilter) {
-        element.dataset.originalFilter = element.style.filter || 'none';
-      }
-      element.style.filter = 'brightness(1.5)';
-      currentHighlightedElements.add(element);
       return;
     }
 
-    // Special handling for FSS circle - just brightness (complex gear is slow with glow)
+    // Special handling for FSS circle - glow static parts only (not rotating gears)
     if ((elementId === 'fss-circle' || elementId === 'small-group') && element.id === 'small-group') {
-      element.classList.add('highlighted');
-      if (!element.dataset.originalFilter) {
-        element.dataset.originalFilter = element.style.filter || 'none';
-      }
-      element.style.filter = 'brightness(1.5)';
-      currentHighlightedElements.add(element);
+      // Glow the static circle parts (small-outer, small-inner) and text label - skip gears
+      const smallOuter = document.getElementById('small-outer');
+      const smallInner = document.getElementById('small-inner');
+      const smallLabel = document.getElementById('small-label');
+      [smallOuter, smallInner, smallLabel].forEach(el => {
+        if (el) {
+          el.classList.add('highlighted');
+          if (!el.dataset.originalFilter) {
+            el.dataset.originalFilter = el.style.filter || 'none';
+          }
+          el.style.filter = 'brightness(1.3) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+          currentHighlightedElements.add(el);
+        }
+      });
       return;
     }
 
-    // Special handling for LVSS gear - just brightness (complex gear is slow with glow)
+    // Special handling for LVSS gear - include glow (single element, not animated)
     if (elementId === 'lvss-gear') {
       element.classList.add('highlighted');
       if (!element.dataset.originalFilter) {
         element.dataset.originalFilter = element.style.filter || 'none';
       }
-      element.style.filter = 'brightness(1.5)';
+      element.style.filter = 'brightness(1.3) drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 5px rgba(255,255,255,0.8))';
       currentHighlightedElements.add(element);
       return;
     }
@@ -593,9 +626,9 @@ function highlightElement(elementId) {
     } else if (tagName === 'text') {
       element.style.filter = 'brightness(1.3) drop-shadow(0 0 4px rgba(255,255,255,0.7))';
     }
-  });
 
-  currentHighlightedElements.add(elementId);
+    currentHighlightedElements.add(element);
+  });
 }
 
 /**
@@ -603,7 +636,9 @@ function highlightElement(elementId) {
  * Handles multiple elements with the same ID
  */
 function unhighlightElement(elementId) {
-  const elements = document.querySelectorAll(`[data-interactive-id="${elementId}"]`);
+  const cached = highlightElementCache.get(elementId);
+  const elements = cached && cached.length ? cached :
+    Array.from(document.querySelectorAll(`[data-interactive-id="${elementId}"]`));
   if (!elements.length) return;
 
   elements.forEach(element => {
@@ -635,23 +670,17 @@ function clearHighlights() {
   glowCircles.forEach(glow => glow.remove());
 
   currentHighlightedElements.forEach(item => {
-    // Handle both string IDs and direct element references
-    if (typeof item === 'string') {
-      unhighlightElement(item);
-    } else if (item instanceof Element) {
-      // Skip if element was already removed (like glow circles)
-      if (!item.parentNode) return;
-      // Directly unhighlight element
-      item.classList.remove('highlighted');
-      if (item.dataset.originalOpacity) {
-        item.style.opacity = item.dataset.originalOpacity;
-      }
-      if (item.dataset.originalFilter) {
-        item.style.filter = item.dataset.originalFilter;
-      }
-      if (item.tagName.toLowerCase() === 'line' && item.dataset.originalStrokeWidth) {
-        item.setAttribute('stroke-width', item.dataset.originalStrokeWidth);
-      }
+    if (!(item instanceof Element)) return;
+    if (!item.parentNode) return;
+    item.classList.remove('highlighted');
+    if (item.dataset.originalOpacity) {
+      item.style.opacity = item.dataset.originalOpacity;
+    }
+    if (item.dataset.originalFilter) {
+      item.style.filter = item.dataset.originalFilter;
+    }
+    if (item.tagName.toLowerCase() === 'line' && item.dataset.originalStrokeWidth) {
+      item.setAttribute('stroke-width', item.dataset.originalStrokeWidth);
     }
   });
   currentHighlightedElements.clear();
@@ -662,59 +691,67 @@ function clearHighlights() {
  * @param {string} boxElementId - ID of the box element
  */
 function highlightCirclesInBox(boxElementId) {
+  const circles = getCirclesForBox(boxElementId);
+  if (!circles) return;
+
+  circles.forEach(circle => {
+    circle.classList.add('highlighted');
+    if (!circle.dataset.originalFilter) {
+      circle.dataset.originalFilter = circle.style.filter || 'none';
+    }
+    circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+    currentHighlightedElements.add(circle);
+  });
+}
+
+function getCirclesForBox(boxElementId) {
+  if (boxCircleCache.has(boxElementId)) {
+    return boxCircleCache.get(boxElementId);
+  }
+
   const boxElement =
     document.getElementById(boxElementId) ||
     document.querySelector(`[data-interactive-id="${boxElementId}"]`);
-  if (!boxElement) return;
+  if (!boxElement) return null;
 
-  // Get box bounds
   const boxRect = boxElement.getBBox();
   const boxLeft = boxRect.x;
   const boxRight = boxRect.x + boxRect.width;
   const boxTop = boxRect.y;
   const boxBottom = boxRect.y + boxRect.height;
 
-  // Find and highlight all circles within the box
-  const allCircles = document.querySelectorAll('circle');
-  allCircles.forEach(circle => {
-    // Skip the RBA black circle (dot-0)
+  if (!allCircleElements) {
+    allCircleElements = Array.from(document.querySelectorAll('circle'));
+  }
+
+  const circles = allCircleElements.filter(circle => {
     if (circle.dataset.interactiveId === 'dot-0') {
-      return;
+      return false;
     }
 
-    // Skip FSS gearwheel circles (small-group children)
     const smallGroup = document.getElementById('small-group');
     if (smallGroup && smallGroup.contains(circle)) {
-      return;
+      return false;
     }
 
-    // Skip RITS gearwheel circles (big-group children)
     const bigGroup = document.getElementById('big-group');
     if (bigGroup && bigGroup.contains(circle)) {
-      return;
+      return false;
     }
 
     const cx = parseFloat(circle.getAttribute('cx'));
     const cy = parseFloat(circle.getAttribute('cy'));
     const r = parseFloat(circle.getAttribute('r'));
 
-    // Only highlight dots (including CLS), not the huge RITS/FSS gearwheels
-    // CLS dot is large (~30-50 radius), RITS/FSS are much larger (>100 radius)
-    if (r && r < 70 && cx && cy) {
-      // Check if circle center is within box bounds
-      if (cx >= boxLeft && cx <= boxRight && cy >= boxTop && cy <= boxBottom) {
-        // Apply highlight directly to circle element
-        circle.classList.add('highlighted');
-        if (!circle.dataset.originalFilter) {
-          circle.dataset.originalFilter = circle.style.filter || 'none';
-        }
-        circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
-
-        // Store reference so we can unhighlight later
-        currentHighlightedElements.add(circle);
-      }
+    if (!r || r >= 70 || !cx || !cy) {
+      return false;
     }
+
+    return cx >= boxLeft && cx <= boxRight && cy >= boxTop && cy <= boxBottom;
   });
+
+  boxCircleCache.set(boxElementId, circles);
+  return circles;
 }
 
 /**
@@ -772,19 +809,40 @@ function handleMouseEnter(event) {
     // Also highlight CLS circle (larger circle, part of ESA holders)
     highlightElement('cls-circle');
   } else if (targetId === 'rits-circle') {
-    console.log('RITS hover branch reached'); // DEBUG
-    // RITS circle - brighten the circle (no glow for performance)
-    // Use getElementById since the visual group has id="big-group"
-    const bigGroup = document.getElementById('big-group');
-    console.log('bigGroup found:', bigGroup); // DEBUG
-    if (bigGroup) {
-      bigGroup.classList.add('highlighted');
-      if (!bigGroup.dataset.originalFilter) {
-        bigGroup.dataset.originalFilter = bigGroup.style.filter || 'none';
+    // RITS circle - apply glow to static circle parts only (not rotating gears)
+
+    // Glow the static RITS circle parts (big-outer, big-inner) and text label - skip gears
+    const bigOuter = document.getElementById('big-outer');
+    const bigInner = document.getElementById('big-inner');
+    const bigLabel = document.getElementById('big-label');
+    [bigOuter, bigInner, bigLabel].forEach(el => {
+      if (el) {
+        el.classList.add('highlighted');
+        if (!el.dataset.originalFilter) {
+          el.dataset.originalFilter = el.style.filter || 'none';
+        }
+        el.style.filter = 'brightness(1.3) drop-shadow(0 0 15px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(255,255,255,0.8))';
+        currentHighlightedElements.add(el);
       }
-      bigGroup.style.filter = 'brightness(1.3)';
-      currentHighlightedElements.add(bigGroup);
-    }
+    });
+
+    // Glow the static FSS circle parts (small-outer, small-inner) and text label - skip gears
+    const smallOuter = document.getElementById('small-outer');
+    const smallInner = document.getElementById('small-inner');
+    const smallLabel = document.getElementById('small-label');
+    [smallOuter, smallInner, smallLabel].forEach(el => {
+      if (el) {
+        el.classList.add('highlighted');
+        if (!el.dataset.originalFilter) {
+          el.dataset.originalFilter = el.style.filter || 'none';
+        }
+        el.style.filter = 'brightness(1.3) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+        currentHighlightedElements.add(el);
+      }
+    });
+
+    // Glow the LVSS gear (it's a single element, should be fine)
+    highlightElement('lvss-gear');
 
     // Brighten all blue radial lines (no glow for performance)
     // Use the group element for better performance
@@ -797,6 +855,17 @@ function handleMouseEnter(event) {
       blueLinesGroup.style.filter = 'brightness(1.5)';
       currentHighlightedElements.add(blueLinesGroup);
     }
+
+    // Glow all yellow lines (FSS connections)
+    const yellowLines = document.querySelectorAll('[data-interactive-id^="yellow-line-"]');
+    yellowLines.forEach(line => {
+      line.classList.add('highlighted');
+      if (!line.dataset.originalFilter) {
+        line.dataset.originalFilter = line.style.filter || 'none';
+      }
+      line.style.filter = 'brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.8))';
+      currentHighlightedElements.add(line);
+    });
 
     // Glow the ESA dots (small circles)
     const allCircles = document.querySelectorAll('circle');
@@ -817,6 +886,45 @@ function handleMouseEnter(event) {
     // Also highlight CLS circle and ESA box
     highlightElement('cls-circle');
     highlightElement('blue-dots-background');
+  } else if (targetId === 'fss-circle') {
+    // FSS circle - glow static parts and highlight yellow lines/dots
+
+    // Glow the static FSS circle parts (small-outer, small-inner) and text label - skip gears
+    const smallOuter = document.getElementById('small-outer');
+    const smallInner = document.getElementById('small-inner');
+    const smallLabel = document.getElementById('small-label');
+    [smallOuter, smallInner, smallLabel].forEach(el => {
+      if (el) {
+        el.classList.add('highlighted');
+        if (!el.dataset.originalFilter) {
+          el.dataset.originalFilter = el.style.filter || 'none';
+        }
+        el.style.filter = 'brightness(1.3) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+        currentHighlightedElements.add(el);
+      }
+    });
+
+    // Glow all yellow lines (FSS connections)
+    const yellowLines = document.querySelectorAll('[data-interactive-id^="yellow-line-"]');
+    yellowLines.forEach(line => {
+      line.classList.add('highlighted');
+      if (!line.dataset.originalFilter) {
+        line.dataset.originalFilter = line.style.filter || 'none';
+      }
+      line.style.filter = 'brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.8))';
+      currentHighlightedElements.add(line);
+    });
+
+    // Glow all yellow dots (FSS members)
+    const yellowDots = document.querySelectorAll('[data-interactive-id^="yellow-dot-"]');
+    yellowDots.forEach(dot => {
+      dot.classList.add('highlighted');
+      if (!dot.dataset.originalFilter) {
+        dot.dataset.originalFilter = dot.style.filter || 'none';
+      }
+      dot.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+      currentHighlightedElements.add(dot);
+    });
   } else if (targetId === 'adi-box' || targetId === 'non-adis-box' ||
              targetId === 'domestic-banks-box' || targetId === 'international-banks-box' ||
              targetId === 'foreign-branches-box' || targetId === 'foreign-subsidiaries-box' ||
@@ -941,14 +1049,8 @@ function handleClick(event) {
   // Clear flag after a short delay (after event bubbling completes)
   setTimeout(() => { justMadeSticky = false; }, 10);
 
-  // Ensure tooltip and highlights are shown
+  // Show tooltip in place; don't modify highlights (hover state controls glow)
   showTooltip(targetId, event);
-
-  // Highlight this element and all related elements
-  const relatedElements = window.getRelatedElements?.(targetId) || new Set([targetId]);
-  relatedElements.forEach(id => {
-    highlightElement(id);
-  });
 
   if (event.stopPropagation) event.stopPropagation();
 }
@@ -1047,6 +1149,8 @@ function handleDocumentClick(event) {
  */
 let dotPositions = null;
 let currentProximityDot = null;
+let pendingSvgMouseMoveEvent = null;
+let svgMouseMoveScheduled = false;
 
 function cacheDotPositions() {
   dotPositions = [];
@@ -1069,12 +1173,30 @@ function cacheDotPositions() {
 
 function handleSvgMouseMove(event) {
   if (tooltipIsSticky) return;
+  pendingSvgMouseMoveEvent = {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    currentTarget: event.currentTarget
+  };
+  if (!svgMouseMoveScheduled) {
+    svgMouseMoveScheduled = true;
+    requestAnimationFrame(processSvgMouseMove);
+  }
+}
+
+function processSvgMouseMove() {
+  svgMouseMoveScheduled = false;
+  const event = pendingSvgMouseMoveEvent;
+  pendingSvgMouseMoveEvent = null;
+  if (!event || tooltipIsSticky) return;
+
   if (!dotPositions || dotPositions.length === 0) {
     cacheDotPositions();
   }
   if (!dotPositions || dotPositions.length === 0) return;
 
   const svg = event.currentTarget;
+  if (!svg) return;
   const pt = svg.createSVGPoint();
   pt.x = event.clientX;
   pt.y = event.clientY;
@@ -1183,6 +1305,14 @@ function initializeInteractive() {
       svg.addEventListener('mouseout', handleSvgMouseOut);
       // Add delegated click for reliability
       svg.addEventListener('click', handleSvgClick);
+
+      // Pre-optimize RITS/FSS circle elements and labels for filter changes (eliminates first-hover lag)
+      ['big-outer', 'big-inner', 'big-label', 'small-outer', 'small-inner', 'small-label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.willChange = 'filter';
+        }
+      });
     }
   }, 200); // Delay to ensure diagram is rendered
 }

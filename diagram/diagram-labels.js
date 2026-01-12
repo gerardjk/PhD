@@ -104,7 +104,7 @@ function createDotLabel(index, labelText, finalLabelX, labelY, labelsGroup) {
     text.setAttribute('fill', '#000000');
   }
 
-  text.setAttribute('font-family', 'Arial, sans-serif');
+  text.setAttribute('font-family', "'Nunito Sans', sans-serif");
   text.setAttribute('font-size', '10');
   text.textContent = labelText;
   labelsGroup.appendChild(text);
@@ -122,7 +122,7 @@ function addRbaLabel(actualCircleX, actualCircleY, blackCircleRadius, labelsGrou
   text.setAttribute('text-anchor', 'start');
   text.setAttribute('dominant-baseline', 'middle');
   text.setAttribute('fill', '#991b1b');
-  text.setAttribute('font-family', 'Arial, sans-serif');
+  text.setAttribute('font-family', "'Nunito Sans', sans-serif");
   text.setAttribute('font-size', '16');
   text.setAttribute('font-weight', 'bold');
   text.textContent = 'RBA';
@@ -141,7 +141,7 @@ function addClsLabel(actualCircleX, actualCircleY, circlesGroup) {
   text.setAttribute('text-anchor', 'middle');
   text.setAttribute('dominant-baseline', 'middle');
   text.setAttribute('fill', 'white');
-  text.setAttribute('font-family', 'Arial, sans-serif');
+  text.setAttribute('font-family', "'Nunito Sans', sans-serif");
   text.setAttribute('font-size', '16');
   text.setAttribute('font-weight', 'bold');
   text.textContent = 'CLS';

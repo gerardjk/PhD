@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>RITS Diagram</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
@@ -20,6 +23,27 @@
       height: auto;
       max-width: 95vw;
       max-height: 95vh;
+    }
+
+    /* Hide ALL SVG content initially except defs */
+    #diagram > *:not(defs) {
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+    /* Title, RITS circle, ESA box and labels stay visible during intro */
+    #diagram > .intro-title,
+    #diagram > #big-group,
+    #diagram > #big-label,
+    #diagram > #blue-dots-background {
+      opacity: 1;
+    }
+    /* Labels inside groups also need to be visible */
+    #adis-label, #non-adis-label {
+      opacity: 1 !important;
+    }
+    /* Reveal when JS adds this class */
+    #diagram > *.diagram-visible {
+      opacity: 1;
     }
   </style>
 </head>
@@ -51,29 +75,29 @@
     <!-- -------------------------------------- -->
 
     <!-- Background elements group -->
-    <g id="background-elements"></g>
+    <g id="background-elements" class="diagram-content"></g>
 
     <!-- Background rectangle for blue dots -->
-    <rect id="blue-dots-background" fill="none" stroke="none" />
+    <rect id="blue-dots-background" class="diagram-content" fill="none" stroke="none" />
 
     <!-- Group for blue connecting lines (rendered first so they appear under circles) -->
-    <g id="blue-connecting-lines"></g>
+    <g id="blue-connecting-lines" class="diagram-content"></g>
 
     <!-- Group for red connecting lines (rendered before blue circle so they appear under it) -->
-    <g id="red-connecting-lines"></g>
+    <g id="red-connecting-lines" class="diagram-content"></g>
 
     <!-- Group for orange connecting lines (rendered before blue circle so they appear under it) -->
-    <g id="orange-connecting-lines"></g>
+    <g id="orange-connecting-lines" class="diagram-content"></g>
 
     <!-- Group for administrative red/yellow lines into the blue circle -->
-    <g id="admin-connecting-lines"></g>
+    <g id="admin-connecting-lines" class="diagram-content"></g>
 
     <!-- Group for labels -->
-    <g id="dot-labels"></g>
+    <g id="dot-labels" class="diagram-content"></g>
 
     <!-- Large blue circle with double border -->
     <!-- Uses: cx (shared), cy_big, r_big -->
-    <g id="big-group">
+    <g id="big-group" class="diagram-content">
       <!-- Layer 1: Lightest blue background circle -->
       <circle id="big-outer"
               fill="#04d9ff"
@@ -102,7 +126,7 @@
     </g>
 
     <!-- Label for blue circle -->
-    <text id="big-label" x="300" y="436" text-anchor="middle" dominant-baseline="middle"
+    <text id="big-label" class="diagram-content" x="300" y="436" text-anchor="middle" dominant-baseline="middle"
           fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="normal">
       <tspan x="300" dy="-40" font-size="20">RITS</tspan>
       <tspan x="300" dy="20">Settlement</tspan>
@@ -114,7 +138,7 @@
 
     <!-- Smaller orange/yellow circle above the big one with double border -->
     <!-- y = cy_big - (r_big + gap) + r_small, so they don't overlap -->
-    <g id="small-group">
+    <g id="small-group" class="diagram-content">
       <!-- Layer 1: Light orangey-yellow background circle -->
       <circle id="small-outer"
               fill="#FFE680"
@@ -143,7 +167,7 @@
     </g>
 
     <!-- Label for orange circle -->
-    <text id="small-label" x="300" y="222" text-anchor="middle" dominant-baseline="middle"
+    <text id="small-label" class="diagram-content" x="300" y="222" text-anchor="middle" dominant-baseline="middle"
           fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="normal">
       <tspan x="300" dy="-6">FSS</tspan>
       <tspan x="300" dy="20" font-size="13" font-weight="normal">24/7</tspan>
@@ -152,7 +176,7 @@
     <!-- Right-side semi-circular arc that starts above the small circle and ends below the big circle.
          Drawn as an SVG path using an elliptical arc (A) command. -->
     <path id="enclosing-arc"
-          class="arc-stroke"
+          class="arc-stroke diagram-content"
           d="" fill="none" stroke-width="6" stroke-linecap="round"></path>
 
   </svg>

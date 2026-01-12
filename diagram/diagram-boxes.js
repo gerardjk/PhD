@@ -21,7 +21,7 @@ function createSwiftPdsBox(rectX, rectY, swiftRectWidth, rectHeight, labelsGroup
   swiftRectText.setAttribute('text-anchor', 'middle');
   swiftRectText.setAttribute('dominant-baseline', 'middle');
   swiftRectText.setAttribute('fill', '#ffffff');
-  swiftRectText.setAttribute('font-family', 'Arial, sans-serif');
+  swiftRectText.setAttribute('font-family', "'Nunito Sans', sans-serif");
   swiftRectText.setAttribute('font-size', '18');
   swiftRectText.setAttribute('font-weight', 'bold');
 
@@ -199,7 +199,7 @@ function createDvpRtgsBox(dvpRtgsX, dvpRtgsY, rectWidth, austraclearHeight, labe
   dvpRtgsText.setAttribute('text-anchor', 'middle');
   dvpRtgsText.setAttribute('dominant-baseline', 'middle');
   dvpRtgsText.setAttribute('fill', '#ffffff');
-  dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
+  dvpRtgsText.setAttribute('font-family', "'Nunito Sans', sans-serif");
   dvpRtgsText.setAttribute('font-size', '11');
   dvpRtgsText.setAttribute('font-weight', 'normal');
 

@@ -46,7 +46,7 @@ function createStyledText(x, y, textContent, options = {}) {
   text.setAttribute('text-anchor', options.textAnchor || 'middle');
   text.setAttribute('dominant-baseline', options.dominantBaseline || 'middle');
   text.setAttribute('fill', options.fill || '#071f6a');
-  text.setAttribute('font-family', options.fontFamily || 'Arial, sans-serif');
+  text.setAttribute('font-family', options.fontFamily || "'Nunito Sans', sans-serif");
   text.setAttribute('font-size', options.fontSize || '12');
   text.setAttribute('font-weight', options.fontWeight || 'bold');
 
@@ -326,7 +326,7 @@ function createLabeledBox(x, y, width, height, lines, options = {}) {
   text.setAttribute('text-anchor', options.textAnchor || 'middle');
   text.setAttribute('dominant-baseline', options.dominantBaseline || 'middle');
   text.setAttribute('fill', options.textFill || options.stroke || '#071f6a');
-  text.setAttribute('font-family', options.fontFamily || 'Arial, sans-serif');
+  text.setAttribute('font-family', options.fontFamily || "'Nunito Sans', sans-serif");
   text.setAttribute('font-size', options.fontSize || '12');
   text.setAttribute('font-weight', options.fontWeight || 'bold');
 
