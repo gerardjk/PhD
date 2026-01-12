@@ -5625,6 +5625,12 @@ function initializeDiagram() {
           svg.appendChild(window.cashTransferToRtgsLine);
         }
 
+        // Move dvp-cash-leg-to-dvp-rtgs line ON TOP of ASX box border
+        if (window.dvpCashLegToRtgsLine) {
+          window.dvpCashLegToRtgsLine.parentNode.removeChild(window.dvpCashLegToRtgsLine);
+          svg.appendChild(window.dvpCashLegToRtgsLine);
+        }
+
         // Move RTGS box ON TOP of horizontal lines passing through it
         if (window.rtgsElements && window.rtgsElements.rect) {
           window.rtgsElements.rect.parentNode.removeChild(window.rtgsElements.rect);
@@ -6453,11 +6459,25 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('id', 'clearing-to-asxb-line-1');
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
-        if (window.makeInteractive) {
-          window.makeInteractive(clearingToAsxPath2, 'clearing-to-asxb-line');
-        }
         // Insert at beginning so lines go under ASXB box
         labelsGroup.insertBefore(clearingToAsxPath2, labelsGroup.firstChild);
+
+        // Add hit area for clearing-to-asxb double line (center path with wide stroke)
+        const clearingHitPathData = `M ${clearingRightX} ${clearingCenterY + 1.5}
+                         C ${clearingRightX + controlOffset} ${clearingCenterY + 1.5},
+                           ${asxSettlementLeftX - controlOffset} ${asxSettlementCenterY + 1.5},
+                           ${asxSettlementLeftX} ${asxSettlementCenterY + 1.5}`;
+        const clearingHitArea = createStyledPath(clearingHitPathData, {
+          stroke: 'transparent',
+          strokeWidth: '12',
+          fill: 'none'
+        });
+        clearingHitArea.style.pointerEvents = 'stroke';
+        clearingHitArea.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(clearingHitArea, 'clearing-to-asxb-line');
+        }
+        labelsGroup.appendChild(clearingHitArea);
 
         // Calculate the 1/3 point on ASXF box using the UPDATED position
         const sympliCenterY = sympliY + sympliHeight / 2;
@@ -6733,11 +6753,21 @@ function initializeDiagram() {
             );
             line.classList.add('eftpos-to-essb-line');
             line.setAttribute('data-interactive-id', 'eftpos-to-essb-line');
-            if (window.makeInteractive) {
-              window.makeInteractive(line, 'eftpos-to-essb-line');
-            }
             adminLinesGroup.appendChild(line);
           });
+
+          // Add hit area for eftpos-to-essb double line
+          const eftposHitArea = createStyledLine(
+            eftposStartX, eftposLineY,
+            eftposEndX, eftposLineY,
+            { stroke: 'transparent', strokeWidth: (eftposLineGap + 8).toString(), strokeLinecap: 'round' }
+          );
+          eftposHitArea.style.pointerEvents = 'stroke';
+          eftposHitArea.setAttribute('data-interactive-id', 'eftpos-to-essb-line');
+          if (window.makeInteractive) {
+            window.makeInteractive(eftposHitArea, 'eftpos-to-essb-line');
+          }
+          adminLinesGroup.appendChild(eftposHitArea);
 
           // Yellow double lines from Mastercard to MCAU
           const mastercardLineY = stackedMastercardY + stackedHeight / 2 + 2; // Shifted down 2px to center with boxes
@@ -6756,11 +6786,21 @@ function initializeDiagram() {
             );
             line.classList.add('mastercard-to-mcau-line');
             line.setAttribute('data-interactive-id', 'mastercard-to-mcau-line');
-            if (window.makeInteractive) {
-              window.makeInteractive(line, 'mastercard-to-mcau-line');
-            }
             adminLinesGroup.appendChild(line);
           });
+
+          // Add hit area for mastercard-to-mcau double line
+          const mastercardHitArea = createStyledLine(
+            eftposStartX, mastercardLineY,
+            eftposEndX, mastercardLineY,
+            { stroke: 'transparent', strokeWidth: (eftposLineGap + 8).toString(), strokeLinecap: 'round' }
+          );
+          mastercardHitArea.style.pointerEvents = 'stroke';
+          mastercardHitArea.setAttribute('data-interactive-id', 'mastercard-to-mcau-line');
+          if (window.makeInteractive) {
+            window.makeInteractive(mastercardHitArea, 'mastercard-to-mcau-line');
+          }
+          adminLinesGroup.appendChild(mastercardHitArea);
         }
 
         // Removed the Visa-PEXA connection line
@@ -6780,12 +6820,9 @@ function initializeDiagram() {
         if (window.makeInteractive) {
           window.makeInteractive(sssCcpLine, 'dvp-cash-leg-to-dvp-rtgs-line');
         }
-        // Insert before ASX box so border renders on top of line
-        if (window.asxBoundingBoxElement) {
-          window.asxBoundingBoxElement.parentNode.insertBefore(sssCcpLine, window.asxBoundingBoxElement);
-        } else {
-          svg.appendChild(sssCcpLine);
-        }
+        // Store reference for z-order adjustment later
+        window.dvpCashLegToRtgsLine = sssCcpLine;
+        svg.appendChild(sssCcpLine);
 
         // Get the actual trade-by-trade width and position for the dotted line
         // Must match trade-by-trade box calculation: rectWidth * 0.93 and asxGroupShiftAmount
@@ -6819,6 +6856,36 @@ function initializeDiagram() {
         svg.insertBefore(dottedLine, labelsGroup);
 
         // Re-move DvP RTGS box ON TOP of lines (after all lines to it are created)
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
+
+        // Ensure dvp-cash-leg-to-dvp-rtgs line is ON TOP of ASX box
+        if (window.dvpCashLegToRtgsLine) {
+          window.dvpCashLegToRtgsLine.parentNode.removeChild(window.dvpCashLegToRtgsLine);
+          svg.appendChild(window.dvpCashLegToRtgsLine);
+        }
+
+        // Ensure cash-transfer-to-rtgs line is ON TOP of ASX box
+        if (window.cashTransferToRtgsLine) {
+          window.cashTransferToRtgsLine.parentNode.removeChild(window.cashTransferToRtgsLine);
+          svg.appendChild(window.cashTransferToRtgsLine);
+        }
+
+        // Re-move RTGS and DvP RTGS boxes to be on top of the lines
+        if (window.rtgsElements && window.rtgsElements.rect) {
+          window.rtgsElements.rect.parentNode.removeChild(window.rtgsElements.rect);
+          svg.appendChild(window.rtgsElements.rect);
+          if (window.rtgsElements.text) {
+            window.rtgsElements.text.parentNode.removeChild(window.rtgsElements.text);
+            svg.appendChild(window.rtgsElements.text);
+          }
+        }
         if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
           window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
           svg.appendChild(window.dvpRtgsElements.rect);
@@ -7720,6 +7787,8 @@ function initializeDiagram() {
 
     if (nearlyHorizontal) {
       const lineOffsets = isPinkColor ? [-offsetMagnitude, 0, offsetMagnitude] : [offsetMagnitude, -offsetMagnitude];
+      let hitAreaEndX = startX;
+
       lineOffsets.forEach(offset => {
         const yLine = startY + offset;
         const deltaY = yLine - cyBig;
@@ -7729,6 +7798,7 @@ function initializeDiagram() {
         }
         const horizontalReach = Math.sqrt(spanSquared);
         const lineEndX = Math.max(startX, cx + horizontalReach - 20); // Stop 20px before edge (inside circle)
+        hitAreaEndX = Math.max(hitAreaEndX, lineEndX);
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', startX.toFixed(2));
@@ -7742,12 +7812,28 @@ function initializeDiagram() {
         if (lineId) {
           line.classList.add(lineId);
           line.setAttribute('data-interactive-id', lineId);
-          if (window.makeInteractive) {
-            window.makeInteractive(line, lineId);
-          }
         }
         targetGroup.appendChild(line);
       });
+
+      // Add invisible hit area for easier hovering (covers entire double/triple line)
+      if (lineId) {
+        const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 8 : offsetMagnitude * 2 + 8;
+        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hitArea.setAttribute('x1', startX.toFixed(2));
+        hitArea.setAttribute('y1', startY.toFixed(2));
+        hitArea.setAttribute('x2', hitAreaEndX.toFixed(2));
+        hitArea.setAttribute('y2', startY.toFixed(2));
+        hitArea.setAttribute('stroke', 'transparent');
+        hitArea.setAttribute('stroke-width', hitAreaWidth.toString());
+        hitArea.setAttribute('stroke-linecap', 'round');
+        hitArea.style.pointerEvents = 'stroke';
+        hitArea.setAttribute('data-interactive-id', lineId);
+        if (window.makeInteractive) {
+          window.makeInteractive(hitArea, lineId);
+        }
+        targetGroup.appendChild(hitArea);
+      }
       return;
     }
 
@@ -7832,12 +7918,30 @@ function initializeDiagram() {
       if (lineId) {
         path.classList.add(lineId);
         path.setAttribute('data-interactive-id', lineId);
-        if (window.makeInteractive) {
-          window.makeInteractive(path, lineId);
-        }
       }
       targetGroup.appendChild(path);
     });
+
+    // Add invisible hit area for curved double lines (follows center path with wide stroke)
+    if (lineId) {
+      const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 10 : offsetMagnitude * 2 + 10;
+      const hitD = 'M ' + startX.toFixed(2) + ' ' + startY.toFixed(2) +
+                   ' C ' + control1X.toFixed(2) + ' ' + control1Y.toFixed(2) + ', ' +
+                   control2X.toFixed(2) + ' ' + control2Y.toFixed(2) + ', ' +
+                   endX.toFixed(2) + ' ' + endY.toFixed(2);
+      const hitArea = createStyledPath(hitD, {
+        stroke: 'transparent',
+        strokeWidth: hitAreaWidth.toString(),
+        fill: 'none',
+        strokeLinecap: 'round'
+      });
+      hitArea.style.pointerEvents = 'stroke';
+      hitArea.setAttribute('data-interactive-id', lineId);
+      if (window.makeInteractive) {
+        window.makeInteractive(hitArea, lineId);
+      }
+      targetGroup.appendChild(hitArea);
+    }
   };
 
       if (window.hexagonPositions && window.bridgePositions) {
@@ -9303,7 +9407,7 @@ function initializeDiagram() {
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
-                fontFamily: 'Courier New, monospace'
+                fontFamily: "'Roboto Mono', monospace"
               });
               upLabel.style.opacity = '0';
               upLabel.style.transition = 'opacity 0.5s ease';
@@ -9342,7 +9446,7 @@ function initializeDiagram() {
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
-                fontFamily: 'Courier New, monospace'
+                fontFamily: "'Roboto Mono', monospace"
               });
               downLabel.style.opacity = '0';
               downLabel.style.transition = 'opacity 0.5s ease';
@@ -10702,7 +10806,7 @@ if (window.makeInteractive) {
       fill: '#9BFFCD',
       fontSize: '32',
       fontWeight: 'bold',
-      fontFamily: 'Courier New, monospace'
+      fontFamily: "'Roboto Mono', monospace"
     }
   );
   titleText.setAttribute('letter-spacing', '4');

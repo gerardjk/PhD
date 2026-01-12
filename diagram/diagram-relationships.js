@@ -507,19 +507,19 @@ const elementRelationships = {
   // Major bank dots (Big Four at indices 52-55)
   'dot-52': { // ANZ
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-53', 'dot-54', 'dot-55', 'domestic-banks-box', 'adi-box']
+    related: ['blue-line-52', 'yellow-line-52', 'yellow-dot-52']
   },
   'dot-53': { // CBA
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-52', 'dot-54', 'dot-55', 'domestic-banks-box', 'adi-box']
+    related: ['blue-line-53', 'yellow-line-53', 'yellow-dot-53']
   },
   'dot-54': { // NAB
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-52', 'dot-53', 'dot-55', 'domestic-banks-box', 'adi-box']
+    related: ['blue-line-54', 'yellow-line-54', 'yellow-dot-54']
   },
   'dot-55': { // Westpac
     groups: ['domestic-banks', 'big-four', 'adis'],
-    related: ['dot-52', 'dot-53', 'dot-54', 'domestic-banks-box', 'adi-box']
+    related: ['blue-line-55', 'yellow-line-55', 'yellow-dot-55']
   },
 
   // Non-ADI participants
