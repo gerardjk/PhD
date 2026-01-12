@@ -9,6 +9,7 @@ let currentHighlightedElements = new Set();
 let tooltipIsSticky = false;
 let stickyElementId = null;
 let lastHoveredElementId = null;  // Track for delegation-based hover
+let justMadeSticky = false;  // Prevent document click from immediately dismissing
 
 /**
  * Create the tooltip element (only created once)
@@ -211,6 +212,36 @@ function lightenColor(color, factor = 0.7) {
 }
 
 /**
+ * Add alpha transparency to a color (keep original RGB values)
+ */
+function addAlpha(color, alpha = 0.94) {
+  if (!color || color === 'none' || color === 'transparent') return null;
+
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    let hex = color.slice(1);
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  // Handle rgb/rgba colors
+  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  return null;
+}
+
+/**
  * Normalize an interactive element ID so variants (e.g., yellow-dot-#) map to their base entity
  */
 function resolveHoverTarget(elementId) {
@@ -237,8 +268,11 @@ function resolveHoverTarget(elementId) {
 
 /**
  * Show tooltip for an element
+ * @param {string} elementId - The resolved element ID (used for tooltip content lookup)
+ * @param {Event} event - The mouse event
+ * @param {string} originalElementId - The original element ID before resolution (used for color)
  */
-function showTooltip(elementId, event) {
+function showTooltip(elementId, event, originalElementId) {
   const tooltipWrapper = document.getElementById('diagram-tooltip');
   if (!tooltipWrapper) return;
 
@@ -246,23 +280,51 @@ function showTooltip(elementId, event) {
   const isFirefoxWrapper = tooltipWrapper.dataset.firefoxWrapper === 'true';
   const tooltipContentElement = isFirefoxWrapper ? document.getElementById('diagram-tooltip-content') : tooltipWrapper;
 
-  const content = window.tooltipContent?.[elementId];
+  // Check if this element has a tooltipFrom relationship (show another element's tooltip)
+  const relationship = window.diagramRelationships?.[elementId];
+  let tooltipSourceId = relationship?.tooltipFrom || elementId;
+
+  // Map blue-line-X and yellow-line-X to their corresponding dot-X for tooltip content
+  const blueLineMatch = elementId.match(/^blue-line-(\d+)$/);
+  const yellowLineMatch = elementId.match(/^yellow-line-(\d+)$/);
+  if (blueLineMatch) {
+    tooltipSourceId = `dot-${blueLineMatch[1]}`;
+  } else if (yellowLineMatch) {
+    tooltipSourceId = `dot-${yellowLineMatch[1]}`;
+  }
+
+  const content = window.tooltipContent?.[tooltipSourceId];
   if (!content) {
     tooltipWrapper.style.opacity = '0';
     return;
   }
 
   // Get element color and apply to tooltip background
-  // Use colorFrom property if specified (to match another element's color)
-  const colorSourceId = content.colorFrom || elementId;
+  // Use originalElementId if provided (for yellow dots to show yellow color)
+  const colorElementId = originalElementId || elementId;
+  // Check for ESA dots and their lines
+  const isEsaDot = colorElementId.startsWith('dot-') || colorElementId.startsWith('yellow-dot-');
+  const isEsaLine = colorElementId.startsWith('blue-line-') || colorElementId.startsWith('yellow-line-');
+
+  // Use colorFrom property if specified, otherwise use the color element ID
+  // ESA dots and lines use their own color (so yellow dots/lines show yellow, not blue)
+  const colorSourceId = content.colorFrom || ((isEsaDot || isEsaLine) ? colorElementId : tooltipSourceId);
   const elementColor = getElementColor(colorSourceId, event);
 
   // Line style: light background with dark text
   const isLineStyle = content.lineStyle === true;
+
+  // ESA dots and their lines use actual color with black text
+  const isEsaElement = isEsaDot || isEsaLine;
+
   let tooltipBgColor;
   if (isLineStyle) {
     tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.94)';
     tooltipContentElement.style.borderColor = elementColor || 'rgba(100, 100, 100, 0.6)';
+  } else if (isEsaElement) {
+    // ESA dots and lines: use actual color (slightly transparent) with black text
+    tooltipBgColor = addAlpha(elementColor, 0.94) || 'rgba(100, 150, 255, 0.94)';
+    tooltipContentElement.style.borderColor = 'rgba(0, 0, 0, 0.3)';
   } else {
     tooltipBgColor = darkenColor(elementColor) || 'rgba(12, 12, 12, 0.94)';
     tooltipContentElement.style.borderColor = 'rgba(255, 255, 255, 0.45)';
@@ -270,10 +332,11 @@ function showTooltip(elementId, event) {
   tooltipContentElement.style.background = tooltipBgColor;
 
   // Determine tooltip size based on element type
-  const largerTooltipIds = ['rits-circle', 'asx-box', 'cls-circle'];
+  const largerTooltipIds = ['rits-circle', 'asx-box', 'cls-circle', 'chess-box'];
   const isRba = elementId === 'dot-0';
   const isDot = !isRba && (elementId.startsWith('dot-') || elementId.startsWith('yellow-dot-'));
-  const isSmallStyle = isDot || content.smallStyle;  // Use small style for dots or elements with smallStyle flag
+  const isLine = elementId.startsWith('blue-line-') || elementId.startsWith('yellow-line-');
+  const isSmallStyle = isDot || isLine || content.smallStyle;  // Use small style for dots, their lines, or elements with smallStyle flag
 
   if (isSmallStyle) {
     // Smaller tooltips for ESA dots and elements with smallStyle
@@ -282,6 +345,16 @@ function showTooltip(elementId, event) {
     tooltipContentElement.style.borderWidth = '1px';
   } else if (largerTooltipIds.includes(elementId)) {
     tooltipContentElement.style.width = '380px';
+    tooltipContentElement.style.padding = '12px 14px';
+    tooltipContentElement.style.borderWidth = '2px';
+  } else if (content.title2) {
+    // Extra wide tooltips for double-title headings to prevent word wrap
+    tooltipContentElement.style.width = '420px';
+    tooltipContentElement.style.padding = '12px 14px';
+    tooltipContentElement.style.borderWidth = '2px';
+  } else if (isLineStyle) {
+    // Wider tooltips for lineStyle to prevent heading line breaks
+    tooltipContentElement.style.width = '360px';
     tooltipContentElement.style.padding = '12px 14px';
     tooltipContentElement.style.borderWidth = '2px';
   } else {
@@ -298,21 +371,30 @@ function showTooltip(elementId, event) {
   const subtitleSize = isSmallStyle ? '10px' : '13px';
   const textSize = isSmallStyle ? '9px' : '11px';
 
-  // Text colors - dark for line style, light for normal
-  const titleColor = isLineStyle ? '#222' : 'white';
-  const subtitleColor = isLineStyle ? '#333' : 'white';
-  const textColor = isLineStyle ? '#444' : 'white';
-  const detailColor = isLineStyle ? '#555' : '#aaa';
+  // Text colors - dark for line style, ESA dots and ESA lines, light for normal
+  const useDarkText = isLineStyle || isEsaElement;
+  const titleColor = useDarkText ? '#222' : 'white';
+  const subtitleColor = useDarkText ? '#333' : 'white';
+  const textColor = useDarkText ? '#444' : 'white';
+  const detailColor = useDarkText ? '#555' : '#aaa';
 
   // Title - larger, bold (italicised for line tooltips and small tooltips)
   if (content.title) {
     const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
-    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${isSmallStyle ? '2px' : '4px'};">${content.title}</div>`;
+    const titleMargin = content.title2 ? '2px' : (isSmallStyle ? '2px' : '4px');
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${titleMargin};">${content.title}</div>`;
   }
 
-  // Subtitle - normal size, bold (skip for line tooltips)
-  if (content.subtitle && !isLineStyle) {
-    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; margin-bottom: ${isSmallStyle ? '4px' : '8px'};">${content.subtitle}</div>`;
+  // Title2 - same size as title, for double-heading tooltips
+  if (content.title2) {
+    const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${isSmallStyle ? '4px' : '8px'};">${content.title2}</div>`;
+  }
+
+  // Subtitle - normal size, bold (show for lineStyle if present)
+  if (content.subtitle) {
+    const subtitleStyle = isLineStyle ? 'font-style: italic;' : '';
+    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; ${subtitleStyle} margin-bottom: ${isSmallStyle ? '4px' : '8px'};">${content.subtitle}</div>`;
   }
 
   // Description - smaller
@@ -371,6 +453,7 @@ function showTooltip(elementId, event) {
  * Hide tooltip
  */
 function hideTooltip() {
+  console.log('hideTooltip called', new Error().stack);
   const tooltip = document.getElementById('diagram-tooltip');
   if (tooltip) {
     tooltip.style.opacity = '0';
@@ -740,13 +823,18 @@ function handleMouseEnter(event) {
     return;
   }
 
+  if (tooltipIsSticky && stickyElementId && stickyElementId !== targetId) {
+    return;
+  }
+
   // Clear any lingering highlights before applying new ones (unless we're re-entering the sticky element)
   if (!tooltipIsSticky || stickyElementId !== targetId) {
     clearHighlights();
   }
 
   // Show tooltip for this specific element
-  showTooltip(targetId, event);
+  // Pass original elementId for color (so yellow dots show yellow, not blue)
+  showTooltip(targetId, event, elementId);
 
   // Special handling for boxes that should highlight contained dots
   if (targetId === 'blue-dots-background') {
@@ -850,8 +938,10 @@ function handleMouseMove(event) {
  * Handle mouse leave on an interactive element
  */
 function handleMouseLeave(event) {
+  console.log('handleMouseLeave - tooltipIsSticky:', tooltipIsSticky);
   // If tooltip is sticky, don't dismiss on mouse leave - require click to dismiss
   if (tooltipIsSticky) {
+    console.log('handleMouseLeave - returning because sticky');
     return;
   }
 
@@ -863,13 +953,17 @@ function handleMouseLeave(event) {
  * Handle click on an interactive element - toggle tooltip sticky state
  */
 function handleClick(event) {
+  console.log('handleClick fired', event.currentTarget);
   const elementId = event.currentTarget.dataset.interactiveId;
-  if (!elementId) return;
+  if (!elementId) { console.log('no elementId'); return; }
 
   const { targetId } = resolveHoverTarget(elementId);
-  if (!targetId) return;
+  if (!targetId) { console.log('no targetId'); return; }
+  console.log('handleClick - elementId:', elementId, 'targetId:', targetId);
   const overrideTarget = getHigherPriorityInteractive(event, targetId);
   if (overrideTarget) {
+    // Stop propagation on original event before recursive call
+    if (event.stopPropagation) event.stopPropagation();
     handleClick({
       currentTarget: overrideTarget,
       clientX: event.clientX,
@@ -882,15 +976,32 @@ function handleClick(event) {
   if (tooltipIsSticky && stickyElementId === targetId) {
     hideTooltip();
     clearHighlights();
-    event.stopPropagation();
+    tooltipIsSticky = false;
+    stickyElementId = null;
+    if (event.stopPropagation) event.stopPropagation();
     return;
   }
 
   // Make tooltip stationary (stop following mouse)
   tooltipIsSticky = true;
   stickyElementId = targetId;
+  justMadeSticky = true;  // Prevent document handler from immediately dismissing
+  console.log('Made sticky:', targetId, 'tooltipIsSticky:', tooltipIsSticky);
 
-  event.stopPropagation();
+  // Clear flag after a short delay (after event bubbling completes)
+  setTimeout(() => { justMadeSticky = false; }, 10);
+
+  // Ensure tooltip and highlights are shown
+  showTooltip(targetId, event);
+
+  // Highlight this element and all related elements
+  const relatedElements = window.getRelatedElements?.(targetId) || new Set([targetId]);
+  relatedElements.forEach(id => {
+    highlightElement(id);
+  });
+
+  console.log('After showTooltip - tooltipIsSticky:', tooltipIsSticky);
+  if (event.stopPropagation) event.stopPropagation();
 }
 
 /**
@@ -966,14 +1077,19 @@ function makeInteractiveHighlightOnly(element, elementId) {
  * Handle document click to dismiss sticky tooltip
  */
 function handleDocumentClick(event) {
-  if (!tooltipIsSticky) return;
+  console.log('handleDocumentClick - justMadeSticky:', justMadeSticky, 'tooltipIsSticky:', tooltipIsSticky);
+  // Don't dismiss if tooltip was just made sticky (same click event)
+  if (justMadeSticky) { console.log('returning early - justMadeSticky'); return; }
+  if (!tooltipIsSticky) { console.log('returning early - not sticky'); return; }
 
   const tooltip = document.getElementById('diagram-tooltip');
   const clickedOnTooltip = tooltip && tooltip.contains(event.target);
   const clickedOnInteractive = event.target.closest('[data-interactive-id]');
+  console.log('clickedOnTooltip:', clickedOnTooltip, 'clickedOnInteractive:', clickedOnInteractive);
 
   // If clicked outside tooltip and outside interactive elements, dismiss
   if (!clickedOnTooltip && !clickedOnInteractive) {
+    console.log('dismissing from document click');
     hideTooltip();
     clearHighlights();
   }
@@ -1006,6 +1122,7 @@ function cacheDotPositions() {
 }
 
 function handleSvgMouseMove(event) {
+  if (tooltipIsSticky) return;
   if (!dotPositions || dotPositions.length === 0) {
     cacheDotPositions();
   }
@@ -1065,6 +1182,9 @@ function handleSvgMouseOver(event) {
   if (interactiveEl) {
     const elementId = interactiveEl.dataset.interactiveId;
     const { targetId } = resolveHoverTarget(elementId);
+    if (tooltipIsSticky && stickyElementId && stickyElementId !== targetId) {
+      return;
+    }
 
     // Only trigger if this is a different element than before
     if (targetId && targetId !== lastHoveredElementId) {
@@ -1115,8 +1235,62 @@ function initializeInteractive() {
       // Add delegated mouseover/mouseout for reliability
       svg.addEventListener('mouseover', handleSvgMouseOver);
       svg.addEventListener('mouseout', handleSvgMouseOut);
+      // Add delegated click for reliability
+      svg.addEventListener('click', handleSvgClick);
     }
   }, 200); // Delay to ensure diagram is rendered
+}
+
+/**
+ * Handle delegated click on SVG - more reliable than individual click listeners
+ */
+function handleSvgClick(event) {
+  const interactiveEl = event.target.closest('[data-interactive-id]');
+  console.log('handleSvgClick - target:', event.target, 'interactiveEl:', interactiveEl);
+
+  if (interactiveEl) {
+    const elementId = interactiveEl.dataset.interactiveId;
+    const { targetId } = resolveHoverTarget(elementId);
+    console.log('handleSvgClick - elementId:', elementId, 'targetId:', targetId);
+
+    if (!targetId) return;
+
+    // Check for override target
+    const overrideTarget = getHigherPriorityInteractive(event, targetId);
+    const finalTarget = overrideTarget || interactiveEl;
+    const finalTargetId = overrideTarget ? overrideTarget.dataset.interactiveId : targetId;
+    const { targetId: resolvedFinalTargetId } = resolveHoverTarget(finalTargetId);
+
+    // If clicking on the same element that's already sticky, dismiss it
+    if (tooltipIsSticky && stickyElementId === resolvedFinalTargetId) {
+      console.log('handleSvgClick - dismissing sticky');
+      hideTooltip();
+      clearHighlights();
+      tooltipIsSticky = false;
+      stickyElementId = null;
+      event.stopPropagation();
+      return;
+    }
+
+    // Make tooltip stationary
+    tooltipIsSticky = true;
+    stickyElementId = resolvedFinalTargetId;
+    justMadeSticky = true;
+    console.log('handleSvgClick - made sticky:', resolvedFinalTargetId);
+
+    setTimeout(() => { justMadeSticky = false; }, 10);
+
+    // Ensure tooltip and highlights are shown
+    showTooltip(resolvedFinalTargetId, event, elementId);
+
+    // Highlight this element and all related elements
+    const relatedElements = window.getRelatedElements?.(resolvedFinalTargetId) || new Set([resolvedFinalTargetId]);
+    relatedElements.forEach(id => {
+      highlightElement(id);
+    });
+
+    event.stopPropagation();
+  }
 }
 
 // Auto-initialize when DOM is ready

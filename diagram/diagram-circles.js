@@ -134,7 +134,7 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
       rotateAnim.setAttribute('attributeName', 'transform');
       rotateAnim.setAttribute('type', 'rotate');
       rotateAnim.setAttribute('from', '0 0 0');
-      rotateAnim.setAttribute('to', '360 0 0');
+      rotateAnim.setAttribute('to', '-360 0 0');
       rotateAnim.setAttribute('dur', '12s');
       rotateAnim.setAttribute('repeatCount', 'indefinite');
       rotateAnim.setAttribute('additive', 'sum');
@@ -155,7 +155,7 @@ function createMainCircleGears(cx, cyBig, cySmall, rBig, rSmall, strokeW) {
       rotateAnim.setAttribute('attributeName', 'transform');
       rotateAnim.setAttribute('type', 'rotate');
       rotateAnim.setAttribute('from', '0 0 0');
-      rotateAnim.setAttribute('to', '-360 0 0');
+      rotateAnim.setAttribute('to', '360 0 0');
       rotateAnim.setAttribute('dur', '12s');
       rotateAnim.setAttribute('repeatCount', 'indefinite');
       rotateAnim.setAttribute('additive', 'sum');

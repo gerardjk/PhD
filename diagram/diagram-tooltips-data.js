@@ -663,38 +663,20 @@ const tooltipContent = {
   'pacs-009-box': {
     title: 'pacs.009',
     subtitle: 'Financial Institution Credit Transfer',
-    description: 'ISO 20022 message type for interbank credit transfers between financial institutions',
-    details: [
-      'Used for bank-to-bank transfers',
-      'Cover payments for underlying customer transactions',
-      'Settlement of interbank obligations',
-      'Processed through SWIFT PDS to RITS'
-    ],
-    link: 'https://www.iso20022.org/'
+    description: 'ISO 20022 message for interbank credit transfers',
+    smallStyle: true
   },
   'pacs-008-box': {
     title: 'pacs.008',
     subtitle: 'Customer Credit Transfer',
-    description: 'ISO 20022 message type for customer-initiated credit transfers',
-    details: [
-      'Customer payment instructions',
-      'Contains full remittance information',
-      'Supports rich payment data',
-      'End-to-end payment tracking'
-    ],
-    link: 'https://www.iso20022.org/'
+    description: 'ISO 20022 message for customer-initiated transfers',
+    smallStyle: true
   },
   'pacs-004-box': {
     title: 'pacs.004',
     subtitle: 'Payment Return',
-    description: 'ISO 20022 message type for returning or rejecting payments',
-    details: [
-      'Returns previously sent payments',
-      'Includes reason codes for rejection',
-      'Maintains audit trail',
-      'Supports partial returns'
-    ],
-    link: 'https://www.iso20022.org/'
+    description: 'ISO 20022 message for returning/rejecting payments',
+    smallStyle: true
   },
 
   // NPP ecosystem
@@ -744,23 +726,23 @@ const tooltipContent = {
     ]
   },
   'payid-box': {
-    title: 'PayID',
-    subtitle: 'Payment addressing service',
-    description: 'Simplified payment addressing using mobile, email, or ABN',
+    title: 'PayID / PayTo',
+    subtitle: 'NPP Overlay Services',
+    description: 'PayID enables simplified payment addressing using mobile, email, or ABN. PayTo provides real-time payment authorization as a digital alternative to direct debits.',
     details: [
-      'Links easy-to-remember addresses to BSB/account',
-      'Supports multiple address types',
-      'Managed by NPP Australia'
+      'PayID links easy-to-remember addresses to BSB/account',
+      'PayTo enables customer-controlled recurring payments',
+      'Both managed by NPP Australia'
     ]
   },
   'payto-box': {
-    title: 'PayTo',
-    subtitle: 'Payment initiation service',
-    description: 'Digital alternative to direct debits',
+    title: 'IPS',
+    subtitle: 'International Payment Service',
+    description: 'Cross-border payment capability for the NPP enabling real-time international transfers',
     details: [
-      'Real-time payment authorization',
-      'Customer controls from banking app',
-      'Replaces traditional direct debit'
+      'Connects NPP to international payment networks',
+      'Supports real-time cross-border payments',
+      'ISO 20022 messaging standard'
     ]
   },
 
@@ -1004,10 +986,11 @@ const tooltipContent = {
   'lvss-gear': {
     title: 'LVSS',
     subtitle: 'Low Value Settlement Service',
-    description: 'Settlement hub for retail payment clearing streams. Receives batched settlement instructions from APCS, BECS, CSHD, CECS and GABS, then settles net positions across Exchange Settlement Accounts in RITS.',
+    description: 'Settlement hub for retail payment clearing streams. Receives File Settlement Instructions (FSIs) from APCS, BECS, CSHD, CECS and GABS via the Community of Interest Network (COIN), then settles net positions across Exchange Settlement Accounts in RITS.',
     details: [
       'Multilateral net settlement',
       'Multiple settlement cycles per day',
+      'COIN infrastructure operated by Transaction Network Services (TNS)',
       'Operated by RBA'
     ],
     link: 'https://www.rba.gov.au/payments-and-infrastructure/payments-system.html'
@@ -1087,12 +1070,12 @@ const tooltipContent = {
   'administered-batches-box': {
     title: 'Administered Batches',
     subtitle: 'Batch settlement facilities in RITS',
-    description: 'Settlement arrangements where the Reserve Bank administers batch processing on behalf of external systems',
+    description: 'Settlement arrangements where the Reserve Bank administers batch processing on behalf of external systems. PEXA and ASXF submit reservation batches via the Community of Interest Network (COIN), while MCAU, ESSB and ASXB submit settlement-only batches via SWIFT.',
     details: [
       'Includes MCAU, ESSB, PEXA, ASXF, and ASXB',
-      'Processes batched settlement instructions from card schemes and property settlement',
-      'Settles net positions across Exchange Settlement Accounts',
-      'Operated as part of RITS infrastructure'
+      'Reservation batches (PEXA, ASXF): RBA proprietary XML over COIN',
+      'Settlement-only batches (MCAU, ESSB, ASXB): SWIFT messages',
+      'Settles net positions across Exchange Settlement Accounts'
     ]
   },
 
@@ -1150,7 +1133,7 @@ const tooltipContent = {
     ]
   },
   'chess-rtgs-box': {
-    title: 'CHESS-RTGS',
+    title: 'CHESS-RTGS (CHESS)',
     subtitle: 'CHESS Real-Time Gross Settlement',
     description: 'Interface between CHESS and RITS for real-time delivery versus payment settlement',
     details: [
@@ -1171,35 +1154,97 @@ const tooltipContent = {
       'Connects to RITS for cash settlement'
     ]
   },
+
+  // ASX thick blue lines - cash settlement flows
+  'asx-to-adi-line': {
+    title: 'ASX EXIGO SWIFT Messaging (Austraclear)',
+    title2: 'ASX EIS (CHESS)',
+    description: 'EXIGO is ASX\'s SWIFT-based messaging system for Austraclear cash movements and fixed income settlement. EIS (CHESS External Interface Specification) handles equities settlement messaging between CHESS and participants.',
+    lineStyle: true
+  },
+  'asx-to-hvcs-line': {
+    title: 'ASX EXIGO SWIFT Messaging (Austraclear)',
+    title2: 'ASX EIS (CHESS)',
+    description: 'EXIGO is ASX\'s SWIFT-based messaging system for Austraclear cash movements and fixed income settlement. EIS (CHESS External Interface Specification) handles equities settlement messaging between CHESS and participants.',
+    lineStyle: true
+  },
   'clearing-box': {
     title: 'Clearing/Netting',
     subtitle: 'Batch netting of securities transactions',
     description: 'Multilateral netting reduces the number and value of settlements',
-    smallStyle: true
+    lineStyle: true
   },
   'trade-by-trade-box': {
-    title: 'CHESS-RTGS',
-    subtitle: 'CHESS Real-Time Gross Settlement',
-    description: 'Interface between CHESS and RITS for real-time delivery versus payment settlement',
-    details: [
-      'Enables DvP Model 1 settlement',
-      'Real-time securities against cash settlement',
-      'Reduces settlement risk for high-value transactions',
-      'Operated by ASX Settlement'
-    ],
-    colorFrom: 'chess-rtgs-box'  // Use color from CHESS-RTGS box
+    title: 'Trade-by-Trade',
+    subtitle: 'Gross settlement of securities transactions',
+    description: 'Each trade settled individually in real-time via CHESS-RTGS',
+    lineStyle: true
   },
   'dvp-cash-leg-box': {
-    title: 'DvP Cash Leg',
-    subtitle: 'Cash side of delivery versus payment',
+    title: 'Delivery versus Payment Cash Leg',
+    subtitle: 'Real Time Gross Settlement',
     description: 'Cash settlement component of DvP transactions in Austraclear',
-    smallStyle: true
+    lineStyle: true,
+    colorFrom: 'dvp-cash-leg-to-dvp-rtgs-line'
   },
   'cash-transfer-box': {
     title: 'Cash Transfer',
-    subtitle: 'Pure cash movements',
+    subtitle: 'Real Time Gross Settlement',
     description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    smallStyle: true
+    lineStyle: true,
+    colorFrom: 'cash-transfer-to-rtgs-line'
+  },
+
+  // DvP cash leg settlement path - all elements share same tooltip
+  'dvp-cash-leg-to-dvp-rtgs-line': {
+    title: 'Delivery versus Payment Cash Leg',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Cash settlement component of DvP transactions in Austraclear',
+    lineStyle: true
+  },
+  'dvp-rtgs-box': {
+    title: 'Delivery versus Payment Cash Leg',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Cash settlement component of DvP transactions in Austraclear',
+    lineStyle: true
+  },
+  'dvp-rtgs-to-austraclear-line': {
+    title: 'Delivery versus Payment Cash Leg',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Cash settlement component of DvP transactions in Austraclear',
+    lineStyle: true
+  },
+  'austraclear-to-rits-line-upper': {
+    title: 'Delivery versus Payment Cash Leg',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Cash settlement component of DvP transactions in Austraclear',
+    lineStyle: true
+  },
+
+  // Cash transfer settlement path - all elements share same tooltip
+  'cash-transfer-to-rtgs-line': {
+    title: 'Cash Transfer',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
+    lineStyle: true
+  },
+  'rtgs-box': {
+    title: 'Cash Transfer',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
+    lineStyle: true
+  },
+  'rtgs-to-austraclear-line': {
+    title: 'Cash Transfer',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
+    lineStyle: true
+  },
+  'austraclear-to-rits-line-lower': {
+    title: 'Cash Transfer',
+    subtitle: 'Real Time Gross Settlement',
+    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
+    lineStyle: true
   },
 
   // Participant groups
@@ -1587,50 +1632,198 @@ const tooltipContent = {
   'cheques-to-apcs-line': {
     title: 'APCS Truncated Presentment',
     description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
-    lineStyle: true
+    lineStyle: true,
+    colorFrom: 'cheques-to-apcs-line-visible'
   },
   'osko-to-adi-line': {
     title: 'APCS Truncated Presentment',
     description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
-    lineStyle: true
+    lineStyle: true,
+    colorFrom: 'osko-to-adi-line-visible'
   },
 
   // LVSS FSI XML lines - grey double lines through LVSS circle
   'lvss-line-gabs': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   'lvss-line-cecs': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   'lvss-line-cshd': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   'lvss-line-becs': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   'lvss-line-apcs': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   // CECS to IAC lines - also LVSS FSI XML
   'cecs-to-iac-line-1': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
   },
   'cecs-to-iac-line-2': {
     title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service for interbank settlement',
+    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
     lineStyle: true
+  },
+
+  // PEXA/ASXF Reservation Batch lines - magenta/pink color (#FF0090)
+  'pexa-horizontal-line-0': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+  'pexa-horizontal-line-1': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+  'pexa-to-rits-line': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+  'sympli-horizontal-line-0': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+  'sympli-horizontal-line-1': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+  'asxf-to-rits-line': {
+    title: 'Reservation Batch XML',
+    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
+    lineStyle: true
+  },
+
+  // ASXB batch settlement lines - from clearing/netting to ASXB and ASXB to RITS
+  'clearing-to-asxb-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+  'clearing-to-asxb-line-0': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+  'clearing-to-asxb-line-1': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+  'asxb-to-rits-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+
+  // MCAU batch settlement lines - Mastercard to MCAU and MCAU to RITS
+  'mastercard-to-mcau-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for Mastercard scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+  'mcau-to-rits-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for Mastercard scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+
+  // ESSB batch settlement lines - eftpos to ESSB and ESSB to RITS
+  'eftpos-to-essb-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for eftpos scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+  'essb-to-rits-line': {
+    title: 'Batch Settlement Request (MT198 SMT131)',
+    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for eftpos scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
+    lineStyle: true
+  },
+
+  // eftpos ePAL lines - purple color rgb(158,138,239)
+  'eftpos-left-line': {
+    title: 'ePAL Settlement File Format',
+    description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
+    lineStyle: true,
+    colorFrom: 'eftpos-left-line-visible'
+  },
+  'eftpos-left-line-horizontal': {
+    title: 'ePAL Settlement File Format',
+    description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
+    lineStyle: true,
+    colorFrom: 'eftpos-left-line-horizontal-visible'
+  },
+
+  // Mastercard IPM lines - pinkish color rgb(255,120,120)
+  'mastercard-left-line': {
+    title: 'Mastercard IPM File Format',
+    description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
+    lineStyle: true,
+    colorFrom: 'mastercard-left-line-visible'
+  },
+  'mastercard-left-line-horizontal': {
+    title: 'Mastercard IPM File Format',
+    description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
+    lineStyle: true,
+    colorFrom: 'mastercard-left-line-horizontal-visible'
+  },
+
+  // IAC stack lines - coming from IAC box
+  'direct-entry-stack-line-yellow': {
+    title: 'Visa BASE II File Format',
+    description: 'Fixed-length clearing file format using 168-byte Transaction Component Records (TCRs) for Visa transaction clearing and settlement',
+    lineStyle: true,
+    colorFrom: 'direct-entry-stack-line-yellow-visible'
+  },
+  'direct-entry-stack-line-blue': {
+    title: 'Proprietary Scheme Formats',
+    description: 'Card scheme-specific clearing formats used by AMEX, UnionPay, Diners Club and other international card networks',
+    lineStyle: true,
+    colorFrom: 'direct-entry-stack-line-blue-visible'
+  },
+  'direct-entry-stack-line-green': {
+    title: 'Health Claims Protocols',
+    description: 'Electronic claiming via EFTPOS terminals including Medicare Easyclaim, ECLIPSE (Electronic Claim Lodgement and Information Processing Service Environment) for hospital claims, HICAPS (Health Industry Claims and Payments Service) for private health insurers, and government schemes such as the Department of Veterans\' Affairs, Transport Accident Commission, WorkSafe, and National Disability Insurance Scheme',
+    lineStyle: true,
+    colorFrom: 'direct-entry-stack-line-green-visible'
+  },
+  'direct-entry-stack-line-brown': {
+    title: 'ATM Interchange',
+    description: 'ATM transactions use AS2805 (Australian Standard for Electronic Funds Transfer) messaging. Cleared through the Issuers and Acquirers Community (IAC) with deferred net settlement in RITS',
+    lineStyle: true,
+    colorFrom: 'direct-entry-stack-line-brown-visible'
+  },
+
+  // E-conveyancing lines to ADIs
+  'sympli-to-adis-line': {
+    title: 'Sympli NECDS (ELNO)',
+    description: 'National Electronic Conveyancing Data Standard messages from Sympli (Electronic Lodgment Network Operator) for property settlement with financial institutions',
+    lineStyle: true,
+    colorFrom: 'sympli-to-adis-line-visible'
+  },
+  'pexa-to-adis-line': {
+    title: 'PEXA NECDS (ELNO)',
+    description: 'National Electronic Conveyancing Data Standard messages from PEXA (Electronic Lodgment Network Operator) for property settlement with financial institutions',
+    lineStyle: true,
+    colorFrom: 'pexa-to-adis-line-visible'
   }
 };
 
