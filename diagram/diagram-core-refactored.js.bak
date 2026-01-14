@@ -2,7 +2,23 @@
  * Refactored Diagram Core - Complete Original Functionality
  */
 
+// Suppress console output - set to true to enable debug logging
+const DIAGRAM_DEBUG = false;
+const diagramLog = DIAGRAM_DEBUG ? console.log.bind(console) : () => {};
+const originalConsoleLog = console.log;
+
+// If debug is disabled, silence console.log globally so delayed timeouts don't spam output
+if (!DIAGRAM_DEBUG) {
+  console.log = () => {};
+}
+
 function initializeDiagram() {
+  // Restore console.log only when debug is enabled (keeps logging disabled otherwise)
+  const restoreConsole = () => {
+    if (DIAGRAM_DEBUG) {
+      console.log = originalConsoleLog;
+    }
+  };
   // ----- Compute precise positions and the arc path deterministically -----
   // Global constant for CLS sigmoid curve expansion
   const CLS_SIGMOID_EXPANSION = 1.5; // How much to expand horizontally (1.5 = 150% wider on each side)
@@ -226,9 +242,11 @@ function initializeDiagram() {
     // 5. Small-group (large FSS yellow circle - already in DOM)
     const blueCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     blueCirclesGroup.setAttribute('id', 'blue-circles');
+    blueCirclesGroup.setAttribute('class', 'diagram-content');
 
     const yellowCirclesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     yellowCirclesGroup.setAttribute('id', 'yellow-circles');
+    yellowCirclesGroup.setAttribute('class', 'diagram-content');
 
     // Insert groups in correct order for layering
     // yellowCirclesGroup now contains both yellow lines and circles in interleaved order
@@ -259,17 +277,264 @@ function initializeDiagram() {
     // Create a group for background elements (rendered first)
     const backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     backgroundGroup.setAttribute('id', 'background-elements');
+    backgroundGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(backgroundGroup);
 
     // Foreground lines group sits above background elements but below labels
     const foregroundLinesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     foregroundLinesGroup.setAttribute('id', 'foreground-lines');
+    foregroundLinesGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(foregroundLinesGroup);
 
     // Create a group for labels (rendered last so they appear on top)
     const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     labelsGroup.setAttribute('id', 'dot-labels');
+    labelsGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(labelsGroup);
+
+    // Hide ALL SVG children initially (will be revealed after title typewriter)
+    // This catches everything - groups, paths, rects, circles, text, etc.
+    Array.from(svg.children).forEach(child => {
+      if (child.tagName !== 'defs') { // Don't hide defs (filters, gradients, etc.)
+        child.classList.add('diagram-hidden');
+      }
+    });
+
+    // Track animation timeout IDs so we can cancel them on skip
+    let animationTimeouts = [];
+    let animationSkipped = false;
+
+    // Function to skip animation and reveal everything immediately
+    const skipAnimation = () => {
+      if (animationSkipped) return;
+      animationSkipped = true;
+      firstStageStarted = true; // Mark first stage as started to prevent double triggering
+
+      // Cancel all pending timeouts
+      animationTimeouts.forEach(id => clearTimeout(id));
+      animationTimeouts = [];
+
+      // Stop any typewriter in progress
+      if (window.stopTypewriter) {
+        window.stopTypewriter();
+      }
+
+      // Complete divider animation immediately
+      if (window.dividerElements) {
+        if (window.dividerElements.whiteLine) {
+          window.dividerElements.whiteLine.setAttribute('stroke-dashoffset', '0');
+        }
+        if (window.dividerElements.upLabel) {
+          window.dividerElements.upLabel.style.opacity = '1';
+          const fullText = window.dividerElements.upLabel.dataset.fullText || 'Low Value / High Volume';
+          window.dividerElements.upLabel.textContent = fullText;
+        }
+        if (window.dividerElements.upArrow) {
+          window.dividerElements.upArrow.style.opacity = '1';
+        }
+        if (window.dividerElements.downLabel) {
+          window.dividerElements.downLabel.style.opacity = '1';
+          const fullDownText = window.dividerElements.downLabel.dataset.fullText || 'High Value / Low Volume';
+          window.dividerElements.downLabel.textContent = fullDownText;
+        }
+        if (window.dividerElements.downArrow) {
+          window.dividerElements.downArrow.style.opacity = '1';
+        }
+      }
+
+      // Reveal all hidden elements immediately
+      document.querySelectorAll('.diagram-hidden').forEach(el => {
+        el.classList.add('diagram-visible');
+      });
+
+      // Ensure all dot labels are visible when skipping the animation entirely
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+
+      // Remove animation class and enable interactivity
+      document.body.classList.remove('animating-startup');
+
+      // Set up all interactive elements
+      const interactiveElements = document.querySelectorAll('[data-interactive-id]');
+      interactiveElements.forEach(element => {
+        const elementId = element.getAttribute('data-interactive-id');
+        if (elementId && typeof window.makeInteractive === 'function') {
+          if (!element.style.cursor || element.style.cursor !== 'pointer') {
+            element.style.cursor = 'pointer';
+            // Only set pointer-events if not already set
+            // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
+            if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
+              const tagName = element.tagName.toLowerCase();
+              if (tagName === 'path' || tagName === 'line') {
+                element.style.pointerEvents = 'stroke';
+              } else {
+                element.style.pointerEvents = 'all';
+              }
+            }
+            element.addEventListener('mouseenter', window.handleMouseEnter);
+            element.addEventListener('mousemove', window.handleMouseMove);
+            element.addEventListener('mouseleave', window.handleMouseLeave);
+            element.addEventListener('click', window.handleClick);
+          }
+        }
+      });
+
+      // Remove the skip click handler
+      document.removeEventListener('click', skipAnimation);
+      document.removeEventListener('keydown', skipOnKey);
+    };
+
+    // Skip on any key press too
+    const skipOnKey = (e) => {
+      if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+        skipAnimation();
+      }
+    };
+
+    // Expose skip function globally
+    window.skipAnimation = skipAnimation;
+
+    // Function to start first stage independently
+    let firstStageStarted = false;
+    window.startFirstAnimationStage = () => {
+      if (animationSkipped || firstStageStarted) return;
+      firstStageStarted = true;
+
+      // Clear any existing highlights and hide tooltip
+      if (typeof window.clearHighlights === 'function') {
+        window.clearHighlights();
+      }
+      if (typeof window.hideTooltip === 'function') {
+        window.hideTooltip();
+      }
+
+      // The animation class is already added in diagram-init.js
+      // Just ensure it's still there
+      if (!document.body.classList.contains('animating-startup')) {
+        document.body.classList.add('animating-startup');
+      }
+
+      // Stage 1: ESA box, blue dots, their lines, and ESA labels appear together
+      ['blue-dots-background', 'blue-circles', 'blue-connecting-lines',
+       'dot-labels', 'esas-label-top', 'esas-label-bottom'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+
+      // Only show the ESA labels until the other labels fade in during stage 2
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          if (child.classList && child.classList.contains('esas-box-label')) {
+            child.style.opacity = '1';
+          } else {
+            child.style.opacity = '0';
+          }
+        });
+      }
+    };
+
+    // Function to start second stage independently
+    let secondStageStarted = false;
+    window.startSecondAnimationStage = () => {
+      if (animationSkipped || secondStageStarted) return;
+      secondStageStarted = true;
+
+      // Stage 2: All boxes (FSS circle, other labels, arc, background elements)
+      ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc',
+       'adis-label', 'adis-label-duplicate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+
+      // Restore the rest of the dot labels now that the group is visible
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+    };
+
+    // Function to start third stage independently
+    let thirdStageStarted = false;
+    window.startThirdAnimationStage = () => {
+      if (animationSkipped || thirdStageStarted) return;
+      thirdStageStarted = true;
+
+      // Stage 3: All special lines (red, orange, admin, yellow) and CLS green circle last
+      ['red-connecting-lines', 'orange-connecting-lines',
+       'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
+       // Individual lines appended directly to SVG
+       'npp-to-adi-line', 'cheques-to-apcs-line', 'cheques-to-apcs-line-hit-area',
+       'cls-aud-line-new', 'cls-to-rits-line-final', 'cls-s-curve', 'cls-s-curve-group',
+       'cls-green-circle', // Add only the green circle here with the neon lines
+       'swift-to-circle-curves', 'cls-aud-rect', 'directentry-to-adi-line', 'maroon-horizontal-branch',
+       'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+      // Now catch any remaining lines
+      document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
+        el.classList.add('diagram-visible');
+      });
+    };
+
+    // Store reveal function for use after title types out - cleanup and finalization
+    window.revealDiagramContent = () => {
+      if (animationSkipped) return;
+
+      // Start all stages if not already started (in case title typing was skipped)
+      if (!firstStageStarted) {
+        window.startFirstAnimationStage();
+      }
+      if (!secondStageStarted) {
+        window.startSecondAnimationStage();
+      }
+      if (!thirdStageStarted) {
+        window.startThirdAnimationStage();
+      }
+
+      // Re-enable tooltips and setup after animation completes (wait a bit for stages to finish)
+      animationTimeouts.push(setTimeout(() => {
+        if (animationSkipped) return;
+        animationSkipped = true; // Mark as done so skip doesn't run again
+        document.body.classList.remove('animating-startup');
+
+        // Remove skip handlers
+        document.removeEventListener('click', skipAnimation);
+        document.removeEventListener('keydown', skipOnKey);
+
+        // Now set up all the interactive elements that were skipped during animation
+        const interactiveElements = document.querySelectorAll('[data-interactive-id]');
+        interactiveElements.forEach(element => {
+          const elementId = element.getAttribute('data-interactive-id');
+          if (elementId && typeof window.makeInteractive === 'function') {
+            // Only set up interactivity if not already done
+            if (!element.style.cursor || element.style.cursor !== 'pointer') {
+              element.style.cursor = 'pointer';
+              // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
+              if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
+                const tagName = element.tagName.toLowerCase();
+                if (tagName === 'path' || tagName === 'line') {
+                  element.style.pointerEvents = 'stroke';
+                } else {
+                  element.style.pointerEvents = 'all';
+                }
+              }
+              element.addEventListener('mouseenter', window.handleMouseEnter);
+              element.addEventListener('mousemove', window.handleMouseMove);
+              element.addEventListener('mouseleave', window.handleMouseLeave);
+              element.addEventListener('click', window.handleClick);
+            }
+          }
+        });
+      }, 1500)); // Wait 1.5 seconds after title completes for all stages to finish
+    };
 
     const updateNppToAdiLine = () => {
       if (!svg || !window.adiBoxData || !window.nonAdiBoxData) {
@@ -355,24 +620,19 @@ function initializeDiagram() {
           id: 'npp-to-adi-line'
         });
         path.classList.add('thick-line-to-adi');
+        path.classList.add('diagram-hidden'); // Hide initially for animation
+        path.setAttribute('data-interactive-id', 'npp-to-adi-line');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(path, 'npp-to-adi-line');
+        }
       }
 
       path.setAttribute('d', pathData);
       path.setAttribute('stroke-linecap', 'butt');
 
-      const purpleBoxParent = document.getElementById('npp-purple-box') || document.getElementById('npp-box');
-      if (purpleBoxParent && purpleBoxParent.parentNode) {
-        if (path.parentNode !== purpleBoxParent.parentNode || path.nextSibling !== purpleBoxParent) {
-          purpleBoxParent.parentNode.insertBefore(path, purpleBoxParent);
-        }
-      } else {
-        const foregroundGroupRef = document.getElementById('foreground-lines');
-        if (foregroundGroupRef) {
-          foregroundGroupRef.appendChild(path);
-        } else if (!path.parentNode) {
-          svg.appendChild(path);
-        }
-      }
+      // Append directly to SVG for highest z-order (above oskoToAdiLine which overlaps this path)
+      svg.appendChild(path); // appendChild moves existing elements to end, ensures highest z-order
 
       window.nppToAdiGeometry = {
         startX,
@@ -587,7 +847,7 @@ function initializeDiagram() {
       else if (i === 99) {
         // CLS dot - Non-ADIs box
         console.log('Processing CLS dot (i=99)');
-        strokeColor = '#00FF33'; // Neon green border for CLS
+        strokeColor = '#98FB98'; // Pale green border for CLS
         blueRadius = smallCircleRadius * 10.8; // Reduced by 10%
       }
 
@@ -636,7 +896,7 @@ function initializeDiagram() {
       // All lines start from the center of the blue circle
       const blueCircleX = cx;
 
-      // Create blue connecting line
+      // Create blue connecting line (visible)
       line = createStyledLine(blueCircleX, cyBig, actualCircleX, actualCircleY, {
         stroke: '#04d9ff',
         strokeWidth: '1.5',
@@ -644,25 +904,53 @@ function initializeDiagram() {
         pointerEvents: 'none'
       });
 
+      // Create invisible hit area line (wider for easier hovering)
+      const blueLineHitArea = createStyledLine(blueCircleX, cyBig, actualCircleX, actualCircleY, {
+        stroke: 'transparent',
+        strokeWidth: '8',
+        opacity: '0',
+        pointerEvents: 'auto'
+      });
+
       if (!skipBlueLines) {
+        // Give visible line data-interactive-id so it gets highlighted
+        line.setAttribute('data-interactive-id', `blue-line-${i}`);
+
         // For RBA dot (i=0), insert before big-group so line renders over black circle but under RITS
         if (i === 0) {
           const bigGroup = document.getElementById('big-group');
           if (bigGroup && bigGroup.parentNode) {
             bigGroup.parentNode.insertBefore(line, bigGroup);
+            bigGroup.parentNode.insertBefore(blueLineHitArea, bigGroup);
           } else {
             blueLinesGroup.appendChild(line);
+            blueLinesGroup.appendChild(blueLineHitArea);
           }
-          // Make RBA blue line interactive (use RBA tooltip)
+          // Make RBA blue line hit area interactive (use RBA tooltip)
           if (typeof makeInteractive === 'function') {
-            makeInteractive(line, 'dot-0');
+            makeInteractive(blueLineHitArea, 'dot-0');
           }
         } else {
-          // Give all blue lines data-interactive-id for hover highlighting
-          line.setAttribute('data-interactive-id', `blue-line-${i}`);
-          // Append to blueLinesGroup so blue lines appear UNDER blue circles
+          // Make hit area interactive to show same tooltip as its dot
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(blueLineHitArea, `blue-line-${i}`);
+          }
+          // Append visible line first, then hit area on top
           blueLinesGroup.appendChild(line);
+          blueLinesGroup.appendChild(blueLineHitArea);
         }
+      } else {
+        // For dots without visible lines, still add invisible hit area for tooltips
+        // Give the invisible line a data-interactive-id so it can trigger highlighting
+        blueLineHitArea.setAttribute('data-interactive-id', `blue-line-${i}`);
+
+        // Make hit area interactive to show tooltip
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(blueLineHitArea, `blue-line-${i}`);
+        }
+
+        // Append only the hit area (no visible line)
+        blueLinesGroup.appendChild(blueLineHitArea);
       }
 
       // Create small circle
@@ -678,7 +966,7 @@ function initializeDiagram() {
       // For CLS dot (i === 99), add white border first, then green border on top
       let circle;
       if (i === 99) {
-        // Create inner white border circle
+        // Create inner white border circle (this stays with blue dots in stage 1)
         const whiteCircle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
           fill: fillColor,
           stroke: '#ffffff', // White border
@@ -688,21 +976,21 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(whiteCircle, 'cls-circle');
         }
-        circlesGroup.appendChild(whiteCircle);
+        circlesGroup.appendChild(whiteCircle); // Add to blue circles group for stage 1
 
-        // Create outer green border circle
-        // White stroke 0.75 extends from R-0.375 to R+0.375
-        // Green stroke 6 should sit just outside, so radius = R + 0.375 + 3 = R + 3.375
+        // Create outer green border circle separately for stage 3
         circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius + 3.375, {
           fill: 'none', // Transparent fill
           stroke: strokeColor, // Green border
           strokeWidth: borderWidth // Thick green border
         });
+        circle.setAttribute('id', 'cls-green-circle');
+        circle.classList.add('diagram-hidden'); // Hide initially for animation
         // Also make outer ring respond to hover
         if (typeof makeInteractive === 'function') {
           makeInteractive(circle, 'cls-circle');
         }
-        circlesGroup.appendChild(circle);
+        svg.appendChild(circle); // Add directly to SVG for z-order control
       } else {
         // Normal circle for all other dots
         circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
@@ -743,7 +1031,7 @@ function initializeDiagram() {
         }
       }
 
-      // Add "CLS" text to last dot
+      // Add "CLS" text to last dot (add to blue circles group for stage 1)
       if (i === 99) {
         const text = createStyledText(actualCircleX, actualCircleY, 'CLS', {
           fill: '#013844',
@@ -752,7 +1040,7 @@ function initializeDiagram() {
         });
         // Don't let text block hover on the CLS circle
         text.style.pointerEvents = 'none';
-        circlesGroup.appendChild(text);
+        circlesGroup.appendChild(text); // Add to blue circles group for stage 1
 
         // REMOVED: Straight line coming from CLS dot
         // const clsLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -871,6 +1159,7 @@ function initializeDiagram() {
           // No rx attribute = square corners
         });
         swiftRect.setAttribute('id', 'swift-pds-rect'); // Add ID for easy reference
+        swiftRect.setAttribute('data-interactive-id', 'swift-pds-rect');
 
         // Add to labels group (so it appears on top)
         labelsGroup.appendChild(swiftRect);
@@ -884,7 +1173,7 @@ function initializeDiagram() {
         swiftRectText.setAttribute('text-anchor', 'middle');
         swiftRectText.setAttribute('dominant-baseline', 'middle');
         swiftRectText.setAttribute('fill', '#ffffff');
-        swiftRectText.setAttribute('font-family', 'Arial, sans-serif');
+        swiftRectText.setAttribute('font-family', "'Nunito Sans', sans-serif");
         swiftRectText.setAttribute('font-size', '18');
         swiftRectText.setAttribute('font-weight', 'bold');
 
@@ -901,7 +1190,14 @@ function initializeDiagram() {
         swiftRectText.appendChild(swiftLine2);
 
         swiftRectText.setAttribute('id', 'swift-pds-text');
+        swiftRectText.setAttribute('data-interactive-id', 'swift-pds-rect');
         labelsGroup.appendChild(swiftRectText);
+
+        // Make SWIFT PDS box and text interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(swiftRect, 'swift-pds-rect');
+          makeInteractive(swiftRectText, 'swift-pds-rect');
+        }
 
         window.swiftPdsTextData = {
           element: swiftRectText,
@@ -953,6 +1249,7 @@ function initializeDiagram() {
           const lineCenterY = swiftBoxTop + swiftBoxHeight * positions[j];
           const smallRectY = lineCenterY - smallRectHeight / 2;
 
+          const pacsIds = ['pacs-009-box', 'pacs-008-box', 'pacs-004-box'];
           const smallRect = createStyledRect(tempSmallRectX, smallRectY, pacsBoxWidth, smallRectHeight, {
             fill: '#7ce5ca', // Green SWIFT line color (brighter)
             stroke: '#ffffff', // Very thin white border
@@ -960,6 +1257,8 @@ function initializeDiagram() {
             rx: '12', // More rounded corners
             ry: '12' // More rounded corners
           });
+          smallRect.setAttribute('id', pacsIds[j]);
+          smallRect.setAttribute('data-interactive-id', pacsIds[j]);
 
           labelsGroup.appendChild(smallRect);
 
@@ -976,6 +1275,7 @@ function initializeDiagram() {
               fontSize: '11' // Match trade-by-trade font size
             }
           );
+          pacsText.setAttribute('data-interactive-id', pacsIds[j]);
           labelsGroup.appendChild(pacsText);
 
           // Store elements to update later
@@ -1013,9 +1313,11 @@ function initializeDiagram() {
             stroke: '#00ffdf', // Light mint green (swapped with fill)
             strokeWidth: '2',
             rx: '8', // Rounded corners
-            ry: '8' // Rounded corners
+            ry: '8', // Rounded corners
+            id: 'swift-hvcs-box'
           }
         );
+        boundingBox.setAttribute('data-interactive-id', 'swift-hvcs-box');
 
         // Insert into backgroundGroup to be behind everything
         const backgroundGroup = document.getElementById('background-elements');
@@ -1051,6 +1353,19 @@ function initializeDiagram() {
         window.swiftHvcsElements.pacsElements = pacsElements;
         window.swiftHvcsElements.hvcsLabel = hvcsLabel;
 
+        // Make SWIFT HVCS box and label interactive
+        if (window.makeInteractive) {
+          window.makeInteractive(boundingBox, 'swift-hvcs-box');
+          window.makeInteractive(hvcsLabel, 'swift-hvcs-box');
+        }
+
+        // Make pacs boxes interactive
+        pacsElements.forEach((elem, idx) => {
+          const pacsId = ['pacs-009-box', 'pacs-008-box', 'pacs-004-box'][idx];
+          makeInteractive(elem.rect, pacsId);
+          makeInteractive(elem.text, pacsId);
+        });
+
         // Debug logging to calculate actual coordinates
         console.log('=== INITIAL COORDINATE DEBUGGING ===');
         console.log('SWIFT HVCS initial position:', {
@@ -1065,28 +1380,30 @@ function initializeDiagram() {
         window.swiftHvcsElements.rightEdge = hvcsBoxRight;
         // Position line between ESAs bottom and SWIFT HVCS bottom
         const hvcsBoxBottom = rectY + (smallRectHeight + verticalGap) * 3 - verticalGap + boundingBoxPaddingV * 2 + labelSpace;
-        const hvcsLineY = hvcsBoxBottom + 8; // Run the line just outside the box to avoid entering it
+        const hvcsLineY = hvcsBoxBottom - 25 - 15 + 8; // Was raised by 15, now lowered by 8 (net raise of 7)
 
         // Create initial path (will be updated when we know box positions)
-        const hvcsLineStrokeWidth = 6;
-        window.hvcsLineStrokeHalf = hvcsLineStrokeWidth / 2;
-        const hvcsLineStartExtra = hvcsLineStrokeWidth; // additional gap so line stays outside box
-        window.hvcsLineStartExtra = hvcsLineStartExtra;
-        const hvcsLineStartX = hvcsBoxRight + window.hvcsLineStrokeHalf + hvcsLineStartExtra;
-        const initialPath = `M ${hvcsLineStartX} ${hvcsLineY} L ${hvcsLineStartX + 50} ${hvcsLineY}`;
+        const initialPath = `M ${hvcsBoxRight} ${hvcsLineY} L ${hvcsBoxRight + 50} ${hvcsLineY}`;
         const hvcsLine = createStyledPath(initialPath, {
           stroke: '#5dd9b8', // Same color as PACS to SWIFT PDS lines
-          strokeWidth: hvcsLineStrokeWidth.toString(), // Same thickness as neon lines
+          strokeWidth: '6', // Same thickness as neon lines
           fill: 'none',
           strokeLinecap: 'butt', // Square cap so it doesn't show at box edge
           id: 'hvcs-horizontal-line'
         });
 
         hvcsLine.classList.add('thick-line-to-adi');
+        hvcsLine.setAttribute('data-interactive-id', 'hvcs-horizontal-line');
+        // Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
+        hvcsLine.style.pointerEvents = 'stroke';
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(hvcsLine, 'hvcs-horizontal-line');
+        }
 
         // Store start position for later use
         if (!window.hvcsLineData) window.hvcsLineData = {};
-        window.hvcsLineData.startX = hvcsLineStartX;
+        window.hvcsLineData.startX = hvcsBoxRight;
         window.hvcsLineData.startY = hvcsLineY;
         const hvcsLineOffset = hvcsBoxBottom - hvcsLineY;
         if (!Number.isNaN(hvcsLineOffset)) {
@@ -1118,7 +1435,8 @@ function initializeDiagram() {
         const narrowRect = createStyledRect(chessBoxX, chessY, chessBoxWidth, smallRectHeight, {
           fill: '#071f6a', // Original dark blue
           stroke: '#e8ecf7', // Swapped with fill
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'chess-rtgs-box'
           // No rx attribute = square corners
         });
         labelsGroup.appendChild(narrowRect);
@@ -1127,7 +1445,7 @@ function initializeDiagram() {
         const chessText = createStyledText(
           chessBoxX + chessBoxWidth / 2,
           chessY + smallRectHeight / 2,
-          'CHESS-RTGS',
+          'ASXC',
           {
             fill: '#ffffff', // White text
             fontSize: '11', // Slightly smaller to fit better
@@ -1137,11 +1455,18 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(chessText);
 
+        // Make CHESS-RTGS box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(narrowRect, 'chess-rtgs-box');
+          makeInteractive(chessText, 'chess-rtgs-box');
+        }
+
         // Add Austraclear box below CHESS-RTGS
         const austraclearRect = createStyledRect(baseX, austraclearY, rectWidth, austraclearHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Swapped with fill
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'austraclear-box'
           // No rx attribute = square corners like SWIFT box
         });
         labelsGroup.appendChild(austraclearRect);
@@ -1158,6 +1483,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(austraclearText);
 
+        // Make Austraclear box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(austraclearRect, 'austraclear-box');
+          makeInteractive(austraclearText, 'austraclear-box');
+        }
+
         // Add two boxes to the left of Austraclear
         // Top box: DvP RTGS
         // Calculate position halfway between Austraclear and dark blue boxes
@@ -1169,7 +1500,8 @@ function initializeDiagram() {
           stroke: 'none',
           opacity: '0.5',
           rx: '10',
-          ry: '10'
+          ry: '10',
+          id: 'dvp-rtgs-box'
         });
         labelsGroup.appendChild(dvpRtgsRect);
 
@@ -1185,7 +1517,7 @@ function initializeDiagram() {
         dvpRtgsText.setAttribute('text-anchor', 'middle');
         dvpRtgsText.setAttribute('dominant-baseline', 'middle');
         dvpRtgsText.setAttribute('fill', '#ffffff'); // White text
-        dvpRtgsText.setAttribute('font-family', 'Arial, sans-serif');
+        dvpRtgsText.setAttribute('font-family', "'Nunito Sans', sans-serif");
         dvpRtgsText.setAttribute('font-size', '11'); // Slightly bigger font
         dvpRtgsText.setAttribute('font-weight', 'normal');
         // Split into two lines: "DvP" over "RTGS"
@@ -1203,6 +1535,12 @@ function initializeDiagram() {
         labelsGroup.appendChild(dvpRtgsText);
         window.dvpRtgsElements.text = dvpRtgsText;
 
+        // Make DvP RTGS box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(dvpRtgsRect, 'dvp-rtgs-box');
+          makeInteractive(dvpRtgsText, 'dvp-rtgs-box');
+        }
+
         // Add ASX Settlement as elongated hexagon
         let dvpRtgsCenterX = dvpRtgsX + rectWidth / 4; // Center of reduced-width DvP RTGS (will be updated)
         const chessRtgsCenterX = chessBoxX + chessBoxWidth / 2; // Center of CHESS-RTGS
@@ -1216,7 +1554,8 @@ function initializeDiagram() {
         const bridgeBox = createStyledRect(bridgeX, bridgeY, bridgeWidth, hexHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Same as text color
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'asxb-box'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(bridgeBox);
@@ -1227,11 +1566,17 @@ function initializeDiagram() {
           bridgeY + hexHeight / 2 + 1.5,
           'ASXB',
           {
-            fontSize: '11',
+            fontSize: '12',
             fill: '#ffffff' // Swapped text color
           }
         );
         labelsGroup.appendChild(asxSettlementText);
+
+        // Make ASXB box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(bridgeBox, 'asxb-box');
+          makeInteractive(asxSettlementText, 'asxb-box');
+        }
 
         // Add ASXF hexagon aligned with ASX bounding box top
         // Temporarily use a placeholder position - will be updated after moneyMarketY is defined
@@ -1240,7 +1585,8 @@ function initializeDiagram() {
         const asxfBox = createStyledRect(bridgeX, asxfY, bridgeWidth, hexHeight, {
           fill: '#071f6a', // Swapped with stroke
           stroke: '#e8ecf7', // Same as text color
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'asxf-box'
           // Square edges - no rx/ry
         });
         labelsGroup.appendChild(asxfBox);
@@ -1257,6 +1603,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(asxfText);
 
+        // Make ASXF box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(asxfBox, 'asxf-box');
+          makeInteractive(asxfText, 'asxf-box');
+        }
+
         // Bottom box: RTGS / DvP RTGS
         const rtgsY = dvpRtgsY + austraclearHeight + verticalGap;
         const rtgsRect = createStyledRect(dvpRtgsX, rtgsY, rectWidth / 2, smallRectHeight, {
@@ -1264,7 +1616,8 @@ function initializeDiagram() {
           stroke: 'none',
           opacity: '0.5',
           rx: '10',
-          ry: '10'
+          ry: '10',
+          id: 'rtgs-box'
         });
         labelsGroup.appendChild(rtgsRect);
 
@@ -1281,6 +1634,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(rtgsText);
         window.rtgsElements.text = rtgsText;
+
+        // Make RTGS box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(rtgsRect, 'rtgs-box');
+          makeInteractive(rtgsText, 'rtgs-box');
+        }
 
         // Money Market / Repo box - to the left of RTGS/DvP RTGS, above SWIFT HVCS
         let moneyMarketRect; // Will be created later after position calculations
@@ -1322,6 +1681,28 @@ function initializeDiagram() {
             strokeLinecap: 'round',
             strokeDasharray: j === 0 ? '5,5' : undefined
           });
+          // Add class for highlighting - first line goes to CHESS-RTGS, others to Austraclear
+          if (j === 0) {
+            austLine.classList.add('dvp-to-chess-rtgs-line');
+            austLine.setAttribute('data-interactive-id', 'dvp-to-chess-rtgs-line');
+            if (window.makeInteractive) {
+              window.makeInteractive(austLine, 'dvp-to-chess-rtgs-line');
+            }
+          } else if (j === 1) {
+            austLine.classList.add('dvp-to-austraclear-line');
+            austLine.classList.add('dvp-rtgs-to-austraclear-line');
+            austLine.setAttribute('data-interactive-id', 'dvp-rtgs-to-austraclear-line');
+            if (window.makeInteractive) {
+              window.makeInteractive(austLine, 'dvp-rtgs-to-austraclear-line');
+            }
+          } else {
+            austLine.classList.add('dvp-to-austraclear-line');
+            austLine.classList.add('rtgs-to-austraclear-line');
+            austLine.setAttribute('data-interactive-id', 'rtgs-to-austraclear-line');
+            if (window.makeInteractive) {
+              window.makeInteractive(austLine, 'rtgs-to-austraclear-line');
+            }
+          }
           svg.insertBefore(austLine, labelsGroup);
         }
 
@@ -1401,14 +1782,11 @@ function initializeDiagram() {
 
           // Update line start position
           const hvcsBoxRight = hvcsBoxX + hvcsBoxWidth;
-          const hvcsStrokeHalf = window.hvcsLineStrokeHalf || 3;
-          const hvcsExtra = window.hvcsLineStartExtra || 6;
-          const hvcsLineStartX = hvcsBoxRight + hvcsStrokeHalf + hvcsExtra;
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-          const newPath = path.replace(/M [\d.]+ /, `M ${hvcsLineStartX} `);
+          const newPath = path.replace(/M [\d.]+ /, `M ${hvcsBoxRight} `);
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
           if (window.hvcsLineData) {
-            window.hvcsLineData.startX = hvcsLineStartX;
+            window.hvcsLineData.startX = hvcsBoxRight;
           }
 
           // Store the right edge position for later update
@@ -1508,7 +1886,8 @@ function initializeDiagram() {
         const pexaBox = createStyledRect(widerAdminBoxX, pexaY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(110,28,100)', // Darker pink (similar darkness to ASXF)
           stroke: '#FDE2F9', // Same as text color
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'pexa-box'
         });
         labelsGroup.appendChild(pexaBox);
 
@@ -1523,12 +1902,19 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(pexaText);
 
+        // Make PEXA box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(pexaBox, 'pexa-box');
+          makeInteractive(pexaText, 'pexa-box');
+        }
+
         // Create eftpos box above PEXA with same gap (apply same offset)
         const eftposY = pexaY - adminBatchGap - hexHeight;
         const eftposBox = createStyledRect(widerAdminBoxX, eftposY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(60,45,110)', // Darker purple (similar darkness to ASXF)
           stroke: '#D8D0F0', // Same as text color
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'essb-box'
         });
         labelsGroup.appendChild(eftposBox);
 
@@ -1543,12 +1929,19 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(eftposText);
 
+        // Make ESSB box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(eftposBox, 'essb-box');
+          makeInteractive(eftposText, 'essb-box');
+        }
+
         // Create Mastercard box above eftpos with same gap
         const mastercardY = eftposY - adminBatchGap - hexHeight;
         const mastercardBox = createStyledRect(widerAdminBoxX, mastercardY, widerAdminBoxWidth, hexHeight, {
           fill: 'rgb(150,30,28)', // Darker red (similar darkness to ASXF)
           stroke: 'rgb(255,230,230)', // Same as text color
-          strokeWidth: '2.5'
+          strokeWidth: '2.5',
+          id: 'mcau-box'
         });
         labelsGroup.appendChild(mastercardBox);
 
@@ -1562,6 +1955,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(mastercardText);
+
+        // Make MCAU box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(mastercardBox, 'mcau-box');
+          makeInteractive(mastercardText, 'mcau-box');
+        }
 
         // Now update the ASXF and ASX Settlement positions with the offset
         // Update box positions with offset applied
@@ -1941,7 +2340,32 @@ function initializeDiagram() {
             id: 'cheques-to-apcs-line'
           }
         );
-        labelsGroup.insertBefore(chequesToApcsLine, newChequesBox);
+        // Add identifier for tooltip color lookup and highlighting
+        chequesToApcsLine.setAttribute('data-interactive-id', 'cheques-to-apcs-line');
+        chequesToApcsLine.classList.add('diagram-hidden'); // Hide initially for animation
+        // Visible line doesn't need pointer events - hit area handles it
+        chequesToApcsLine.style.pointerEvents = 'none';
+        // Append to labelsGroup end for proper z-order (above DE lines that may overlap)
+        labelsGroup.appendChild(chequesToApcsLine);
+
+        // Create invisible hit area for easier hovering
+        const chequesToApcsHitArea = createStyledLine(
+          chequesCenterX,
+          chequesBottomY,
+          chequesCenterX,
+          apcsTopY,
+          {
+            stroke: 'transparent',
+            strokeWidth: '10',
+            id: 'cheques-to-apcs-line-hit-area'
+          }
+        );
+        chequesToApcsHitArea.classList.add('diagram-hidden'); // Hide initially for animation
+        chequesToApcsHitArea.style.pointerEvents = 'stroke';
+        if (window.makeInteractive) {
+          window.makeInteractive(chequesToApcsHitArea, 'cheques-to-apcs-line');
+        }
+        labelsGroup.appendChild(chequesToApcsHitArea);
 
         // REMOVED: Old connecting lines from APCE/APCR/APCT to APCS
         // // Vertical line from new APCE to APCS
@@ -2095,6 +2519,11 @@ function initializeDiagram() {
           fill: 'none'
         });
         nppToFssPathStyled.setAttribute('id', 'npp-to-fss-path');
+        nppToFssPathStyled.setAttribute('data-interactive-id', 'npp-to-fss-path');
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(nppToFssPathStyled, 'npp-to-fss-path');
+        }
         // Insert the path at the beginning so it appears behind all circles
         const smallGroup = document.getElementById('small-group');
         svg.insertBefore(nppToFssPathStyled, smallGroup);
@@ -2311,7 +2740,8 @@ function initializeDiagram() {
           stroke: '#D0D0D0', // Light grey border
           strokeWidth: '1',
           rx: '10',
-          ry: '10'
+          ry: '10',
+          id: 'administered-batches-box'
         });
         adminBatchesBox.setAttribute('opacity', '0.8');
         // Store admin box to insert later - we need it behind everything
@@ -2351,6 +2781,12 @@ function initializeDiagram() {
             }
           );
           labelsGroup.appendChild(adminBatchesText);
+
+          // Make Administered Batches box interactive
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(adminBatchesBox, 'administered-batches-box');
+            makeInteractive(adminBatchesText, 'administered-batches-box');
+          }
 
           // Now insert the admin batches box at the very beginning so it's behind all the lines
           if (window.adminBatchesBoxElement) {
@@ -2442,7 +2878,8 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8', // Rounded corners
-          ry: '8' // Rounded corners
+          ry: '8', // Rounded corners
+          id: 'cash-transfer-box'
         });
         labelsGroup.appendChild(moneyMarketRect);
 
@@ -2458,6 +2895,12 @@ function initializeDiagram() {
         );
         labelsGroup.appendChild(moneyMarketText);
 
+        // Make cash transfer box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(moneyMarketRect, 'cash-transfer-box');
+          makeInteractive(moneyMarketText, 'cash-transfer-box');
+        }
+
         // Sympli line extension moved to after ADI box creation
 
         // Add horizontal line connecting RTGS / DvP RTGS to Money Market / Repo
@@ -2472,6 +2915,13 @@ function initializeDiagram() {
             strokeLinecap: 'round'
           }
         );
+        rtgsToMoneyMarketLine.classList.add('cash-transfer-to-rtgs-line');
+        rtgsToMoneyMarketLine.setAttribute('data-interactive-id', 'cash-transfer-to-rtgs-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(rtgsToMoneyMarketLine, 'cash-transfer-to-rtgs-line');
+        }
+        // Store reference to move later (after ASX box is created)
+        window.cashTransferToRtgsLine = rtgsToMoneyMarketLine;
         svg.insertBefore(rtgsToMoneyMarketLine, labelsGroup);
 
         // Calculate CHESS equities position first
@@ -2514,11 +2964,8 @@ function initializeDiagram() {
           }
 
           // Update line start position since SWIFT HVCS box has moved
-          const hvcsStrokeHalfFinal = window.hvcsLineStrokeHalf || 3;
-          const hvcsExtraFinal = window.hvcsLineStartExtra || 6;
-          const hvcsLineStartXFinal = hvcsBoxX_final + hvcsBoxWidth_final + hvcsStrokeHalfFinal + hvcsExtraFinal;
           if (window.hvcsLineData) {
-            window.hvcsLineData.startX = hvcsLineStartXFinal;
+            window.hvcsLineData.startX = hvcsBoxX_final + hvcsBoxWidth_final;
           }
 
           // Update PACS boxes inside with padding
@@ -2539,7 +2986,7 @@ function initializeDiagram() {
           // Update line start position to new right edge
           const newHvcsBoxRight = hvcsBoxX_final + hvcsBoxWidth_final;
           const path = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-          const newPath = path.replace(/M ([\d.]+)/, `M ${(newHvcsBoxRight + hvcsStrokeHalfFinal + hvcsExtraFinal).toFixed(2)}`);
+          const newPath = path.replace(/M ([\d.]+)/, `M ${newHvcsBoxRight.toFixed(2)}`);
           window.swiftHvcsElements.hvcsLine.setAttribute('d', newPath);
 
           console.log('=== FINAL COORDINATES FOR USER QUESTION ===');
@@ -2591,13 +3038,12 @@ function initializeDiagram() {
               // Update line start position
               const correctedHvcsBoxRight = correctedHvcsBoxX + hvcsBoxWidth_final;
               const hvcsStrokeHalfCorrected = window.hvcsLineStrokeHalf || 3;
-              const hvcsExtraCorrected = window.hvcsLineStartExtra || 6;
               const correctedPath = window.swiftHvcsElements.hvcsLine.getAttribute('d');
-              const correctedNewPath = correctedPath.replace(/M ([\d.]+)/, `M ${(correctedHvcsBoxRight + hvcsStrokeHalfCorrected + hvcsExtraCorrected).toFixed(2)}`);
+              const correctedNewPath = correctedPath.replace(/M ([\d.]+)/, `M ${(correctedHvcsBoxRight + hvcsStrokeHalfCorrected).toFixed(2)}`);
               window.swiftHvcsElements.hvcsLine.setAttribute('d', correctedNewPath);
 
               if (window.hvcsLineData) {
-                window.hvcsLineData.startX = correctedHvcsBoxRight + hvcsStrokeHalfCorrected + hvcsExtraCorrected;
+                window.hvcsLineData.startX = correctedHvcsBoxRight + hvcsStrokeHalfCorrected;
               }
 
               console.log('   ✓ Fixed! New SWIFT HVCS right edge:', correctedHvcsBoxRight, 'pixels');
@@ -2720,7 +3166,10 @@ function initializeDiagram() {
 
           for (let j = 0; j < 3; j++) {
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('id', `pacs-to-swift-line-${j}`);
+            const lineId = `pacs-to-swift-line-${j}`;
+            line.setAttribute('id', lineId);
+            line.setAttribute('data-interactive-id', lineId);
+            line.classList.add('pacs-to-swift-line');
 
             // Get the actual pacs box element to find its exact position
             const pacsRect = window.swiftHvcsElements.pacsElements[j].rect;
@@ -2753,6 +3202,11 @@ function initializeDiagram() {
 
             // Insert lines before labels so they appear behind
             svg.insertBefore(line, labelsGroup);
+
+            // Make line interactive for tooltips
+            if (window.makeInteractive) {
+              window.makeInteractive(line, lineId);
+            }
 
             // Store line for updates
             window.pacsToSwiftLines.push(line);
@@ -2796,7 +3250,8 @@ function initializeDiagram() {
           stroke: 'white', // Thin white border
           strokeWidth: '0.5',
           rx: '8',
-          ry: '8'
+          ry: '8',
+          id: 'chess-box'
         });
         // Remove opacity for white background
         svg.insertBefore(chessEquitiesRect, labelsGroup); // Insert behind other elements
@@ -2812,6 +3267,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(chessEquitiesText);
+
+        // Make CHESS box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(chessEquitiesRect, 'chess-box');
+          makeInteractive(chessEquitiesText, 'chess-box');
+        }
 
         // ASX bounding box will be created after SSS/CCP box is defined
 
@@ -2841,7 +3302,8 @@ function initializeDiagram() {
         const sympliBox = createStyledRect(sympliX, sympliY, sympliWidth, sympliHeight, {
           fill: 'rgb(239,136,51)', // Sympli original color
           stroke: '#ffffff', // Very thin white border
-          strokeWidth: '0.5'
+          strokeWidth: '0.5',
+          id: 'sympli-box'
         });
         sympliBox.setAttribute('rx', '8'); // Rounded corners
         sympliBox.setAttribute('ry', '8'); // Rounded corners
@@ -2858,6 +3320,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(sympliText);
+
+        // Make Sympli e-conveyancing box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(sympliBox, 'sympli-box');
+          makeInteractive(sympliText, 'sympli-box');
+        }
 
         // Store Sympli box data for creating orange line to ADIs later
         window.sympliBoxData = {
@@ -2893,6 +3361,10 @@ function initializeDiagram() {
             }
           );
           line.setAttribute('id', `sympli-horizontal-line-${idx}`);
+          line.setAttribute('data-interactive-id', `sympli-horizontal-line-${idx}`);
+          if (window.makeInteractive) {
+            window.makeInteractive(line, `sympli-horizontal-line-${idx}`);
+          }
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
           } else {
@@ -2927,7 +3399,8 @@ function initializeDiagram() {
           stroke: '#ffffff', // Very thin white border
           strokeWidth: '0.5',
           rx: '8', // Rounded corners
-          ry: '8' // Rounded corners
+          ry: '8', // Rounded corners
+          id: 'pexa-convey-box'
         });
         labelsGroup.appendChild(pexaConveyBox);
 
@@ -2942,6 +3415,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(pexaConveyText);
+
+        // Make PEXA e-conveyancing box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(pexaConveyBox, 'pexa-convey-box');
+          makeInteractive(pexaConveyText, 'pexa-convey-box');
+        }
 
         window.pexaConveyBoxData = {
           x: pexaConveyX,
@@ -3283,6 +3762,11 @@ function initializeDiagram() {
               id: config.id
             });
 
+            // Add identifier for highlighting (matches what hit area triggers)
+            path.setAttribute('data-interactive-id', config.id);
+            // Visible line doesn't need pointer events - hit area handles it
+            path.style.pointerEvents = 'none';
+
             // These are thin lines - they should render UNDER thick HVCS/ASX lines
             // So we do NOT add thick-line-to-adi class
 
@@ -3294,7 +3778,24 @@ function initializeDiagram() {
               labelsGroup.insertBefore(path, labelsGroup.firstChild);
             }
 
-            const lineEntry = { ...config, path };
+            // Create invisible hit area for easier hovering
+            const hitArea = createStyledPath('', {
+              stroke: 'transparent',
+              strokeWidth: '10',
+              strokeLinecap: 'butt',
+              strokeLinejoin: 'round',
+              fill: 'none',
+              id: `${config.id}-hit-area`
+            });
+            hitArea.style.pointerEvents = 'stroke';
+            if (typeof window.makeInteractive === 'function') {
+              window.makeInteractive(hitArea, config.id);
+            }
+            // Insert hit area after visible line
+            const parentGroup = backgroundGroup || labelsGroup;
+            parentGroup.insertBefore(hitArea, path.nextSibling);
+
+            const lineEntry = { ...config, path, hitArea };
 
             if (config.doubleLine) {
               const offsets = [-config.doubleOffset / 2, config.doubleOffset / 2];
@@ -3518,6 +4019,10 @@ function initializeDiagram() {
               );
               if (pathData && entry.path) {
                 entry.path.setAttribute('d', pathData);
+                // Also update hit area path
+                if (entry.hitArea) {
+                  entry.hitArea.setAttribute('d', pathData);
+                }
               }
               if (entry.secondaryPath && entry.secondaryPath.length) {
                 entry.secondaryPath.forEach((secondary) => {
@@ -3546,10 +4051,28 @@ function initializeDiagram() {
                 horizontalBranch.setAttribute('stroke-linecap', 'round');
                 horizontalBranch.setAttribute('fill', 'none');
                 horizontalBranch.setAttribute('id', `${entry.id}-horizontal`);
+                // Add identifier for highlighting (matches what hit area triggers)
+                horizontalBranch.setAttribute('data-interactive-id', entry.id);
                 horizontalBranch.classList.add('thin-nonadi-line');
+                // Visible line doesn't need pointer events - hit area handles it
+                horizontalBranch.style.pointerEvents = 'none';
                 // DO NOT INSERT - we'll insert after all thick lines are positioned
                 entry.horizontalBranch = horizontalBranch;
                 entry.horizontalBranchPendingInsert = true;
+
+                // Create hit area for horizontal branch
+                const horizontalHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizontalHitArea.setAttribute('stroke', 'transparent');
+                horizontalHitArea.setAttribute('stroke-width', '10');
+                horizontalHitArea.setAttribute('stroke-linecap', 'round');
+                horizontalHitArea.setAttribute('fill', 'none');
+                horizontalHitArea.setAttribute('id', `${entry.id}-horizontal-hit-area`);
+                horizontalHitArea.style.pointerEvents = 'stroke';
+                // Make the hit area interactive
+                if (typeof window.makeInteractive === 'function') {
+                  window.makeInteractive(horizontalHitArea, entry.id);
+                }
+                entry.horizontalBranchHitArea = horizontalHitArea;
               }
 
               // Build horizontal path that continues from where the curve would start
@@ -3643,6 +4166,10 @@ function initializeDiagram() {
               const horizontalPathData = buildHorizontalPath();
               if (horizontalPathData && entry.horizontalBranch) {
                 entry.horizontalBranch.setAttribute('d', horizontalPathData);
+                // Also update hit area path
+                if (entry.horizontalBranchHitArea) {
+                  entry.horizontalBranchHitArea.setAttribute('d', horizontalPathData);
+                }
               }
             });
 
@@ -3652,6 +4179,10 @@ function initializeDiagram() {
               lines.forEach((entry) => {
                 if (entry.horizontalBranchPendingInsert && entry.horizontalBranch) {
                   backgroundGroup.appendChild(entry.horizontalBranch);
+                  // Also insert hit area after visible branch
+                  if (entry.horizontalBranchHitArea) {
+                    backgroundGroup.appendChild(entry.horizontalBranchHitArea);
+                  }
                   entry.horizontalBranchPendingInsert = false;
                 }
               });
@@ -3741,6 +4272,11 @@ function initializeDiagram() {
               line.setAttribute('stroke-width', '2.25'); // Same width as LVSS double lines
               line.setAttribute('stroke-linecap', 'round');
               line.setAttribute('id', `cecs-to-iac-line-${index + 1}`);
+              line.setAttribute('data-interactive-id', `cecs-to-iac-line-${index + 1}`);
+              // Make line interactive for tooltips
+              if (window.makeInteractive) {
+                window.makeInteractive(line, `cecs-to-iac-line-${index + 1}`);
+              }
 
               // Add to admin lines group so lines appear behind all boxes
               adminLinesGroup.appendChild(line);
@@ -4109,8 +4645,27 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'eftpos-left-line'
               });
+              // Add identifier for highlighting (matches what hit area triggers)
+              eftposUpturnPath.setAttribute('data-interactive-id', 'eftpos-left-line');
+              // Visible line doesn't need pointer events - hit area handles it
+              eftposUpturnPath.style.pointerEvents = 'none';
               // Insert at very beginning so line renders under all boxes
               svg.insertBefore(eftposUpturnPath, svg.firstChild);
+
+              // Create invisible hit area for easier hovering
+              const eftposHitArea = createStyledPath(eftposSegments.pathString, {
+                stroke: 'transparent',
+                strokeWidth: '10',
+                fill: 'none',
+                strokeLinecap: 'round',
+                id: 'eftpos-left-line-hit-area'
+              });
+              eftposHitArea.style.pointerEvents = 'stroke';
+              if (typeof window.makeInteractive === 'function') {
+                window.makeInteractive(eftposHitArea, 'eftpos-left-line');
+              }
+              // Insert after visible line so hit area is on top
+              svg.insertBefore(eftposHitArea, eftposUpturnPath.nextSibling);
 
               const mastercardUpturnPath = createStyledPath(mastercardSegments.pathString, {
                 stroke: 'rgb(255,120,120)', // Mastercard border color (less pink, more red)
@@ -4119,8 +4674,27 @@ function initializeDiagram() {
                 strokeLinecap: 'round',
                 id: 'mastercard-left-line'
               });
+              // Add identifier for highlighting (matches what hit area triggers)
+              mastercardUpturnPath.setAttribute('data-interactive-id', 'mastercard-left-line');
+              // Visible line doesn't need pointer events - hit area handles it
+              mastercardUpturnPath.style.pointerEvents = 'none';
               // Insert at very beginning so line renders under all boxes
               svg.insertBefore(mastercardUpturnPath, svg.firstChild);
+
+              // Create invisible hit area for easier hovering
+              const mastercardHitArea = createStyledPath(mastercardSegments.pathString, {
+                stroke: 'transparent',
+                strokeWidth: '10',
+                fill: 'none',
+                strokeLinecap: 'round',
+                id: 'mastercard-left-line-hit-area'
+              });
+              mastercardHitArea.style.pointerEvents = 'stroke';
+              if (typeof window.makeInteractive === 'function') {
+                window.makeInteractive(mastercardHitArea, 'mastercard-left-line');
+              }
+              // Insert after visible line so hit area is on top
+              svg.insertBefore(mastercardHitArea, mastercardUpturnPath.nextSibling);
 
               // Create horizontal branches for Eftpos and Mastercard
               const createHorizontalBranch = (segments, color, id) => {
@@ -4183,12 +4757,58 @@ function initializeDiagram() {
                 'rgb(158,138,239)', // eftpos line color (same as border)
                 'eftpos-left-line'
               );
+              // Add identifier for highlighting (matches what hit area triggers)
+              eftposHorizontalPath.setAttribute('data-interactive-id', 'eftpos-left-line-horizontal');
+              // Visible line doesn't need pointer events - hit area handles it
+              eftposHorizontalPath.style.pointerEvents = 'none';
+
+              // Create invisible hit area for the eftpos horizontal branch
+              const eftposHorizontalHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              eftposHorizontalHitArea.setAttribute('stroke', 'transparent');
+              eftposHorizontalHitArea.setAttribute('stroke-width', '10');
+              eftposHorizontalHitArea.setAttribute('fill', 'none');
+              eftposHorizontalHitArea.setAttribute('id', 'eftpos-left-line-horizontal-hit-area');
+              eftposHorizontalHitArea.style.pointerEvents = 'stroke';
+              // Copy path data from visible line (will be set when horizontal path is inserted)
+              setTimeout(() => {
+                const d = eftposHorizontalPath.getAttribute('d');
+                if (d) {
+                  eftposHorizontalHitArea.setAttribute('d', d);
+                  eftposHorizontalPath.parentNode?.insertBefore(eftposHorizontalHitArea, eftposHorizontalPath.nextSibling);
+                }
+              }, 100);
+              if (typeof window.makeInteractive === 'function') {
+                window.makeInteractive(eftposHorizontalHitArea, 'eftpos-left-line-horizontal');
+              }
 
               const mastercardHorizontalPath = createHorizontalBranch(
                 mastercardSegments,
                 'rgb(255,120,120)', // Mastercard border color (less pink, more red)
                 'mastercard-left-line'
               );
+              // Add identifier for highlighting (matches what hit area triggers)
+              mastercardHorizontalPath.setAttribute('data-interactive-id', 'mastercard-left-line-horizontal');
+              // Visible line doesn't need pointer events - hit area handles it
+              mastercardHorizontalPath.style.pointerEvents = 'none';
+
+              // Create invisible hit area for the horizontal branch
+              const mastercardHorizontalHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+              mastercardHorizontalHitArea.setAttribute('stroke', 'transparent');
+              mastercardHorizontalHitArea.setAttribute('stroke-width', '10');
+              mastercardHorizontalHitArea.setAttribute('fill', 'none');
+              mastercardHorizontalHitArea.setAttribute('id', 'mastercard-left-line-horizontal-hit-area');
+              mastercardHorizontalHitArea.style.pointerEvents = 'stroke';
+              // Copy path data from visible line (will be set when horizontal path is inserted)
+              setTimeout(() => {
+                const d = mastercardHorizontalPath.getAttribute('d');
+                if (d) {
+                  mastercardHorizontalHitArea.setAttribute('d', d);
+                  mastercardHorizontalPath.parentNode?.insertBefore(mastercardHorizontalHitArea, mastercardHorizontalPath.nextSibling);
+                }
+              }, 100);
+              if (typeof window.makeInteractive === 'function') {
+                window.makeInteractive(mastercardHorizontalHitArea, 'mastercard-left-line-horizontal');
+              }
 
           window.cardLeftLineData = {
             eftposPath: eftposUpturnPath,
@@ -4425,44 +5045,63 @@ function initializeDiagram() {
 
           // Create maroon lines from Direct Entry to ADIs
           const directEntryToAdiLines = [];
-          const maroonLineDuplicates = [];
-
-          // Single thick red line from DE to ADIs
+          // Single thick red line from DE to ADIs (visible only, no interactivity)
           const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           line.setAttribute('id', 'directentry-to-adi-line');
+          line.setAttribute('data-interactive-id', 'directentry-to-adi-line'); // For highlighting
           line.setAttribute('stroke', '#ff073a'); // Red
           line.setAttribute('stroke-width', '4');
           line.setAttribute('stroke-linecap', 'round');
           line.setAttribute('fill', 'none');
+          line.style.pointerEvents = 'none'; // No pointer events on visible line
           // Insert at very beginning so line renders under all boxes
           svg.insertBefore(line, svg.firstChild);
           directEntryToAdiLines.push(line);
 
-          // Single visible duplicate that will mirror the invisible original
-          const duplicate = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          duplicate.setAttribute('id', 'maroon-line-duplicate');
-          duplicate.setAttribute('stroke', '#ff073a'); // Red
-          duplicate.setAttribute('stroke-width', '4');
-          duplicate.setAttribute('stroke-linecap', 'round');
-          duplicate.setAttribute('fill', 'none');
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(duplicate, svg.firstChild);
-          maroonLineDuplicates.push(duplicate);
+          // Create transparent hit area for main DE line (interactive, on top)
+          const deLineHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          deLineHitArea.setAttribute('id', 'directentry-to-adi-line-hit-area');
+          deLineHitArea.setAttribute('stroke', 'transparent');
+          deLineHitArea.setAttribute('stroke-width', '16'); // Larger for easier clicking
+          deLineHitArea.setAttribute('stroke-linecap', 'round');
+          deLineHitArea.setAttribute('fill', 'none');
+          deLineHitArea.style.pointerEvents = 'stroke';
+          if (window.makeInteractive) {
+            window.makeInteractive(deLineHitArea, 'directentry-to-adi-line');
+          }
+          // Append to end for top z-order
+          svg.appendChild(deLineHitArea);
+          window.deLineHitArea = deLineHitArea;
 
-          window.maroonLineDuplicates = maroonLineDuplicates;
-
-          // Create horizontal branch for red line
+          // Create horizontal branch for red line (visible only, no interactivity)
           const maroonHorizontalBranches = [];
           const horizontalBranch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           horizontalBranch.setAttribute('id', 'maroon-horizontal-branch');
+          horizontalBranch.setAttribute('data-interactive-id', 'directentry-to-adi-line'); // For highlighting (same ID as main line)
           horizontalBranch.setAttribute('stroke', '#ff073a'); // Red
           horizontalBranch.setAttribute('stroke-width', '2'); // Half of main line thickness
           horizontalBranch.setAttribute('stroke-linecap', 'butt'); // Square cap so it stops exactly at edge
           horizontalBranch.setAttribute('fill', 'none');
+          horizontalBranch.style.pointerEvents = 'none'; // No pointer events on visible line
           // Insert at very beginning so line renders under all boxes
           svg.insertBefore(horizontalBranch, svg.firstChild);
           maroonHorizontalBranches.push(horizontalBranch);
           window.maroonHorizontalBranches = maroonHorizontalBranches;
+
+          // Create transparent hit area for horizontal branch (interactive, on top)
+          const maroonBranchHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          maroonBranchHitArea.setAttribute('id', 'maroon-horizontal-branch-hit-area');
+          maroonBranchHitArea.setAttribute('stroke', 'transparent');
+          maroonBranchHitArea.setAttribute('stroke-width', '12'); // Larger for easier clicking
+          maroonBranchHitArea.setAttribute('stroke-linecap', 'round');
+          maroonBranchHitArea.setAttribute('fill', 'none');
+          maroonBranchHitArea.style.pointerEvents = 'stroke';
+          if (typeof window.makeInteractive === 'function') {
+            window.makeInteractive(maroonBranchHitArea, 'directentry-to-adi-line');
+          }
+          // Append to end for top z-order
+          svg.appendChild(maroonBranchHitArea);
+          window.maroonBranchHitArea = maroonBranchHitArea;
 
           const updateDirectEntryToAdiLine = () => {
             if (directEntryToAdiLines.length === 0 || !window.adiBoxData) return;
@@ -4573,19 +5212,8 @@ function initializeDiagram() {
             const control2X = extendPastReference + 15;
             const control2Y = startY + verticalDistance * 0.15;
 
-            // Create single thick red path
-            const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `L ${curveStartX.toFixed(2)} ${startY.toFixed(2)} ` +
-                           `C ${control1X.toFixed(2)} ${control1Y.toFixed(2)}, ` +
-                           `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
-                           `${endX.toFixed(2)} ${endY.toFixed(2)}`;
-
-            directEntryToAdiLines[0].setAttribute('d', pathData);
-            // Make line invisible (duplicate will be visible)
-            directEntryToAdiLines[0].setAttribute('opacity', '0');
-
-            // Step 2: Update the duplicate with C-CURVE path instead
-            if (window.maroonLineDuplicates && window.maroonLineDuplicates.length > 0) {
+            // Create the visible C-curve path directly on the main line
+            {
                 // Start point (bottom of C) - CENTER of DE box instead of top
                 const cStartX = deX + deWidth / 2;
                 const cStartY = deY + deHeight / 2; // Center Y of DE box
@@ -4622,7 +5250,11 @@ function initializeDiagram() {
                                        `${control2X.toFixed(2)} ${control2Y.toFixed(2)}, ` +
                                        `${endX.toFixed(2)} ${endY.toFixed(2)}`;
 
-                window.maroonLineDuplicates[0].setAttribute('d', cCurvePathData);
+                directEntryToAdiLines[0].setAttribute('d', cCurvePathData);
+                // Also update the hit area with same path
+                if (window.deLineHitArea) {
+                  window.deLineHitArea.setAttribute('d', cCurvePathData);
+                }
 
                 // Update horizontal branch for red line
                 if (window.maroonHorizontalBranches && window.maroonHorizontalBranches[0] && window.adiBoxData) {
@@ -4655,6 +5287,10 @@ function initializeDiagram() {
                                               `Q ${horizontalExtendX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}, ${maroonTargetX.toFixed(2)} ${nonAdiEntryY.toFixed(2)}`; // Curve left to box edge
 
                   window.maroonHorizontalBranches[0].setAttribute('d', horizontalBranchPath);
+                  // Also update the hit area with same path
+                  if (window.maroonBranchHitArea) {
+                    window.maroonBranchHitArea.setAttribute('d', horizontalBranchPath);
+                  }
                 }
             }
 
@@ -4697,11 +5333,29 @@ function initializeDiagram() {
           // Create grey curve from OSKO to ADI with same shape as green/maroon curves
           const oskoToAdiLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           oskoToAdiLine.setAttribute('id', 'osko-to-adi-line');
+          oskoToAdiLine.setAttribute('data-interactive-id', 'osko-to-adi-line');
           oskoToAdiLine.setAttribute('stroke', '#e5e7eb'); // Match APCS to Cheques line color
           oskoToAdiLine.setAttribute('stroke-width', '2');
           oskoToAdiLine.setAttribute('stroke-linecap', 'round');
           oskoToAdiLine.setAttribute('fill', 'none');
+          // Visible line doesn't need pointer events - hit area handles it
+          oskoToAdiLine.style.pointerEvents = 'none';
           labelsGroup.insertBefore(oskoToAdiLine, labelsGroup.firstChild);
+
+          // Create invisible hit area for easier hovering
+          const oskoToAdiHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          oskoToAdiHitArea.setAttribute('id', 'osko-to-adi-line-hit-area');
+          oskoToAdiHitArea.setAttribute('stroke', 'transparent');
+          oskoToAdiHitArea.setAttribute('stroke-width', '10');
+          oskoToAdiHitArea.setAttribute('stroke-linecap', 'round');
+          oskoToAdiHitArea.setAttribute('fill', 'none');
+          oskoToAdiHitArea.style.pointerEvents = 'stroke';
+          labelsGroup.insertBefore(oskoToAdiHitArea, oskoToAdiLine.nextSibling);
+
+          // Make hit area interactive for APCS Truncated tooltip
+          if (typeof window.makeInteractive === 'function') {
+            window.makeInteractive(oskoToAdiHitArea, 'osko-to-adi-line');
+          }
 
           const updateOskoToAdiLine = () => {
             if (!window.chequesBoxData || !window.adiBoxData) return;
@@ -4801,6 +5455,8 @@ function initializeDiagram() {
                            `${endX.toFixed(2)} ${endY.toFixed(2)}`; // End at ADI
 
             oskoToAdiLine.setAttribute('d', pathData);
+            // Also update hit area path
+            oskoToAdiHitArea.setAttribute('d', pathData);
 
             // Remove any existing control point dots
             const existingDots = document.querySelectorAll('.control-point-dot');
@@ -5103,6 +5759,10 @@ function initializeDiagram() {
             }
           );
           line.setAttribute('id', `pexa-horizontal-line-${idx}`);
+          line.setAttribute('data-interactive-id', `pexa-horizontal-line-${idx}`);
+          if (window.makeInteractive) {
+            window.makeInteractive(line, `pexa-horizontal-line-${idx}`);
+          }
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
           } else {
@@ -5128,7 +5788,8 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8'
+          ry: '8',
+          id: 'trade-by-trade-box'
         });
         labelsGroup.appendChild(tradeByTradeRect);
 
@@ -5143,6 +5804,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(tradeByTradeText);
+
+        // Make trade-by-trade box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(tradeByTradeRect, 'trade-by-trade-box');
+          makeInteractive(tradeByTradeText, 'trade-by-trade-box');
+        }
 
         // Clearing/netting box - above trade by trade
         // Make clearing box use more of the bounding box width
@@ -5162,7 +5829,8 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8'
+          ry: '8',
+          id: 'clearing-box'
         });
         labelsGroup.appendChild(clearingRect);
 
@@ -5177,6 +5845,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(clearingText);
+
+        // Make clearing/netting box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(clearingRect, 'clearing-box');
+          makeInteractive(clearingText, 'clearing-box');
+        }
 
         // SSS/CCP cash legs box - above Money Market/Repo
         const sssCcpX = moneyMarketX;
@@ -5193,7 +5867,8 @@ function initializeDiagram() {
           stroke: '#071f6a', // Blue border
           strokeWidth: '2',
           rx: '8',
-          ry: '8'
+          ry: '8',
+          id: 'dvp-cash-leg-box'
         });
         labelsGroup.appendChild(sssCcpRect);
 
@@ -5208,6 +5883,12 @@ function initializeDiagram() {
           }
         );
         labelsGroup.appendChild(sssCcpText);
+
+        // Make DvP cash leg box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(sssCcpRect, 'dvp-cash-leg-box');
+          makeInteractive(sssCcpText, 'dvp-cash-leg-box');
+        }
 
         // Create ASX bounding box around CHESS equities, DvP cash leg, and cash transfer only
         const symmetricPaddingForBox = 13 - 2; // Reduced by 2 pixels on each side
@@ -5245,13 +5926,51 @@ function initializeDiagram() {
           stroke: '#e8ecf7', // Swapped with fill
           strokeWidth: '2.5', // Thicker border
           rx: '8',
-          ry: '8'
+          ry: '8',
+          id: 'asx-box'
         });
         // Insert at the very beginning of SVG so it's behind EVERYTHING
         svg.insertBefore(asxBoundingBox, svg.firstChild);
 
+        // Make ASX box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(asxBoundingBox, 'asx-box');
+        }
+
         // Store reference to ASX box for z-ordering lines
         window.asxBoundingBoxElement = asxBoundingBox;
+
+        // Move cash-transfer-to-rtgs line ON TOP of ASX box border
+        if (window.cashTransferToRtgsLine) {
+          window.cashTransferToRtgsLine.parentNode.removeChild(window.cashTransferToRtgsLine);
+          svg.appendChild(window.cashTransferToRtgsLine);
+        }
+
+        // Move dvp-cash-leg-to-dvp-rtgs line ON TOP of ASX box border
+        if (window.dvpCashLegToRtgsLine) {
+          window.dvpCashLegToRtgsLine.parentNode.removeChild(window.dvpCashLegToRtgsLine);
+          svg.appendChild(window.dvpCashLegToRtgsLine);
+        }
+
+        // Move RTGS box ON TOP of horizontal lines passing through it
+        if (window.rtgsElements && window.rtgsElements.rect) {
+          window.rtgsElements.rect.parentNode.removeChild(window.rtgsElements.rect);
+          svg.appendChild(window.rtgsElements.rect);
+          if (window.rtgsElements.text) {
+            window.rtgsElements.text.parentNode.removeChild(window.rtgsElements.text);
+            svg.appendChild(window.rtgsElements.text);
+          }
+        }
+
+        // Move DvP RTGS box ON TOP of horizontal lines passing through it
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
 
         // Store ASX box right edge for SWIFT PDS alignment
         window.asxBoxRightEdge = asxBoxX + asxBoxWidth;
@@ -5764,6 +6483,11 @@ function initializeDiagram() {
                 becnToBecsPath.setAttribute('fill', 'none');
                 becnToBecsPath.setAttribute('stroke-linecap', 'round');
                 becnToBecsPath.setAttribute('id', 'becn-to-becs-line');
+                becnToBecsPath.setAttribute('data-interactive-id', 'becn-to-becs-line');
+                // Make line interactive for tooltips
+                if (window.makeInteractive) {
+                  window.makeInteractive(becnToBecsPath, 'becn-to-becs-line');
+                }
                 labelsGroup.insertBefore(becnToBecsPath, labelsGroup.firstChild);
 
                 // BECG to BECS curved line
@@ -5781,6 +6505,11 @@ function initializeDiagram() {
                 becgToBecsPath.setAttribute('fill', 'none');
                 becgToBecsPath.setAttribute('stroke-linecap', 'round');
                 becgToBecsPath.setAttribute('id', 'becg-to-becs-line');
+                becgToBecsPath.setAttribute('data-interactive-id', 'becg-to-becs-line');
+                // Make line interactive for tooltips
+                if (window.makeInteractive) {
+                  window.makeInteractive(becgToBecsPath, 'becg-to-becs-line');
+                }
                 labelsGroup.insertBefore(becgToBecsPath, labelsGroup.firstChild);
               }
             }
@@ -5868,8 +6597,8 @@ function initializeDiagram() {
           'ASX',
           {
             fill: '#ffffff',
-            fontSize: '20',
-            fontWeight: 'bold'
+            fontSize: '24',
+            fontWeight: 'normal'
           }
         );
         labelsGroup.appendChild(asxLabel);
@@ -5890,7 +6619,7 @@ function initializeDiagram() {
           const cornerRadius = 100;
           const goDownDistance = 175; // How far down to go - increased to move below green line
 
-          const pathStartY = asxLineStartY + 4; // Begin below the box edge so stroke (width 6) appears to come from under the box
+          const pathStartY = asxLineStartY; // Start exactly at box bottom - z-ordering will make it appear under the border
           const asxPath = `M ${asxLineStartX} ${pathStartY} ` +
                         `L ${asxLineStartX} ${pathStartY + goDownDistance} ` + // Go straight down
                         `Q ${asxLineStartX} ${pathStartY + goDownDistance + cornerRadius}, ` +
@@ -5914,8 +6643,30 @@ function initializeDiagram() {
             id: 'asx-to-hvcs-line'
           });
           asxToHvcsLineStyled.classList.add('thick-line-to-adi');
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
+          asxToHvcsLineStyled.setAttribute('data-interactive-id', 'asx-to-hvcs-line');
+          // Visible line doesn't need pointer events - hit area handles it
+          asxToHvcsLineStyled.style.pointerEvents = 'none';
+
+          // Create invisible hit area for easier hovering
+          const asxToHvcsHitArea = createStyledPath(asxPath, {
+            stroke: 'transparent',
+            strokeWidth: '6',
+            fill: 'none',
+            strokeLinecap: 'butt',
+            id: 'asx-to-hvcs-line-hit-area'
+          });
+          asxToHvcsHitArea.style.pointerEvents = 'stroke';
+          if (window.makeInteractive) {
+            window.makeInteractive(asxToHvcsHitArea, 'asx-to-hvcs-line');
+          }
+          // Insert before ASX bounding box so line renders under it
+          if (window.asxBoundingBoxElement) {
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToHvcsLineStyled, window.asxBoundingBoxElement);
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToHvcsHitArea, asxToHvcsLineStyled.nextSibling);
+          } else {
+            svg.insertBefore(asxToHvcsLineStyled, svg.firstChild);
+            svg.insertBefore(asxToHvcsHitArea, asxToHvcsLineStyled.nextSibling);
+          }
           window.asxLineData.pathElement = asxToHvcsLineStyled;
           window.asxLineData.neonAdjusted = false;
 
@@ -5928,7 +6679,7 @@ function initializeDiagram() {
 
           // Same initial path structure as first blue line but go deeper
           const extraDownForRightLine = 0; // Extra distance to put right line below left line - reduced by 5
-          const line2StartYOffset = 4; // Start below box edge so stroke appears to come from under the box
+          const line2StartYOffset = 0; // Start at box bottom - z-ordering will make it appear under the border
           const asxPath2 = `M ${asxLine2StartX} ${asxLine2StartY + line2StartYOffset} ` +
                         `L ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine} ` + // Go straight down (extra to separate from first line)
                         `Q ${asxLine2StartX} ${asxLine2StartY + goDownDistance + extraDownForRightLine + cornerRadius}, ` +
@@ -5943,9 +6694,31 @@ function initializeDiagram() {
             id: 'asx-to-adi-line'
           });
           asxToAdiLineStyled.classList.add('thick-line-to-adi');
+          asxToAdiLineStyled.setAttribute('data-interactive-id', 'asx-to-adi-line');
+          // Visible line doesn't need pointer events - hit area handles it
+          asxToAdiLineStyled.style.pointerEvents = 'none';
 
-          // Insert at very beginning so line renders under all boxes
-          svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
+          // Create invisible hit area for easier hovering
+          const asxToAdiHitArea = createStyledPath(asxPath2, {
+            stroke: 'transparent',
+            strokeWidth: '6',
+            fill: 'none',
+            strokeLinecap: 'butt',
+            id: 'asx-to-adi-line-hit-area'
+          });
+          asxToAdiHitArea.style.pointerEvents = 'stroke';
+          if (window.makeInteractive) {
+            window.makeInteractive(asxToAdiHitArea, 'asx-to-adi-line');
+          }
+
+          // Insert before ASX bounding box so line renders under it
+          if (window.asxBoundingBoxElement) {
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToAdiLineStyled, window.asxBoundingBoxElement);
+            window.asxBoundingBoxElement.parentNode.insertBefore(asxToAdiHitArea, asxToAdiLineStyled.nextSibling);
+          } else {
+            svg.insertBefore(asxToAdiLineStyled, svg.firstChild);
+            svg.insertBefore(asxToAdiHitArea, asxToAdiLineStyled.nextSibling);
+          }
           if (!window.asxLine2Data) window.asxLine2Data = {};
           window.asxLine2Data.pathElement = asxToAdiLineStyled;
           window.asxLine2Data.neonAdjusted = false;
@@ -5959,13 +6732,29 @@ function initializeDiagram() {
           window.asxLine2Data.extraDown = extraDownForRightLine;
           window.asxLine2Data.baseGoDownDistance = goDownDistance;
 
-          // Final z-order fix: move all thick lines to render ON TOP of thin lines
-          const bgGroupFinal = document.getElementById('background-elements');
-          if (bgGroupFinal) {
-            const allThickLines = document.querySelectorAll('.thick-line-to-adi');
-            allThickLines.forEach(thickLine => {
-              bgGroupFinal.appendChild(thickLine);
-            });
+          // Final z-order fix: create a border-only overlay that renders ON TOP of the blue lines
+          // This keeps the original ASX box behind everything while the border covers the line
+          if (window.asxBoundingBoxElement) {
+            const boxX = parseFloat(window.asxBoundingBoxElement.getAttribute('x'));
+            const boxY = parseFloat(window.asxBoundingBoxElement.getAttribute('y'));
+            const boxW = parseFloat(window.asxBoundingBoxElement.getAttribute('width'));
+            const boxH = parseFloat(window.asxBoundingBoxElement.getAttribute('height'));
+
+            // Create border-only rect (no fill) to render on top of blue lines
+            const borderOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            borderOverlay.setAttribute('x', boxX);
+            borderOverlay.setAttribute('y', boxY);
+            borderOverlay.setAttribute('width', boxW);
+            borderOverlay.setAttribute('height', boxH);
+            borderOverlay.setAttribute('fill', 'none');
+            borderOverlay.setAttribute('stroke', '#ffffff');
+            borderOverlay.setAttribute('stroke-width', '3');
+            borderOverlay.setAttribute('rx', '8');
+            borderOverlay.setAttribute('ry', '8');
+            borderOverlay.setAttribute('pointer-events', 'none'); // Don't interfere with clicks
+
+            // Append to SVG so it renders on top of the lines
+            svg.appendChild(borderOverlay);
           }
         }
 
@@ -5992,8 +6781,14 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        // Insert at beginning so lines go under ASXB box
-        labelsGroup.insertBefore(clearingToAsxPath1, labelsGroup.firstChild);
+        clearingToAsxPath1.setAttribute('id', 'clearing-to-asxb-line-0');
+        clearingToAsxPath1.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
+        clearingToAsxPath1.classList.add('clearing-to-asxb-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(clearingToAsxPath1, 'clearing-to-asxb-line');
+        }
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath1);
 
         // Create second yellow line with offset for double line effect
         const pathData2 = `M ${clearingRightX} ${clearingCenterY + 3}
@@ -6006,8 +6801,28 @@ function initializeDiagram() {
           strokeWidth: '2.5', // Exact same width as drawCurvedDoubleLine
           fill: 'none'
         });
-        // Insert at beginning so lines go under ASXB box
-        labelsGroup.insertBefore(clearingToAsxPath2, labelsGroup.firstChild);
+        clearingToAsxPath2.setAttribute('id', 'clearing-to-asxb-line-1');
+        clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
+        clearingToAsxPath2.classList.add('clearing-to-asxb-line');
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath2);
+
+        // Add hit area for clearing-to-asxb double line (center path with wide stroke)
+        const clearingHitPathData = `M ${clearingRightX} ${clearingCenterY + 1.5}
+                         C ${clearingRightX + controlOffset} ${clearingCenterY + 1.5},
+                           ${asxSettlementLeftX - controlOffset} ${asxSettlementCenterY + 1.5},
+                           ${asxSettlementLeftX} ${asxSettlementCenterY + 1.5}`;
+        const clearingHitArea = createStyledPath(clearingHitPathData, {
+          stroke: 'transparent',
+          strokeWidth: '12',
+          fill: 'none'
+        });
+        clearingHitArea.style.pointerEvents = 'stroke';
+        clearingHitArea.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(clearingHitArea, 'clearing-to-asxb-line');
+        }
+        labelsGroup.appendChild(clearingHitArea);
 
         // Calculate the 1/3 point on ASXF box using the UPDATED position
         const sympliCenterY = sympliY + sympliHeight / 2;
@@ -6281,8 +7096,23 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
+            line.classList.add('eftpos-to-essb-line');
+            line.setAttribute('data-interactive-id', 'eftpos-to-essb-line');
             adminLinesGroup.appendChild(line);
           });
+
+          // Add hit area for eftpos-to-essb double line
+          const eftposHitArea = createStyledLine(
+            eftposStartX, eftposLineY,
+            eftposEndX, eftposLineY,
+            { stroke: 'transparent', strokeWidth: (eftposLineGap + 8).toString(), strokeLinecap: 'round' }
+          );
+          eftposHitArea.style.pointerEvents = 'stroke';
+          eftposHitArea.setAttribute('data-interactive-id', 'eftpos-to-essb-line');
+          if (window.makeInteractive) {
+            window.makeInteractive(eftposHitArea, 'eftpos-to-essb-line');
+          }
+          adminLinesGroup.appendChild(eftposHitArea);
 
           // Yellow double lines from Mastercard to MCAU
           const mastercardLineY = stackedMastercardY + stackedHeight / 2 + 2; // Shifted down 2px to center with boxes
@@ -6299,8 +7129,23 @@ function initializeDiagram() {
                 strokeLinecap: 'round'
               }
             );
+            line.classList.add('mastercard-to-mcau-line');
+            line.setAttribute('data-interactive-id', 'mastercard-to-mcau-line');
             adminLinesGroup.appendChild(line);
           });
+
+          // Add hit area for mastercard-to-mcau double line
+          const mastercardHitArea = createStyledLine(
+            eftposStartX, mastercardLineY,
+            eftposEndX, mastercardLineY,
+            { stroke: 'transparent', strokeWidth: (eftposLineGap + 8).toString(), strokeLinecap: 'round' }
+          );
+          mastercardHitArea.style.pointerEvents = 'stroke';
+          mastercardHitArea.setAttribute('data-interactive-id', 'mastercard-to-mcau-line');
+          if (window.makeInteractive) {
+            window.makeInteractive(mastercardHitArea, 'mastercard-to-mcau-line');
+          }
+          adminLinesGroup.appendChild(mastercardHitArea);
         }
 
         // Removed the Visa-PEXA connection line
@@ -6315,13 +7160,24 @@ function initializeDiagram() {
             strokeLinecap: 'round'
           }
         );
-        svg.insertBefore(sssCcpLine, labelsGroup);
+        sssCcpLine.classList.add('dvp-cash-leg-to-dvp-rtgs-line');
+        sssCcpLine.setAttribute('data-interactive-id', 'dvp-cash-leg-to-dvp-rtgs-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(sssCcpLine, 'dvp-cash-leg-to-dvp-rtgs-line');
+        }
+        // Store reference for z-order adjustment later
+        window.dvpCashLegToRtgsLine = sssCcpLine;
+        svg.appendChild(sssCcpLine);
 
         // Get the actual trade-by-trade width and position for the dotted line
-        const actualTradeByTradeWidth = rectWidth;
-        const actualTradeByTradeX = window.asxBoxesAlignment ? 
-          window.asxBoxesAlignment.center - (actualTradeByTradeWidth / 2) : 
+        // Must match trade-by-trade box calculation: rectWidth * 0.93 and asxGroupShiftAmount
+        const actualTradeByTradeWidth = rectWidth * 0.93;
+        let actualTradeByTradeX = window.asxBoxesAlignment ?
+          window.asxBoxesAlignment.center - (actualTradeByTradeWidth / 2) :
           moneyMarketX;
+        if (window.asxGroupShiftAmount) {
+          actualTradeByTradeX += window.asxGroupShiftAmount;
+        }
 
         // Add dotted line from DvP RTGS (right edge) to trade-by-trade (left edge) at CHESS-RTGS center height
         const chessRtgsCenterY = chessY + smallRectHeight / 2; // Center Y of CHESS-RTGS
@@ -6337,10 +7193,52 @@ function initializeDiagram() {
             strokeDasharray: '5,5'
           }
         );
+        dottedLine.classList.add('trade-by-trade-to-dvp-rtgs-line');
+        dottedLine.setAttribute('data-interactive-id', 'trade-by-trade-to-dvp-rtgs-line');
+        if (window.makeInteractive) {
+          window.makeInteractive(dottedLine, 'trade-by-trade-to-dvp-rtgs-line');
+        }
         svg.insertBefore(dottedLine, labelsGroup);
 
+        // Re-move DvP RTGS box ON TOP of lines (after all lines to it are created)
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
 
+        // Ensure dvp-cash-leg-to-dvp-rtgs line is ON TOP of ASX box
+        if (window.dvpCashLegToRtgsLine) {
+          window.dvpCashLegToRtgsLine.parentNode.removeChild(window.dvpCashLegToRtgsLine);
+          svg.appendChild(window.dvpCashLegToRtgsLine);
+        }
 
+        // Ensure cash-transfer-to-rtgs line is ON TOP of ASX box
+        if (window.cashTransferToRtgsLine) {
+          window.cashTransferToRtgsLine.parentNode.removeChild(window.cashTransferToRtgsLine);
+          svg.appendChild(window.cashTransferToRtgsLine);
+        }
+
+        // Re-move RTGS and DvP RTGS boxes to be on top of the lines
+        if (window.rtgsElements && window.rtgsElements.rect) {
+          window.rtgsElements.rect.parentNode.removeChild(window.rtgsElements.rect);
+          svg.appendChild(window.rtgsElements.rect);
+          if (window.rtgsElements.text) {
+            window.rtgsElements.text.parentNode.removeChild(window.rtgsElements.text);
+            svg.appendChild(window.rtgsElements.text);
+          }
+        }
+        if (window.dvpRtgsElements && window.dvpRtgsElements.rect) {
+          window.dvpRtgsElements.rect.parentNode.removeChild(window.dvpRtgsElements.rect);
+          svg.appendChild(window.dvpRtgsElements.rect);
+          if (window.dvpRtgsElements.text) {
+            window.dvpRtgsElements.text.parentNode.removeChild(window.dvpRtgsElements.text);
+            svg.appendChild(window.dvpRtgsElements.text);
+          }
+        }
 
         // Rectangle above SWIFT box
         // CLS AUD uses adjusted position if available
@@ -6352,7 +7250,13 @@ function initializeDiagram() {
           // Square corners - no rx/ry
         });
         bottomRect.setAttribute('id', 'cls-aud-rect'); // Add ID for later reference
+        bottomRect.setAttribute('data-interactive-id', 'cls-aud-rect');
         labelsGroup.appendChild(bottomRect);
+
+        // Make CLS AUD box interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(bottomRect, 'cls-aud-rect');
+        }
 
         // Debug log CLS AUD box actual position
         console.log('CLS AUD box actual position:', {
@@ -6378,7 +7282,13 @@ function initializeDiagram() {
             textAnchor: 'middle' // Ensure horizontal centering
           }
         );
+        bottomText.setAttribute('data-interactive-id', 'cls-aud-rect');
         labelsGroup.appendChild(bottomText);
+
+        // Make CLS AUD text interactive
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(bottomText, 'cls-aud-rect');
+        }
 
         // CLS AUD to RITS line will be added at the end of script after all adjustments
 
@@ -6397,6 +7307,7 @@ function initializeDiagram() {
         // Add curved lines from right side of boxes to big blue circle
         const curvedLineGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         curvedLineGroup.setAttribute('id', 'swift-to-circle-curves');
+        curvedLineGroup.classList.add('diagram-hidden'); // Hide initially for animation
 
         // Store curved lines for later updates
         window.swiftToCurves = [];
@@ -6484,7 +7395,7 @@ function initializeDiagram() {
           // Use neon yellow for CLS AUD line (index 3)
           let strokeColor;
           if (i === 3) {
-            strokeColor = '#00FF33'; // Neon green for CLS AUD
+            strokeColor = '#98FB98'; // Pale green for CLS AUD
           } else if (i >= 4) {
             strokeColor = austraclearLineColor;
           } else {
@@ -6512,6 +7423,53 @@ function initializeDiagram() {
             // Make CHESS-RTGS line dotted (index 6)
             if (i === 6) {
               path.setAttribute('stroke-dasharray', '5,5');
+              path.classList.add('chess-rtgs-to-rits-line');
+              path.setAttribute('data-interactive-id', 'chess-rtgs-to-rits-line');
+              path.style.pointerEvents = 'none'; // Visible line doesn't need pointer events
+
+              // Create transparent hit area for easier hovering
+              const hitArea = createStyledPath(d, {
+                stroke: 'transparent',
+                strokeWidth: '16',
+                fill: 'none',
+                strokeLinecap: 'round'
+              });
+              hitArea.setAttribute('data-interactive-id', 'chess-rtgs-to-rits-line');
+              hitArea.style.pointerEvents = 'stroke';
+              if (window.makeInteractive) {
+                window.makeInteractive(hitArea, 'chess-rtgs-to-rits-line');
+              }
+              curvedLineGroup.appendChild(hitArea);
+            }
+
+            // Add IDs for SWIFT PDS to RITS lines (indices 0, 1, 2)
+            if (i < 3) {
+              const lineId = `swift-pds-to-rits-line-${i}`;
+              path.setAttribute('id', lineId);
+              path.setAttribute('data-interactive-id', lineId);
+              path.classList.add('swift-pds-to-rits-line');
+              // Make line interactive for tooltips
+              if (window.makeInteractive) {
+                window.makeInteractive(path, lineId);
+              }
+            }
+
+            // Add IDs for Austraclear lines (indices 4, 5)
+            if (i === 4) {
+              path.classList.add('austraclear-to-rits-line');
+              path.classList.add('austraclear-to-rits-line-upper');
+              path.setAttribute('data-interactive-id', 'austraclear-to-rits-line-upper');
+              if (window.makeInteractive) {
+                window.makeInteractive(path, 'austraclear-to-rits-line-upper');
+              }
+            }
+            if (i === 5) {
+              path.classList.add('austraclear-to-rits-line');
+              path.classList.add('austraclear-to-rits-line-lower');
+              path.setAttribute('data-interactive-id', 'austraclear-to-rits-line-lower');
+              if (window.makeInteractive) {
+                window.makeInteractive(path, 'austraclear-to-rits-line-lower');
+              }
             }
 
             curvedLineGroup.appendChild(path);
@@ -6576,12 +7534,20 @@ function initializeDiagram() {
                          `L ${pathEndX} ${turnY2}`; // Go right under SWIFT HVCS
 
           clsPath.setAttribute('d', pathData);
-          clsPath.setAttribute('stroke', '#00FF33'); // Neon green
+          clsPath.setAttribute('stroke', '#98FB98'); // Pale green
           clsPath.setAttribute('stroke-width', '6');
           clsPath.setAttribute('fill', 'none');
           clsPath.setAttribute('stroke-linecap', 'round');
           clsPath.setAttribute('stroke-linejoin', 'round');
           clsPath.setAttribute('id', 'cls-aud-line-new');
+          clsPath.setAttribute('data-interactive-id', 'cls-aud-line-new');
+          clsPath.classList.add('diagram-hidden'); // Hide initially for animation
+          // Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
+          clsPath.style.pointerEvents = 'stroke';
+          // Make line interactive for tooltips
+          if (window.makeInteractive) {
+            window.makeInteractive(clsPath, 'cls-aud-line-new');
+          }
 
           curvedLineGroup.appendChild(clsPath);
 
@@ -6670,6 +7636,10 @@ function initializeDiagram() {
         // (RBA at i=0 uses 'rba-yellow-line' instead, set via makeInteractive above)
         if (i !== 0) {
           orangeLine.setAttribute('data-interactive-id', `yellow-line-${i}`);
+          // Make yellow line interactive to show same tooltip as its dot
+          if (typeof makeInteractive === 'function') {
+            makeInteractive(orangeLine, `yellow-line-${i}`);
+          }
         }
 
         const orangeCircle = createStyledCircle(innerCircleX, innerCircleY, orangeCircleRadius, {
@@ -6870,7 +7840,7 @@ function initializeDiagram() {
         text.setAttribute('dominant-baseline', 'middle');
         // All labels white
         text.setAttribute('fill', '#ffffff'); // white for all ESA account labels
-        text.setAttribute('font-family', 'Arial, sans-serif');
+        text.setAttribute('font-family', "'Nunito Sans', sans-serif");
         text.setAttribute('font-size', '10');
         text.setAttribute('pointer-events', 'none'); // Don't block box hover events
         text.textContent = label;
@@ -7150,7 +8120,7 @@ function initializeDiagram() {
   removeAdminLines(redLinesGroup);
   removeAdminLines(yellowLinesGroup);
 
-  const drawCurvedDoubleLine = (startX, startY, strokeColor, targetGroup) => {
+  const drawCurvedDoubleLine = (startX, startY, strokeColor, targetGroup, lineId) => {
     if (!targetGroup) {
       return;
     }
@@ -7176,6 +8146,8 @@ function initializeDiagram() {
 
     if (nearlyHorizontal) {
       const lineOffsets = isPinkColor ? [-offsetMagnitude, 0, offsetMagnitude] : [offsetMagnitude, -offsetMagnitude];
+      let hitAreaEndX = startX;
+
       lineOffsets.forEach(offset => {
         const yLine = startY + offset;
         const deltaY = yLine - cyBig;
@@ -7185,6 +8157,7 @@ function initializeDiagram() {
         }
         const horizontalReach = Math.sqrt(spanSquared);
         const lineEndX = Math.max(startX, cx + horizontalReach - 20); // Stop 20px before edge (inside circle)
+        hitAreaEndX = Math.max(hitAreaEndX, lineEndX);
 
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', startX.toFixed(2));
@@ -7195,8 +8168,31 @@ function initializeDiagram() {
         line.setAttribute('stroke-width', strokeWidth);
         line.setAttribute('stroke-linecap', 'round');
         line.classList.add('admin-double-line');
+        if (lineId) {
+          line.classList.add(lineId);
+          line.setAttribute('data-interactive-id', lineId);
+        }
         targetGroup.appendChild(line);
       });
+
+      // Add invisible hit area for easier hovering (covers entire double/triple line)
+      if (lineId) {
+        const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 8 : offsetMagnitude * 2 + 8;
+        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hitArea.setAttribute('x1', startX.toFixed(2));
+        hitArea.setAttribute('y1', startY.toFixed(2));
+        hitArea.setAttribute('x2', hitAreaEndX.toFixed(2));
+        hitArea.setAttribute('y2', startY.toFixed(2));
+        hitArea.setAttribute('stroke', 'transparent');
+        hitArea.setAttribute('stroke-width', hitAreaWidth.toString());
+        hitArea.setAttribute('stroke-linecap', 'round');
+        hitArea.style.pointerEvents = 'stroke';
+        hitArea.setAttribute('data-interactive-id', lineId);
+        if (window.makeInteractive) {
+          window.makeInteractive(hitArea, lineId);
+        }
+        targetGroup.appendChild(hitArea);
+      }
       return;
     }
 
@@ -7278,8 +8274,33 @@ function initializeDiagram() {
         strokeLinejoin: 'round'
       });
       path.classList.add('admin-double-line');
+      if (lineId) {
+        path.classList.add(lineId);
+        path.setAttribute('data-interactive-id', lineId);
+      }
       targetGroup.appendChild(path);
     });
+
+    // Add invisible hit area for curved double lines (follows center path with wide stroke)
+    if (lineId) {
+      const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 10 : offsetMagnitude * 2 + 10;
+      const hitD = 'M ' + startX.toFixed(2) + ' ' + startY.toFixed(2) +
+                   ' C ' + control1X.toFixed(2) + ' ' + control1Y.toFixed(2) + ', ' +
+                   control2X.toFixed(2) + ' ' + control2Y.toFixed(2) + ', ' +
+                   endX.toFixed(2) + ' ' + endY.toFixed(2);
+      const hitArea = createStyledPath(hitD, {
+        stroke: 'transparent',
+        strokeWidth: hitAreaWidth.toString(),
+        fill: 'none',
+        strokeLinecap: 'round'
+      });
+      hitArea.style.pointerEvents = 'stroke';
+      hitArea.setAttribute('data-interactive-id', lineId);
+      if (window.makeInteractive) {
+        window.makeInteractive(hitArea, lineId);
+      }
+      targetGroup.appendChild(hitArea);
+    }
   };
 
       if (window.hexagonPositions && window.bridgePositions) {
@@ -7290,23 +8311,23 @@ function initializeDiagram() {
 
       const pexaStartX = window.hexagonPositions.pexaX + window.hexagonPositions.pexaWidth;
       const pexaStartY = window.hexagonPositions.pexaY + hexHeightValue / 2;
-      drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup);
+      drawCurvedDoubleLine(pexaStartX, pexaStartY, redColor, redLinesGroup, 'pexa-to-rits-line');
 
         const asxfStartX = window.hexagonPositions.asxfX + window.hexagonPositions.asxfWidth;
         const asxfStartY = window.hexagonPositions.asxfY + window.hexagonPositions.asxfHeight / 2;
-        drawCurvedDoubleLine(asxfStartX, asxfStartY, redColor, redLinesGroup);
+        drawCurvedDoubleLine(asxfStartX, asxfStartY, redColor, redLinesGroup, 'asxf-to-rits-line');
 
         const mcauStartX = window.hexagonPositions.mastercardX + window.hexagonPositions.mastercardWidth;
         const mcauStartY = window.hexagonPositions.mastercardY + hexHeightValue / 2;
-        drawCurvedDoubleLine(mcauStartX, mcauStartY, yellowColor, yellowLinesGroup);
+        drawCurvedDoubleLine(mcauStartX, mcauStartY, yellowColor, yellowLinesGroup, 'mcau-to-rits-line');
 
         const essbStartX = window.hexagonPositions.mastercardX + window.hexagonPositions.mastercardWidth;
         const essbStartY = window.hexagonPositions.eftposY + hexHeightValue / 2;
-        drawCurvedDoubleLine(essbStartX, essbStartY, yellowColor, yellowLinesGroup);
+        drawCurvedDoubleLine(essbStartX, essbStartY, yellowColor, yellowLinesGroup, 'essb-to-rits-line');
 
         const asxbStartX = window.bridgePositions.bridgeX + window.bridgePositions.bridgeWidth;
         const asxbStartY = window.bridgePositions.bridgeY + hexHeightValue / 2;
-        drawCurvedDoubleLine(asxbStartX, asxbStartY, yellowColor, yellowLinesGroup);
+        drawCurvedDoubleLine(asxbStartX, asxbStartY, yellowColor, yellowLinesGroup, 'asxb-to-rits-line');
       }
 
   // Add background rectangle for all blue dots
@@ -7364,7 +8385,10 @@ function initializeDiagram() {
           fontSize: '14' // Smaller than RBA text (16)
         }
       );
-      labelsGroup.appendChild(esasText);
+      esasText.setAttribute('id', 'esas-label-top');
+      esasText.classList.add('esas-box-label');
+      esasText.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(esasText); // Add directly to SVG, not to labelsGroup
 
       // Add second ESAs label to bottom left corner of grey rectangle
       const rectHeight = (maxY - minY) + topPadding + bottomPadding + dotRadius * 2;
@@ -7378,7 +8402,10 @@ function initializeDiagram() {
           fontSize: '14' // Same as top label
         }
       );
-      labelsGroup.appendChild(esasText2);
+      esasText2.setAttribute('id', 'esas-label-bottom');
+      esasText2.classList.add('esas-box-label');
+      esasText2.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(esasText2); // Add directly to SVG, not to labelsGroup
 
       // Make ESA box interactive
       if (typeof makeInteractive === 'function') {
@@ -7858,7 +8885,16 @@ function initializeDiagram() {
               strokeLinecap: 'round'
             });
             parallelPath.setAttribute('data-interactive-id', `lvss-line-${visualName}`);
-            svg.insertBefore(parallelPath, svg.firstChild);
+            // Make line interactive for tooltips
+            if (window.makeInteractive) {
+              window.makeInteractive(parallelPath, `lvss-line-${visualName}`);
+            }
+            // Insert into adminLinesGroup for proper z-order (above DE lines)
+            if (adminLinesGroup) {
+              adminLinesGroup.appendChild(parallelPath);
+            } else {
+              svg.insertBefore(parallelPath, svg.firstChild);
+            }
           }
         });
       }
@@ -7960,7 +8996,9 @@ function initializeDiagram() {
            fontSize: '24' // Slightly bigger
          }
        );
-       labelsGroup.appendChild(adisText);
+       adisText.setAttribute('id', 'adis-label');
+       adisText.classList.add('diagram-hidden'); // Hide initially for animation
+       svg.appendChild(adisText); // Add directly to SVG, not to labelsGroup
         console.log('ADIs label coords:', {
           rectX: adiRectX,
           rectWidth: adiRectWidth,
@@ -8506,7 +9544,7 @@ function initializeDiagram() {
               `Q ${startX - 5 - cornerRadius} ${downToY}, ${startX - 5 - cornerRadius + bottomCornerRadius} ${downToY} ` + // Larger curve right
               `L ${curveStartX} ${downToY} ` + // Go right under the blue lines to where curve starts
               `C ${curveStartX + 60} ${downToY}, ` + // Same curve as blue line
-              `${orangeEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
+              `${orangeEndX - 35} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 35px before end (matches blue line shape)
               `${orangeEndX} ${endY}`; // Curve up to ADIs box
 
             const sympliToAdiLineStyled = createStyledPath(pathData, {
@@ -8516,11 +9554,29 @@ function initializeDiagram() {
               strokeLinecap: 'butt', // Square cap so it stops exactly at edge
               id: 'sympli-to-adis-line'
             });
+            // Add identifier for highlighting (matches what hit area triggers)
+            sympliToAdiLineStyled.setAttribute('data-interactive-id', 'sympli-to-adis-line');
+            // Visible line doesn't need pointer events - hit area handles it
+            sympliToAdiLineStyled.style.pointerEvents = 'none';
+
+            // Create invisible hit area for easier hovering
+            const sympliToAdiHitArea = createStyledPath(pathData, {
+              stroke: 'transparent',
+              strokeWidth: '6',
+              fill: 'none',
+              strokeLinecap: 'butt',
+              id: 'sympli-to-adis-line-hit-area'
+            });
+            sympliToAdiHitArea.style.pointerEvents = 'stroke';
+            if (typeof window.makeInteractive === 'function') {
+              window.makeInteractive(sympliToAdiHitArea, 'sympli-to-adis-line');
+            }
 
             // Insert BEFORE adi-box so line renders UNDER the box edge
             const adiBoxForInsert = document.getElementById('adi-box');
             if (adiBoxForInsert) {
               adiBoxForInsert.parentNode.insertBefore(sympliToAdiLineStyled, adiBoxForInsert);
+              adiBoxForInsert.parentNode.insertBefore(sympliToAdiHitArea, sympliToAdiLineStyled.nextSibling);
             }
           }
 
@@ -8573,7 +9629,7 @@ function initializeDiagram() {
               `Q ${controlX} ${downToY}, ${controlX + bottomCornerRadius} ${downToY} ` +
               `L ${curveStartX} ${downToY} ` +
               `C ${curveStartX + 60} ${downToY}, ` +
-                `${pinkEndX - 15} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 15px before end (matches green)
+                `${pinkEndX - 35} ${downToY - actualVerticalDistance * 0.15}, ` + // Control 2: 35px before end (matches blue line shape)
                 `${pinkEndX} ${endY}`;
 
             const pexaToAdiLineStyled = createStyledPath(pexaPathData, {
@@ -8583,11 +9639,29 @@ function initializeDiagram() {
               strokeLinecap: 'butt', // Square cap so it stops exactly at edge
               id: 'pexa-to-adis-line'
             });
+            // Add identifier for highlighting (matches what hit area triggers)
+            pexaToAdiLineStyled.setAttribute('data-interactive-id', 'pexa-to-adis-line');
+            // Visible line doesn't need pointer events - hit area handles it
+            pexaToAdiLineStyled.style.pointerEvents = 'none';
+
+            // Create invisible hit area for easier hovering
+            const pexaToAdiHitArea = createStyledPath(pexaPathData, {
+              stroke: 'transparent',
+              strokeWidth: '6',
+              fill: 'none',
+              strokeLinecap: 'butt',
+              id: 'pexa-to-adis-line-hit-area'
+            });
+            pexaToAdiHitArea.style.pointerEvents = 'stroke';
+            if (typeof window.makeInteractive === 'function') {
+              window.makeInteractive(pexaToAdiHitArea, 'pexa-to-adis-line');
+            }
 
             // Insert BEFORE adi-box so line renders UNDER the box edge
             const adiBoxForInsert = document.getElementById('adi-box');
             if (adiBoxForInsert) {
               adiBoxForInsert.parentNode.insertBefore(pexaToAdiLineStyled, adiBoxForInsert);
+              adiBoxForInsert.parentNode.insertBefore(pexaToAdiHitArea, pexaToAdiLineStyled.nextSibling);
             }
 
             // Draw white divider line with same width as PEXA e-conveyancing box
@@ -8700,7 +9774,7 @@ function initializeDiagram() {
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
-                fontFamily: 'Courier New, monospace'
+                fontFamily: "'Roboto Mono', monospace"
               });
               upLabel.style.opacity = '0';
               upLabel.style.transition = 'opacity 0.5s ease';
@@ -8739,7 +9813,7 @@ function initializeDiagram() {
                 fontSize: '15',
                 fontWeight: 'bold',
                 textAnchor: 'middle',
-                fontFamily: 'Courier New, monospace'
+                fontFamily: "'Roboto Mono', monospace"
               });
               downLabel.style.opacity = '0';
               downLabel.style.transition = 'opacity 0.5s ease';
@@ -8844,12 +9918,15 @@ function initializeDiagram() {
             const midPointY = window.hvcsLineData.startY - verticalDistance * 0.15; // Very gradual at first
 
             // Create a single smooth curve without kinks
-            // Adjust first control point to be further right for smoother transition
-            // Use the updated SWIFT HVCS right edge if available, otherwise fall back to stored value
-            const hvcsStrokeHalfForPath = window.hvcsLineStrokeHalf || 3;
-            const hvcsStartX = window.swiftHvcsElements && Number.isFinite(window.swiftHvcsElements.rightEdge)
-                               ? window.swiftHvcsElements.rightEdge + hvcsStrokeHalfForPath
-                               : window.hvcsLineData.startX;
+            // Read actual box position from DOM to get current right edge
+            let hvcsStartX = window.hvcsLineData.startX; // fallback
+            if (window.swiftHvcsElements && window.swiftHvcsElements.boundingBox) {
+              const boxX = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('x'));
+              const boxWidth = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('width'));
+              const boxStroke = parseFloat(window.swiftHvcsElements.boundingBox.getAttribute('stroke-width')) || 2;
+              // Start path at visual right edge of box
+              hvcsStartX = boxX + boxWidth + (boxStroke / 2);
+            }
 
             const hvcsEndX = extendPastNonAdi + 15;
             const path = `M ${hvcsStartX} ${window.hvcsLineData.startY} ` +
@@ -8913,6 +9990,11 @@ function initializeDiagram() {
                       `${targetX} ${adiBottom}`;
 
             asxLine2Extension.setAttribute('d', extensionPath);
+            // Also update the hit area with the extended path
+            const asxToAdiHitArea = document.getElementById('asx-to-adi-line-hit-area');
+            if (asxToAdiHitArea) {
+              asxToAdiHitArea.setAttribute('d', extensionPath);
+            }
             // Line stays in original position (before ASX box) - don't move it
           }
         }
@@ -8936,6 +10018,7 @@ function initializeDiagram() {
             fontSize: '24' // Match ADIs font size
           }
         );
+        nonADIsText.setAttribute('id', 'non-adis-label');
         labelsGroup.appendChild(nonADIsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(nonADIsText, 'non-adis-box');
@@ -8968,6 +10051,11 @@ function initializeDiagram() {
                       `${extendPastNonAdi + 15} ${nonAdiBottom}`; // Stop exactly at box bottom edge
 
             asxExtension.setAttribute('d', extensionPath);
+            // Also update the hit area with the extended path
+            const asxToHvcsHitArea = document.getElementById('asx-to-hvcs-line-hit-area');
+            if (asxToHvcsHitArea) {
+              asxToHvcsHitArea.setAttribute('d', extensionPath);
+            }
           }
         }
 
@@ -9289,14 +10377,9 @@ const newBoundingBox = createStyledRect(
 );
 newBoundingBox.setAttribute('id', 'npp-purple-box');
 
-// Insert into backgroundGroup to be behind everything
-const backgroundGroupRef = document.getElementById('background-elements');
-if (backgroundGroupRef) {
-  backgroundGroupRef.appendChild(newBoundingBox);
-} else {
-  // If background group doesn't exist, insert before labels
-  svg.insertBefore(newBoundingBox, labelsGroup);
-}
+// Insert into labelsGroup so it's above the osko-to-adi hit area (which intercepts hover events)
+// The internal boxes (PayID, PayTo, BSCT) are created later and will still be on top
+labelsGroup.appendChild(newBoundingBox);
 
 // Make purple NPP box interactive
 if (typeof makeInteractive === 'function') {
@@ -9410,7 +10493,7 @@ labelsGroup.appendChild(payToBox);
 const payToText = createStyledText(
   pacsBoxX + pacsBoxWidth / 2,
   adjustedPayToBoxY + pacsBoxHeight / 2,
-  'PayTo',
+  'IPS',
   {
     fill: '#ffffff', // White text
     fontSize: '11'
@@ -9440,7 +10523,7 @@ labelsGroup.appendChild(payIdBox);
 const payIdText = createStyledText(
   pacsBoxX + pacsBoxWidth / 2,
   adjustedPayIdBoxY + pacsBoxHeight / 2,
-  'PayID',
+  'PayID · PayTo',
   {
     fill: '#ffffff', // White text
     fontSize: '11'
@@ -9459,9 +10542,37 @@ if (typeof makeInteractive === 'function') {
 const lineStartX = pacsBoxX + pacsBoxWidth;
 const lineStartY = adjustedBsctY + pacsBoxHeight / 2;
 
-// End at left edge of purple NPP box at BSCT height (horizontal line)
-const lineEndX = nppX;
+// Debug: Let's find what boxes we have
+const nppBiBox = document.getElementById('npp-box');
+const purpleNppBox = document.getElementById('npp-purple-box');
+
+console.log('BSCT to NPP BI connection debug:', {
+  BSCT: { x: pacsBoxX, width: pacsBoxWidth, rightEdge: lineStartX },
+  purpleBox: purpleNppBox ? {
+    x: parseFloat(purpleNppBox.getAttribute('x')),
+    width: parseFloat(purpleNppBox.getAttribute('width')),
+    rightEdge: parseFloat(purpleNppBox.getAttribute('x')) + parseFloat(purpleNppBox.getAttribute('width'))
+  } : 'not found',
+  nppBiBox: nppBiBox ? {
+    x: parseFloat(nppBiBox.getAttribute('x')),
+    width: parseFloat(nppBiBox.getAttribute('width')),
+    rightEdge: parseFloat(nppBiBox.getAttribute('x')) + parseFloat(nppBiBox.getAttribute('width'))
+  } : 'not found'
+});
+
+// The line should connect BSCT (inside purple box) to NPP BI box (should be on the right)
+// If NPP BI box not found, that's an error - don't draw line to purple box edge
+if (!nppBiBox) {
+  console.error('NPP BI box not found! Cannot draw BSCT to NPP BI line correctly');
+}
+const lineEndX = nppBiBox ? parseFloat(nppBiBox.getAttribute('x')) : lineStartX + 100; // If not found, extend line rightward as placeholder
 const lineEndY = lineStartY; // Same Y for horizontal line
+
+console.log('Line endpoints:', {
+  start: { x: lineStartX, y: lineStartY },
+  end: { x: lineEndX, y: lineEndY },
+  nppBiFound: !!nppBiBox
+});
 
 const connectingLine = createStyledLine(
   lineStartX, lineStartY,
@@ -9473,9 +10584,14 @@ const connectingLine = createStyledLine(
     id: 'new-pacs-to-npp-line'
   }
 );
+connectingLine.setAttribute('data-interactive-id', 'new-pacs-to-npp-line');
+// Make line interactive for tooltips
+if (window.makeInteractive) {
+  window.makeInteractive(connectingLine, 'new-pacs-to-npp-line');
+}
 
-// Insert line before labels so it appears behind
-svg.insertBefore(connectingLine, labelsGroup);
+// Append line to svg so it appears on top of boxes
+svg.appendChild(connectingLine);
 
 console.log('Created new pacs-style box and bounding box:', {
   boundingBox: { x: newBoundingBoxX, y: boundingBoxY, width: hvcsBoxWidth, height: newBoundingBoxHeight },
@@ -9708,6 +10824,14 @@ clsToRitsLineFinal.setAttribute('stroke-width', '6'); // Thick line
 clsToRitsLineFinal.setAttribute('fill', 'none');
 clsToRitsLineFinal.setAttribute('stroke-linecap', 'round');
 clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
+clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final');
+clsToRitsLineFinal.classList.add('diagram-hidden'); // Hide initially for animation
+// Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
+clsToRitsLineFinal.style.pointerEvents = 'stroke';
+// Make line interactive for tooltips
+if (window.makeInteractive) {
+  window.makeInteractive(clsToRitsLineFinal, 'cls-to-rits-line-final');
+}
 
     // Insert at beginning of SVG so it goes behind the blue circle
     svg.insertBefore(clsToRitsLineFinal, svg.firstChild);
@@ -9816,10 +10940,20 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         }
       }
     }
-    const endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
+    let endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
                  : Number(window.clsEndpoints.clsCircleCenterX);
-    const endY = window.clsEndpoints.clsCircleEdgeY !== undefined ? Number(window.clsEndpoints.clsCircleEdgeY)
+    let endY = window.clsEndpoints.clsCircleEdgeY !== undefined ? Number(window.clsEndpoints.clsCircleEdgeY)
                  : Number(window.clsEndpoints.clsCircleCenterY);
+
+    // Shorten the line by 4 pixels to prevent overlap with CLS circle
+    const shortenDistance = 4;
+    if (window.clsEndpoints.clsCircleCenterX !== undefined) {
+      const centerX = Number(window.clsEndpoints.clsCircleCenterX);
+      const centerY = Number(window.clsEndpoints.clsCircleCenterY);
+      const angle = Math.atan2(endY - centerY, endX - centerX);
+      endX = endX + shortenDistance * Math.cos(angle); // Move endpoint away from circle
+      endY = endY + shortenDistance * Math.sin(angle);
+    }
 
     if (Number.isFinite(startX) && Number.isFinite(startY) && Number.isFinite(endX) && Number.isFinite(endY)) {
       const dx = endX - startX;
@@ -9843,6 +10977,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       if (!container && svg) {
         container = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         container.setAttribute('id', 'cls-s-curve-group');
+        container.classList.add('diagram-hidden'); // Hide initially for animation
         const blueCirclesGroup = document.getElementById('blue-circles');
         // Insert before blue-circles so neon line renders under CLS dot
         if (blueCirclesGroup) {
@@ -9856,6 +10991,7 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
       if (!sCurvePath) {
         sCurvePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         sCurvePath.setAttribute('id', 'cls-s-curve');
+        sCurvePath.classList.add('diagram-hidden'); // Hide initially for animation
         if (container) {
           container.appendChild(sCurvePath);
         } else if (svg) {
@@ -9872,6 +11008,13 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
         sCurvePath.setAttribute('fill', 'none');
         sCurvePath.setAttribute('stroke-linecap', 'round');
         sCurvePath.setAttribute('stroke-linejoin', 'round');
+        sCurvePath.setAttribute('data-interactive-id', 'cls-s-curve');
+        // Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
+        sCurvePath.style.pointerEvents = 'stroke';
+        // Make line interactive for tooltips
+        if (window.makeInteractive) {
+          window.makeInteractive(sCurvePath, 'cls-s-curve');
+        }
       }
 
       console.log('CLS S-curve created from neon line to CLS dot.');
@@ -10057,12 +11200,21 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
           fontSize: '24' // Slightly bigger
         }
       );
-      labelsGroup.appendChild(adisText);
+      adisText.setAttribute('id', 'adis-label-duplicate'); // Give different ID to avoid conflict
+      adisText.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(adisText); // Add directly to SVG, not to labelsGroup
       if (typeof makeInteractive === 'function') {
         makeInteractive(adisText, 'adi-box');
       }
     }
   }
+
+  // Hide ALL SVG content right before starting typewriter (catches dynamically created elements)
+  Array.from(svg.children).forEach(child => {
+    if (child.tagName !== 'defs') {
+      child.classList.add('diagram-hidden');
+    }
+  });
 
   // Add title label at the top of the diagram with typewriter effect
   const titleX = (window.dividerLineCenterX || (-600 + (1550 / 2))) - (1550 * 0.05); // Shift 5% left
@@ -10071,35 +11223,44 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
   const titleText = createStyledText(
     titleX,
     titleY,
-    '',
+    '', // Start empty for typewriter effect
     {
       textAnchor: 'start',
       fill: '#9BFFCD',
       fontSize: '32',
       fontWeight: 'bold',
-      fontFamily: 'Courier New, monospace'
+      fontFamily: "'Roboto Mono', monospace"
     }
   );
   titleText.setAttribute('letter-spacing', '4');
-  labelsGroup.appendChild(titleText);
+  titleText.classList.add('intro-title'); // Keep visible during intro animation
+  svg.appendChild(titleText);
 
-  // Typewriter effect
+  // Typewriter effect on SVG title
   let charIndex = 0;
-  const typeSpeed = 50; // milliseconds per character
-  let skipAnimation = false;
+  const typeSpeed = 40; // milliseconds per character
+  let typewriterSkipped = false;
 
-  // Allow skipping animation with click or any key press
-  const skipAnimationHandler = () => {
-    skipAnimation = true;
+  // Store stop function globally so skipAnimation can use it
+  window.stopTypewriter = () => {
+    typewriterSkipped = true;
     titleText.textContent = fullTitle;
     charIndex = fullTitle.length;
+  };
+
+  // Allow skipping entire animation with click or any key press
+  const skipAnimationHandler = () => {
+    // Use the global skipAnimation function which skips everything
+    if (typeof window.skipAnimation === 'function') {
+      window.skipAnimation();
+    }
   };
 
   document.addEventListener('click', skipAnimationHandler, { once: true });
   document.addEventListener('keydown', skipAnimationHandler, { once: true });
 
   function typeWriter() {
-    if (skipAnimation) {
+    if (typewriterSkipped) {
       titleText.textContent = fullTitle;
       charIndex = fullTitle.length;
     }
@@ -10107,10 +11268,31 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
     if (charIndex < fullTitle.length) {
       titleText.textContent += fullTitle.charAt(charIndex);
       charIndex += 1;
+
+      // Start animation stages at specific points during title typing
+      // Stage 1 at 25%
+      if (charIndex === Math.floor(fullTitle.length * 0.25) && typeof window.startFirstAnimationStage === 'function') {
+        window.startFirstAnimationStage();
+      }
+      // Stage 2 at 50%
+      if (charIndex === Math.floor(fullTitle.length * 0.50) && typeof window.startSecondAnimationStage === 'function') {
+        window.startSecondAnimationStage();
+      }
+      // Stage 3 at 75%
+      if (charIndex === Math.floor(fullTitle.length * 0.75) && typeof window.startThirdAnimationStage === 'function') {
+        window.startThirdAnimationStage();
+      }
+
       setTimeout(typeWriter, typeSpeed);
     } else {
       titleText.textContent = fullTitle;
-      // Animate divider elements once typing completes
+
+      // First, reveal the diagram content with fade-in
+      if (typeof window.revealDiagramContent === 'function') {
+        window.revealDiagramContent();
+      }
+
+      // Then animate divider elements after diagram fades in
       if (window.dividerElements) {
         window.setTimeout(() => {
           // First, animate the white line extending from right to left
@@ -10141,15 +11323,49 @@ clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
             }
             if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
           }, 850); // Wait for line animation (800ms) + small buffer
-        }, 200);
+        }, 1000); // Wait for diagram fade-in (1s) before starting divider animation
       }
     }
   }
   typeWriter();
 
-  console.log('Test 4: After IIFE');
+  // Move priority elements to top z-order (append to svg last)
+  setTimeout(() => {
+    const priorityElements = [
+      document.getElementById('cheques-to-apcs-line'),
+      document.getElementById('npp-to-adi-line')
+    ];
+    priorityElements.forEach(el => {
+      if (el) {
+        svg.appendChild(el);
+      }
+    });
 
+    // DE lines: visible lines stay at bottom (inserted first), hit areas at top (appended last)
+    // No repositioning needed - z-order is correct
 
+    // Move CLS neon green lines above turquoise SWIFT lines but below RITS circle
+    const bigGroupRef = document.getElementById('big-group');
+    const clsLines = [
+      document.getElementById('cls-aud-line-new'),
+      document.getElementById('cls-to-rits-line-final'),
+      document.getElementById('cls-s-curve')
+    ];
+    clsLines.forEach(el => {
+      if (el && bigGroupRef) {
+        svg.insertBefore(el, bigGroupRef);
+      }
+    });
+
+    // Move CLS green circle AFTER the neon lines so it renders on top
+    const clsGreenCircle = document.getElementById('cls-green-circle');
+    if (clsGreenCircle && bigGroupRef) {
+      svg.insertBefore(clsGreenCircle, bigGroupRef);
+    }
+  }, 100);
+
+  // Restore console.log before function ends
+  restoreConsole();
 }
 
 window.initializeDiagram = initializeDiagram;

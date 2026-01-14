@@ -5,16 +5,20 @@
 // Suppress console output - set to true to enable debug logging
 const DIAGRAM_DEBUG = false;
 const diagramLog = DIAGRAM_DEBUG ? console.log.bind(console) : () => {};
+const originalConsoleLog = console.log;
+
+// If debug is disabled, silence console.log globally so delayed timeouts don't spam output
+if (!DIAGRAM_DEBUG) {
+  console.log = () => {};
+}
 
 function initializeDiagram() {
-  // Override console.log for this function if debug is disabled
-  const originalConsoleLog = console.log;
-  if (!DIAGRAM_DEBUG) {
-    console.log = () => {};
-  }
-
-  // Restore console.log when function completes
-  const restoreConsole = () => { console.log = originalConsoleLog; };
+  // Restore console.log only when debug is enabled (keeps logging disabled otherwise)
+  const restoreConsole = () => {
+    if (DIAGRAM_DEBUG) {
+      console.log = originalConsoleLog;
+    }
+  };
   // ----- Compute precise positions and the arc path deterministically -----
   // Global constant for CLS sigmoid curve expansion
   const CLS_SIGMOID_EXPANSION = 1.5; // How much to expand horizontally (1.5 = 150% wider on each side)
@@ -304,6 +308,7 @@ function initializeDiagram() {
     const skipAnimation = () => {
       if (animationSkipped) return;
       animationSkipped = true;
+      firstStageStarted = true; // Mark first stage as started to prevent double triggering
 
       // Cancel all pending timeouts
       animationTimeouts.forEach(id => clearTimeout(id));
@@ -341,6 +346,14 @@ function initializeDiagram() {
       document.querySelectorAll('.diagram-hidden').forEach(el => {
         el.classList.add('diagram-visible');
       });
+
+      // Ensure all dot labels are visible when skipping the animation entirely
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
 
       // Remove animation class and enable interactivity
       document.body.classList.remove('animating-startup');
@@ -385,11 +398,11 @@ function initializeDiagram() {
     // Expose skip function globally
     window.skipAnimation = skipAnimation;
 
-    // Store reveal function for use after title types out - staged animation
-    window.revealDiagramContent = () => {
-      if (animationSkipped) return;
-
-      const stageDelay = 600; // ms between stages
+    // Function to start first stage independently
+    let firstStageStarted = false;
+    window.startFirstAnimationStage = () => {
+      if (animationSkipped || firstStageStarted) return;
+      firstStageStarted = true;
 
       // Clear any existing highlights and hide tooltip
       if (typeof window.clearHighlights === 'function') {
@@ -405,92 +418,122 @@ function initializeDiagram() {
         document.body.classList.add('animating-startup');
       }
 
-      // Stage 1: ESA box appears (RITS circle already visible)
-      animationTimeouts.push(setTimeout(() => {
-        if (animationSkipped) return;
-        const esaBox = document.getElementById('blue-dots-background');
-        if (esaBox) esaBox.classList.add('diagram-visible');
-      }, 0));
+      // Stage 1: ESA box, blue dots, their lines, and ESA labels appear together
+      ['blue-dots-background', 'blue-circles', 'blue-connecting-lines',
+       'dot-labels', 'esas-label-top', 'esas-label-bottom'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
 
-      // Stage 2: Blue ESA account dots AND their connecting lines appear together
-      animationTimeouts.push(setTimeout(() => {
-        if (animationSkipped) return;
-        ['blue-circles', 'blue-connecting-lines'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.add('diagram-visible');
-        });
-      }, stageDelay));
-
-      // Stage 3: All boxes (FSS circle, labels, arc, background elements)
-      animationTimeouts.push(setTimeout(() => {
-        if (animationSkipped) return;
-        ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.add('diagram-visible');
-        });
-        // Catch any remaining hidden elements except lines
-        document.querySelectorAll('.diagram-hidden:not(.diagram-visible):not(line):not(path)').forEach(el => {
-          // Skip anything that looks like a line
-          if (!el.id.includes('line') && !el.id.includes('connecting')) {
-            el.classList.add('diagram-visible');
+      // Only show the ESA labels until the other labels fade in during stage 2
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          if (child.classList && child.classList.contains('esas-box-label')) {
+            child.style.opacity = '1';
+          } else {
+            child.style.opacity = '0';
           }
         });
-      }, stageDelay * 2));
+      }
+    };
 
-      // Stage 4: All special lines (red, orange, admin, yellow) last
+    // Function to start second stage independently
+    let secondStageStarted = false;
+    window.startSecondAnimationStage = () => {
+      if (animationSkipped || secondStageStarted) return;
+      secondStageStarted = true;
+
+      // Stage 2: All boxes (FSS circle, other labels, arc, background elements)
+      ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc',
+       'adis-label', 'adis-label-duplicate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+
+      // Restore the rest of the dot labels now that the group is visible
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+    };
+
+    // Function to start third stage independently
+    let thirdStageStarted = false;
+    window.startThirdAnimationStage = () => {
+      if (animationSkipped || thirdStageStarted) return;
+      thirdStageStarted = true;
+
+      // Stage 3: All special lines (red, orange, admin, yellow) and CLS green circle last
+      ['red-connecting-lines', 'orange-connecting-lines',
+       'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
+       // Individual lines appended directly to SVG
+       'npp-to-adi-line', 'cheques-to-apcs-line', 'cheques-to-apcs-line-hit-area',
+       'cls-aud-line-new', 'cls-to-rits-line-final', 'cls-s-curve', 'cls-s-curve-group',
+       'cls-green-circle', // Add only the green circle here with the neon lines
+       'swift-to-circle-curves', 'cls-aud-rect', 'directentry-to-adi-line', 'maroon-horizontal-branch',
+       'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+      // Now catch any remaining lines
+      document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
+        el.classList.add('diagram-visible');
+      });
+    };
+
+    // Store reveal function for use after title types out - cleanup and finalization
+    window.revealDiagramContent = () => {
+      if (animationSkipped) return;
+
+      // Start all stages if not already started (in case title typing was skipped)
+      if (!firstStageStarted) {
+        window.startFirstAnimationStage();
+      }
+      if (!secondStageStarted) {
+        window.startSecondAnimationStage();
+      }
+      if (!thirdStageStarted) {
+        window.startThirdAnimationStage();
+      }
+
+      // Re-enable tooltips and setup after animation completes (wait a bit for stages to finish)
       animationTimeouts.push(setTimeout(() => {
         if (animationSkipped) return;
-        ['red-connecting-lines', 'orange-connecting-lines',
-         'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
-         // Individual lines appended directly to SVG
-         'npp-to-adi-line', 'cheques-to-apcs-line', 'cheques-to-apcs-line-hit-area',
-         'cls-aud-line-new', 'cls-to-rits-line-final', 'cls-s-curve', 'cls-s-curve-group',
-         'swift-to-circle-curves', 'cls-aud-rect', 'directentry-to-adi-line', 'maroon-horizontal-branch',
-         'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.add('diagram-visible');
-        });
-        // Now catch any remaining lines
-        document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
-          el.classList.add('diagram-visible');
-        });
+        animationSkipped = true; // Mark as done so skip doesn't run again
+        document.body.classList.remove('animating-startup');
 
-        // Re-enable tooltips after animation completes (add extra delay for safety)
-        animationTimeouts.push(setTimeout(() => {
-          if (animationSkipped) return;
-          animationSkipped = true; // Mark as done so skip doesn't run again
-          document.body.classList.remove('animating-startup');
+        // Remove skip handlers
+        document.removeEventListener('click', skipAnimation);
+        document.removeEventListener('keydown', skipOnKey);
 
-          // Remove skip handlers
-          document.removeEventListener('click', skipAnimation);
-          document.removeEventListener('keydown', skipOnKey);
-
-          // Now set up all the interactive elements that were skipped during animation
-          const interactiveElements = document.querySelectorAll('[data-interactive-id]');
-          interactiveElements.forEach(element => {
-            const elementId = element.getAttribute('data-interactive-id');
-            if (elementId && typeof window.makeInteractive === 'function') {
-              // Only set up interactivity if not already done
-              if (!element.style.cursor || element.style.cursor !== 'pointer') {
-                element.style.cursor = 'pointer';
-                // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
-                if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
-                  const tagName = element.tagName.toLowerCase();
-                  if (tagName === 'path' || tagName === 'line') {
-                    element.style.pointerEvents = 'stroke';
-                  } else {
-                    element.style.pointerEvents = 'all';
-                  }
+        // Now set up all the interactive elements that were skipped during animation
+        const interactiveElements = document.querySelectorAll('[data-interactive-id]');
+        interactiveElements.forEach(element => {
+          const elementId = element.getAttribute('data-interactive-id');
+          if (elementId && typeof window.makeInteractive === 'function') {
+            // Only set up interactivity if not already done
+            if (!element.style.cursor || element.style.cursor !== 'pointer') {
+              element.style.cursor = 'pointer';
+              // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
+              if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
+                const tagName = element.tagName.toLowerCase();
+                if (tagName === 'path' || tagName === 'line') {
+                  element.style.pointerEvents = 'stroke';
+                } else {
+                  element.style.pointerEvents = 'all';
                 }
-                element.addEventListener('mouseenter', window.handleMouseEnter);
-                element.addEventListener('mousemove', window.handleMouseMove);
-                element.addEventListener('mouseleave', window.handleMouseLeave);
-                element.addEventListener('click', window.handleClick);
               }
+              element.addEventListener('mouseenter', window.handleMouseEnter);
+              element.addEventListener('mousemove', window.handleMouseMove);
+              element.addEventListener('mouseleave', window.handleMouseLeave);
+              element.addEventListener('click', window.handleClick);
             }
-          });
-        }, 1000));
-      }, stageDelay * 3));
+          }
+        });
+      }, 1500)); // Wait 1.5 seconds after title completes for all stages to finish
     };
 
     const updateNppToAdiLine = () => {
@@ -804,7 +847,7 @@ function initializeDiagram() {
       else if (i === 99) {
         // CLS dot - Non-ADIs box
         console.log('Processing CLS dot (i=99)');
-        strokeColor = '#00FF33'; // Neon green border for CLS
+        strokeColor = '#00FF33'; // Neon green border for CLS (matching RITS line)
         blueRadius = smallCircleRadius * 10.8; // Reduced by 10%
       }
 
@@ -923,7 +966,7 @@ function initializeDiagram() {
       // For CLS dot (i === 99), add white border first, then green border on top
       let circle;
       if (i === 99) {
-        // Create inner white border circle
+        // Create inner white border circle (this stays with blue dots in stage 1)
         const whiteCircle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
           fill: fillColor,
           stroke: '#ffffff', // White border
@@ -933,21 +976,21 @@ function initializeDiagram() {
         if (typeof makeInteractive === 'function') {
           makeInteractive(whiteCircle, 'cls-circle');
         }
-        circlesGroup.appendChild(whiteCircle);
+        circlesGroup.appendChild(whiteCircle); // Add to blue circles group for stage 1
 
-        // Create outer green border circle
-        // White stroke 0.75 extends from R-0.375 to R+0.375
-        // Green stroke 6 should sit just outside, so radius = R + 0.375 + 3 = R + 3.375
+        // Create outer green border circle separately for stage 3
         circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius + 3.375, {
           fill: 'none', // Transparent fill
           stroke: strokeColor, // Green border
           strokeWidth: borderWidth // Thick green border
         });
+        circle.setAttribute('id', 'cls-green-circle');
+        circle.classList.add('diagram-hidden'); // Hide initially for animation
         // Also make outer ring respond to hover
         if (typeof makeInteractive === 'function') {
           makeInteractive(circle, 'cls-circle');
         }
-        circlesGroup.appendChild(circle);
+        svg.appendChild(circle); // Add directly to SVG for z-order control
       } else {
         // Normal circle for all other dots
         circle = createStyledCircle(actualCircleX, actualCircleY, blueRadius, {
@@ -988,7 +1031,7 @@ function initializeDiagram() {
         }
       }
 
-      // Add "CLS" text to last dot
+      // Add "CLS" text to last dot (add to blue circles group for stage 1)
       if (i === 99) {
         const text = createStyledText(actualCircleX, actualCircleY, 'CLS', {
           fill: '#013844',
@@ -997,7 +1040,7 @@ function initializeDiagram() {
         });
         // Don't let text block hover on the CLS circle
         text.style.pointerEvents = 'none';
-        circlesGroup.appendChild(text);
+        circlesGroup.appendChild(text); // Add to blue circles group for stage 1
 
         // REMOVED: Straight line coming from CLS dot
         // const clsLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1151,8 +1194,10 @@ function initializeDiagram() {
         labelsGroup.appendChild(swiftRectText);
 
         // Make SWIFT PDS box and text interactive
-        makeInteractive(swiftRect, 'swift-pds-rect');
-        makeInteractive(swiftRectText, 'swift-pds-rect');
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(swiftRect, 'swift-pds-rect');
+          makeInteractive(swiftRectText, 'swift-pds-rect');
+        }
 
         window.swiftPdsTextData = {
           element: swiftRectText,
@@ -1309,8 +1354,10 @@ function initializeDiagram() {
         window.swiftHvcsElements.hvcsLabel = hvcsLabel;
 
         // Make SWIFT HVCS box and label interactive
-        makeInteractive(boundingBox, 'swift-hvcs-box');
-        makeInteractive(hvcsLabel, 'swift-hvcs-box');
+        if (window.makeInteractive) {
+          window.makeInteractive(boundingBox, 'swift-hvcs-box');
+          window.makeInteractive(hvcsLabel, 'swift-hvcs-box');
+        }
 
         // Make pacs boxes interactive
         pacsElements.forEach((elem, idx) => {
@@ -7348,7 +7395,7 @@ function initializeDiagram() {
           // Use neon yellow for CLS AUD line (index 3)
           let strokeColor;
           if (i === 3) {
-            strokeColor = '#00FF33'; // Neon green for CLS AUD
+            strokeColor = '#00FF33'; // Neon green for CLS AUD (matching RITS line)
           } else if (i >= 4) {
             strokeColor = austraclearLineColor;
           } else {
@@ -7487,7 +7534,7 @@ function initializeDiagram() {
                          `L ${pathEndX} ${turnY2}`; // Go right under SWIFT HVCS
 
           clsPath.setAttribute('d', pathData);
-          clsPath.setAttribute('stroke', '#00FF33'); // Neon green
+          clsPath.setAttribute('stroke', '#00FF33'); // Neon green (matching RITS line)
           clsPath.setAttribute('stroke-width', '6');
           clsPath.setAttribute('fill', 'none');
           clsPath.setAttribute('stroke-linecap', 'round');
@@ -8338,7 +8385,10 @@ function initializeDiagram() {
           fontSize: '14' // Smaller than RBA text (16)
         }
       );
-      labelsGroup.appendChild(esasText);
+      esasText.setAttribute('id', 'esas-label-top');
+      esasText.classList.add('esas-box-label');
+      esasText.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(esasText); // Add directly to SVG, not to labelsGroup
 
       // Add second ESAs label to bottom left corner of grey rectangle
       const rectHeight = (maxY - minY) + topPadding + bottomPadding + dotRadius * 2;
@@ -8352,7 +8402,10 @@ function initializeDiagram() {
           fontSize: '14' // Same as top label
         }
       );
-      labelsGroup.appendChild(esasText2);
+      esasText2.setAttribute('id', 'esas-label-bottom');
+      esasText2.classList.add('esas-box-label');
+      esasText2.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(esasText2); // Add directly to SVG, not to labelsGroup
 
       // Make ESA box interactive
       if (typeof makeInteractive === 'function') {
@@ -8944,7 +8997,8 @@ function initializeDiagram() {
          }
        );
        adisText.setAttribute('id', 'adis-label');
-       labelsGroup.appendChild(adisText);
+       adisText.classList.add('diagram-hidden'); // Hide initially for animation
+       svg.appendChild(adisText); // Add directly to SVG, not to labelsGroup
         console.log('ADIs label coords:', {
           rectX: adiRectX,
           rectWidth: adiRectWidth,
@@ -10488,9 +10542,37 @@ if (typeof makeInteractive === 'function') {
 const lineStartX = pacsBoxX + pacsBoxWidth;
 const lineStartY = adjustedBsctY + pacsBoxHeight / 2;
 
-// End at left edge of purple NPP box at BSCT height (horizontal line)
-const lineEndX = nppX;
+// Debug: Let's find what boxes we have
+const nppBiBox = document.getElementById('npp-box');
+const purpleNppBox = document.getElementById('npp-purple-box');
+
+console.log('BSCT to NPP BI connection debug:', {
+  BSCT: { x: pacsBoxX, width: pacsBoxWidth, rightEdge: lineStartX },
+  purpleBox: purpleNppBox ? {
+    x: parseFloat(purpleNppBox.getAttribute('x')),
+    width: parseFloat(purpleNppBox.getAttribute('width')),
+    rightEdge: parseFloat(purpleNppBox.getAttribute('x')) + parseFloat(purpleNppBox.getAttribute('width'))
+  } : 'not found',
+  nppBiBox: nppBiBox ? {
+    x: parseFloat(nppBiBox.getAttribute('x')),
+    width: parseFloat(nppBiBox.getAttribute('width')),
+    rightEdge: parseFloat(nppBiBox.getAttribute('x')) + parseFloat(nppBiBox.getAttribute('width'))
+  } : 'not found'
+});
+
+// The line should connect BSCT (inside purple box) to NPP BI box (should be on the right)
+// If NPP BI box not found, that's an error - don't draw line to purple box edge
+if (!nppBiBox) {
+  console.error('NPP BI box not found! Cannot draw BSCT to NPP BI line correctly');
+}
+const lineEndX = nppBiBox ? parseFloat(nppBiBox.getAttribute('x')) : lineStartX + 100; // If not found, extend line rightward as placeholder
 const lineEndY = lineStartY; // Same Y for horizontal line
+
+console.log('Line endpoints:', {
+  start: { x: lineStartX, y: lineStartY },
+  end: { x: lineEndX, y: lineEndY },
+  nppBiFound: !!nppBiBox
+});
 
 const connectingLine = createStyledLine(
   lineStartX, lineStartY,
@@ -10508,8 +10590,8 @@ if (window.makeInteractive) {
   window.makeInteractive(connectingLine, 'new-pacs-to-npp-line');
 }
 
-// Insert line before labels so it appears behind
-svg.insertBefore(connectingLine, labelsGroup);
+// Append line to svg so it appears on top of boxes
+svg.appendChild(connectingLine);
 
 console.log('Created new pacs-style box and bounding box:', {
   boundingBox: { x: newBoundingBoxX, y: boundingBoxY, width: hvcsBoxWidth, height: newBoundingBoxHeight },
@@ -10858,10 +10940,20 @@ if (window.makeInteractive) {
         }
       }
     }
-    const endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
+    let endX = window.clsEndpoints.clsCircleEdgeX !== undefined ? Number(window.clsEndpoints.clsCircleEdgeX)
                  : Number(window.clsEndpoints.clsCircleCenterX);
-    const endY = window.clsEndpoints.clsCircleEdgeY !== undefined ? Number(window.clsEndpoints.clsCircleEdgeY)
+    let endY = window.clsEndpoints.clsCircleEdgeY !== undefined ? Number(window.clsEndpoints.clsCircleEdgeY)
                  : Number(window.clsEndpoints.clsCircleCenterY);
+
+    // Shorten the line by 4 pixels to prevent overlap with CLS circle
+    const shortenDistance = 4;
+    if (window.clsEndpoints.clsCircleCenterX !== undefined) {
+      const centerX = Number(window.clsEndpoints.clsCircleCenterX);
+      const centerY = Number(window.clsEndpoints.clsCircleCenterY);
+      const angle = Math.atan2(endY - centerY, endX - centerX);
+      endX = endX + shortenDistance * Math.cos(angle); // Move endpoint away from circle
+      endY = endY + shortenDistance * Math.sin(angle);
+    }
 
     if (Number.isFinite(startX) && Number.isFinite(startY) && Number.isFinite(endX) && Number.isFinite(endY)) {
       const dx = endX - startX;
@@ -11108,7 +11200,9 @@ if (window.makeInteractive) {
           fontSize: '24' // Slightly bigger
         }
       );
-      labelsGroup.appendChild(adisText);
+      adisText.setAttribute('id', 'adis-label-duplicate'); // Give different ID to avoid conflict
+      adisText.classList.add('diagram-hidden'); // Hide initially for animation
+      svg.appendChild(adisText); // Add directly to SVG, not to labelsGroup
       if (typeof makeInteractive === 'function') {
         makeInteractive(adisText, 'adi-box');
       }
@@ -11174,6 +11268,21 @@ if (window.makeInteractive) {
     if (charIndex < fullTitle.length) {
       titleText.textContent += fullTitle.charAt(charIndex);
       charIndex += 1;
+
+      // Start animation stages at specific points during title typing
+      // Stage 1 at 25%
+      if (charIndex === Math.floor(fullTitle.length * 0.25) && typeof window.startFirstAnimationStage === 'function') {
+        window.startFirstAnimationStage();
+      }
+      // Stage 2 at 50%
+      if (charIndex === Math.floor(fullTitle.length * 0.50) && typeof window.startSecondAnimationStage === 'function') {
+        window.startSecondAnimationStage();
+      }
+      // Stage 3 at 75%
+      if (charIndex === Math.floor(fullTitle.length * 0.75) && typeof window.startThirdAnimationStage === 'function') {
+        window.startThirdAnimationStage();
+      }
+
       setTimeout(typeWriter, typeSpeed);
     } else {
       titleText.textContent = fullTitle;
@@ -11247,6 +11356,12 @@ if (window.makeInteractive) {
         svg.insertBefore(el, bigGroupRef);
       }
     });
+
+    // Move CLS green circle AFTER the neon lines so it renders on top
+    const clsGreenCircle = document.getElementById('cls-green-circle');
+    if (clsGreenCircle && bigGroupRef) {
+      svg.insertBefore(clsGreenCircle, bigGroupRef);
+    }
   }, 100);
 
   // Restore console.log before function ends
