@@ -3,7 +3,7 @@
  */
 
 // Suppress console output - set to true to enable debug logging
-const DIAGRAM_DEBUG = false;
+const DIAGRAM_DEBUG = true;
 const diagramLog = DIAGRAM_DEBUG ? console.log.bind(console) : () => {};
 const originalConsoleLog = console.log;
 
@@ -419,26 +419,24 @@ function initializeDiagram() {
       }
 
       // Stage 1: ESA box, blue dots (including RBA), their lines, and ESA labels appear together
-      // REMOVED dot-labels from here - it will be added in Stage 2 instead
       ['blue-dots-background', 'blue-circles', 'blue-connecting-lines',
        'rba-blue-dot', // RBA's blue dot appears with other dots
-       'esas-label-top', 'esas-label-bottom'].forEach(id => {
+       'dot-labels', 'esas-label-top', 'esas-label-bottom'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('diagram-visible');
       });
 
-      // COMMENTED OUT - dot-labels group is not shown in Stage 1 anymore
       // Only show the ESA labels until the other labels fade in during stage 2
-      // const dotLabelsGroup = document.getElementById('dot-labels');
-      // if (dotLabelsGroup) {
-      //   Array.from(dotLabelsGroup.children).forEach(child => {
-      //     if (child.classList && child.classList.contains('esas-box-label')) {
-      //       child.style.opacity = '1';
-      //     } else {
-      //       child.style.opacity = '0';
-      //     }
-      //   });
-      // }
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          if (child.classList && child.classList.contains('esas-box-label')) {
+            child.style.opacity = '1';
+          } else {
+            child.style.opacity = '0';
+          }
+        });
+      }
     };
 
     // Function to start second stage independently
@@ -447,26 +445,8 @@ function initializeDiagram() {
       if (animationSkipped || secondStageStarted) return;
       secondStageStarted = true;
 
-      // Debug: Check if specific elements exist
-      console.warn('=== Stage 2 Starting - Checking for problem elements ===');
-      console.warn('  rba-label exists?', !!document.getElementById('rba-label'));
-      console.warn('  opa-box exists?', !!document.getElementById('opa-box'));
-      console.warn('  non-adis-label exists?', !!document.getElementById('non-adis-label'));
-
-      // Ensure dot-labels group is visible - FORCE IT
-      const dotLabelsGroup = document.getElementById('dot-labels');
-      if (dotLabelsGroup) {
-        dotLabelsGroup.classList.add('diagram-visible');
-        dotLabelsGroup.classList.remove('diagram-hidden');
-        dotLabelsGroup.style.opacity = '1 !important';
-        dotLabelsGroup.style.display = '';
-        // Force inline style to override everything
-        dotLabelsGroup.setAttribute('style', 'opacity: 1 !important; display: inline;');
-        console.warn('FORCED dot-labels opacity to 1');
-      }
-
-      // Stage 2: FSS circle, ADI/Non-ADI boxes, RBA/OPA elements (NO ARC)
-      ['small-group', 'small-label', 'dot-labels',
+      // Stage 2: FSS circle, arc, ADI/Non-ADI boxes, RBA/OPA elements
+      ['small-group', 'small-label', 'dot-labels', 'enclosing-arc',
        'adi-box', 'non-adis-box', // ADI and Non-ADI boxes (note: non-adis with 's')
        'adis-label', 'adis-label-duplicate', 'non-adis-label', // ADI and Non-ADI labels
        'rba-black-circle', 'rba-label', // RBA circle and label
@@ -475,37 +455,16 @@ function initializeDiagram() {
         const el = document.getElementById(id);
         if (el) {
           el.classList.add('diagram-visible');
-          el.classList.remove('diagram-hidden'); // Explicitly remove hidden class
-          el.style.opacity = '1'; // Force opacity to 1 (override any inline styles from Stage 1)
-          el.style.display = ''; // Clear any display:none
-          if (id === 'rba-label' || id === 'opa-box' || id === 'non-adis-label') {
-            console.warn(`  ✓ Found and revealed: ${id}`);
-            // Check actual visibility
-            const styles = window.getComputedStyle(el);
-            console.warn(`    - display: ${styles.display}, opacity: ${styles.opacity}, visibility: ${styles.visibility}`);
-            console.warn(`    - classList: ${el.classList.toString()}`);
-            console.warn(`    - parent: ${el.parentElement ? el.parentElement.id : 'no parent'}`);
-
-            // Check if parent is visible
-            if (el.parentElement) {
-              const parentStyles = window.getComputedStyle(el.parentElement);
-              console.warn(`    - parent display: ${parentStyles.display}, opacity: ${parentStyles.opacity}`);
-              console.warn(`    - parent classList: ${el.parentElement.classList.toString()}`);
-            }
-          }
         } else {
-          console.warn(`  ✗ NOT FOUND: ${id}`);
+          console.warn(`Stage 2: Element with id '${id}' not found`);
         }
       });
 
       // Restore the rest of the dot labels now that the group is visible
-      // dotLabelsGroup was already retrieved above
+      const dotLabelsGroup = document.getElementById('dot-labels');
       if (dotLabelsGroup) {
         Array.from(dotLabelsGroup.children).forEach(child => {
-          // Don't force opacity on elements that have diagram-hidden class
-          if (!child.classList.contains('diagram-hidden')) {
-            child.style.opacity = '1';
-          }
+          child.style.opacity = '1';
         });
       }
     };
@@ -1149,7 +1108,6 @@ function initializeDiagram() {
         text.setAttribute('id', 'rba-label');
         text.classList.add('diagram-hidden'); // Hide initially for animation
         labelsGroup.appendChild(text);
-        console.warn('Created RBA label at position:', actualCircleX + blackCircleRadius + 5, actualCircleY);
 
         // Make RBA label interactive
         if (typeof makeInteractive === 'function') {
@@ -6845,8 +6803,8 @@ function initializeDiagram() {
         if (window.makeInteractive) {
           window.makeInteractive(clearingToAsxPath1, 'clearing-to-asxb-line');
         }
-        // Append to admin-connecting-lines group so it renders under the ASXB box
-        adminLinesGroup.appendChild(clearingToAsxPath1);
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath1);
 
         // Create second yellow line with offset for double line effect
         const pathData2 = `M ${clearingRightX} ${clearingCenterY + 3}
@@ -6862,8 +6820,8 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('id', 'clearing-to-asxb-line-1');
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
-        // Append to admin-connecting-lines group so it renders under the ASXB box
-        adminLinesGroup.appendChild(clearingToAsxPath2);
+        // Append to SVG so lines render on top of the ASX white border
+        svg.appendChild(clearingToAsxPath2);
 
         // Add hit area for clearing-to-asxb double line (center path with wide stroke)
         const clearingHitPathData = `M ${clearingRightX} ${clearingCenterY + 1.5}
@@ -7999,9 +7957,9 @@ function initializeDiagram() {
       labelsGroup.appendChild(bdfLabel);
 
       // Add OPA box to the left of RBA dot
-      console.warn('Checking for OPA box creation: dotPositions exists?', !!window.dotPositions, 'dotPositions[0] exists?', !!(window.dotPositions && window.dotPositions[0]));
+      console.log('Checking for OPA box creation: dotPositions exists?', !!window.dotPositions, 'dotPositions[0] exists?', !!(window.dotPositions && window.dotPositions[0]));
       if (window.dotPositions && window.dotPositions[0]) {
-        console.warn('Creating OPA box with RBA position:', window.dotPositions[0]);
+        console.log('Creating OPA box with position:', window.dotPositions[0]);
         const opaBoxSize = 45; // 25% smaller than BDF box (60 * 0.75 = 45)
         const rbaX = window.dotPositions[0].x;
         const rbaY = window.dotPositions[0].y;
@@ -8034,7 +7992,6 @@ function initializeDiagram() {
         opaSquare.setAttribute('id', 'opa-box');
         opaSquare.classList.add('diagram-hidden'); // Hide initially for animation
         labelsGroup.appendChild(opaSquare);
-        console.warn('Created OPA box at position:', opaX - opaBoxSize/2, opaY - opaBoxSize/2);
 
         // Make OPA box interactive
         if (typeof makeInteractive === 'function') {
@@ -8244,7 +8201,7 @@ function initializeDiagram() {
 
       // Add invisible hit area for easier hovering (covers entire double/triple line)
       if (lineId) {
-        const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 10 : offsetMagnitude * 2 + 8;
+        const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 8 : offsetMagnitude * 2 + 8;
         const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         hitArea.setAttribute('x1', startX.toFixed(2));
         hitArea.setAttribute('y1', startY.toFixed(2));
@@ -8350,7 +8307,7 @@ function initializeDiagram() {
 
     // Add invisible hit area for curved double lines (follows center path with wide stroke)
     if (lineId) {
-      const hitAreaWidth = isPinkColor ? offsetMagnitude * 3 + 12 : offsetMagnitude * 2 + 10;
+      const hitAreaWidth = isPinkColor ? offsetMagnitude * 2 + 10 : offsetMagnitude * 2 + 10;
       const hitD = 'M ' + startX.toFixed(2) + ' ' + startY.toFixed(2) +
                    ' C ' + control1X.toFixed(2) + ' ' + control1Y.toFixed(2) + ', ' +
                    control2X.toFixed(2) + ' ' + control2Y.toFixed(2) + ', ' +
@@ -10086,9 +10043,7 @@ function initializeDiagram() {
           }
         );
         nonADIsText.setAttribute('id', 'non-adis-label');
-        nonADIsText.classList.add('diagram-hidden'); // Hide initially for animation
         labelsGroup.appendChild(nonADIsText);
-        console.warn('Created Non-ADIs label');
         if (typeof makeInteractive === 'function') {
           makeInteractive(nonADIsText, 'non-adis-box');
         }
