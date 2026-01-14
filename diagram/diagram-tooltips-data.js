@@ -74,27 +74,15 @@ const tooltipContent = {
   'foreign-branches-box': {
     title: 'Foreign Branches',
     subtitle: 'Australian branches of foreign banks',
-    description: 'Branches of overseas banks operating in Australia',
-    details: [
-      'Not separate legal entities from parent bank',
-      'Capital and liquidity backed by parent',
-      'Primarily wholesale banking operations',
-      'Subject to APRA supervision'
-    ],
-    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+    description: 'Branches of overseas banks operating in Australia under APRA supervision',
+    smallStyle: true
   },
 
   'foreign-subsidiaries-box': {
     title: 'Foreign Subsidiaries',
     subtitle: 'Australian subsidiaries of foreign banks',
-    description: 'Locally incorporated subsidiaries of overseas banks',
-    details: [
-      'Separate legal entities from parent bank',
-      'Must meet Australian capital requirements',
-      'Offer retail and wholesale banking services',
-      'Supervised by APRA as Australian ADIs'
-    ],
-    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
+    description: 'Locally incorporated subsidiaries of overseas banks supervised by APRA',
+    smallStyle: true
   },
 
   'specialised-adis-box': {
@@ -1602,12 +1590,14 @@ const tooltipContent = {
   'directentry-to-adi-line': {
     title: 'DE (ABA) File Format',
     description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true
+    lineStyle: true,
+    color: '#ff073a' // Explicit red color for hit area tooltips
   },
   'maroon-horizontal-branch': {
     title: 'DE (ABA) File Format',
     description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true
+    lineStyle: true,
+    color: '#ff073a' // Explicit red color for hit area tooltips
   },
   'becn-to-becs-line': {
     title: 'DE (ABA) File Format',
@@ -1625,13 +1615,13 @@ const tooltipContent = {
     title: 'APCS Truncated Presentment',
     description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
     lineStyle: true,
-    colorFrom: 'cheques-to-apcs-line-visible'
+    color: '#e5e7eb'
   },
   'osko-to-adi-line': {
     title: 'APCS Truncated Presentment',
     description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
     lineStyle: true,
-    colorFrom: 'osko-to-adi-line-visible'
+    color: '#e5e7eb'
   },
 
   // LVSS FSI XML lines - grey double lines through LVSS circle
@@ -1755,13 +1745,13 @@ const tooltipContent = {
     title: 'ePAL Settlement File Format',
     description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
     lineStyle: true,
-    colorFrom: 'eftpos-left-line-visible'
+    color: 'rgb(158,138,239)'
   },
   'eftpos-left-line-horizontal': {
     title: 'ePAL Settlement File Format',
     description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
     lineStyle: true,
-    colorFrom: 'eftpos-left-line-horizontal-visible'
+    color: 'rgb(158,138,239)'
   },
 
   // Mastercard IPM lines - pinkish color rgb(255,120,120)
@@ -1769,13 +1759,13 @@ const tooltipContent = {
     title: 'Mastercard IPM File Format',
     description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
     lineStyle: true,
-    colorFrom: 'mastercard-left-line-visible'
+    color: 'rgb(255,120,120)'
   },
   'mastercard-left-line-horizontal': {
     title: 'Mastercard IPM File Format',
     description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
     lineStyle: true,
-    colorFrom: 'mastercard-left-line-horizontal-visible'
+    color: 'rgb(255,120,120)'
   },
 
   // IAC stack lines - coming from IAC box
@@ -1783,25 +1773,25 @@ const tooltipContent = {
     title: 'Visa BASE II File Format',
     description: 'Fixed-length clearing file format using 168-byte Transaction Component Records (TCRs) for Visa transaction clearing and settlement',
     lineStyle: true,
-    colorFrom: 'direct-entry-stack-line-yellow-visible'
+    color: '#FFA500'
   },
   'direct-entry-stack-line-blue': {
     title: 'Proprietary Scheme Formats',
     description: 'Card scheme-specific clearing formats used by AMEX, UnionPay, Diners Club and other international card networks',
     lineStyle: true,
-    colorFrom: 'direct-entry-stack-line-blue-visible'
+    color: '#5AC8FA'
   },
   'direct-entry-stack-line-green': {
     title: 'Health Claims Protocols',
     description: 'Electronic claiming via EFTPOS terminals including Medicare Easyclaim, ECLIPSE (Electronic Claim Lodgement and Information Processing Service Environment) for hospital claims, HICAPS (Health Industry Claims and Payments Service) for private health insurers, and government schemes such as the Department of Veterans\' Affairs, Transport Accident Commission, WorkSafe, and National Disability Insurance Scheme',
     lineStyle: true,
-    colorFrom: 'direct-entry-stack-line-green-visible'
+    color: '#32cd32'
   },
   'direct-entry-stack-line-brown': {
     title: 'ATM Interchange',
     description: 'ATM transactions use AS2805 (Australian Standard for Electronic Funds Transfer) messaging. Cleared through the Issuers and Acquirers Community (IAC) with deferred net settlement in RITS',
     lineStyle: true,
-    colorFrom: 'direct-entry-stack-line-brown-visible'
+    color: '#C08552'
   },
 
   // E-conveyancing lines to ADIs
@@ -1809,13 +1799,13 @@ const tooltipContent = {
     title: 'Sympli NECDS (ELNO)',
     description: 'National Electronic Conveyancing Data Standard messages from Sympli (Electronic Lodgment Network Operator) for property settlement with financial institutions',
     lineStyle: true,
-    colorFrom: 'sympli-to-adis-line-visible'
+    color: 'rgb(239,136,51)'
   },
   'pexa-to-adis-line': {
     title: 'PEXA NECDS (ELNO)',
     description: 'National Electronic Conveyancing Data Standard messages from PEXA (Electronic Lodgment Network Operator) for property settlement with financial institutions',
     lineStyle: true,
-    colorFrom: 'pexa-to-adis-line-visible'
+    color: 'rgb(179,46,161)'
   }
 };
 

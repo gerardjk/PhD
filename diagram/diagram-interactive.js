@@ -119,31 +119,52 @@ function handleTooltipMouseLeave(event) {
  * Extract the primary color from an element (fill or stroke)
  */
 function getElementColor(elementId, event) {
-  // Try to find the element
-  let element = document.querySelector(`[data-interactive-id="${elementId}"]`);
-  if (!element && event && event.currentTarget) {
-    element = event.currentTarget;
-  }
-  if (!element) {
-    element = document.getElementById(elementId);
-  }
-  if (!element) return null;
+  // Helper to extract non-transparent color from an element
+  const extractColor = (el) => {
+    if (!el) return null;
 
-  // For groups, look at the first child with a fill/stroke
-  if (element.tagName.toLowerCase() === 'g') {
-    const colorChild = element.querySelector('circle, rect, path');
-    if (colorChild) element = colorChild;
+    // For groups, look at the first child with a fill/stroke
+    if (el.tagName.toLowerCase() === 'g') {
+      const colorChild = el.querySelector('circle, rect, path');
+      if (colorChild) el = colorChild;
+    }
+
+    // Get fill or stroke color
+    let color = el.getAttribute('fill');
+    if (!color || color === 'none' || color === 'transparent') {
+      color = el.getAttribute('stroke');
+    }
+
+    // Return null if still transparent/none
+    if (!color || color === 'none' || color === 'transparent') {
+      return null;
+    }
+
+    return color;
+  };
+
+  // Try to find ALL elements with matching data-interactive-id
+  // This handles cases where both hit area (transparent) and visible line share the same ID
+  const elements = document.querySelectorAll(`[data-interactive-id="${elementId}"]`);
+  for (const el of elements) {
+    const color = extractColor(el);
+    if (color) return color;
   }
 
-  // Get fill or stroke color
-  let color = element.getAttribute('fill') || element.getAttribute('stroke');
-
-  // Skip transparent/none fills, try stroke instead
-  if (!color || color === 'none' || color === 'transparent') {
-    color = element.getAttribute('stroke');
+  // Fallback: try event target
+  if (event && event.currentTarget) {
+    const color = extractColor(event.currentTarget);
+    if (color) return color;
   }
 
-  return color;
+  // Fallback: try by ID
+  const elementById = document.getElementById(elementId);
+  if (elementById) {
+    const color = extractColor(elementById);
+    if (color) return color;
+  }
+
+  return null;
 }
 
 /**
@@ -310,10 +331,16 @@ function showTooltip(elementId, event, originalElementId) {
   const isEsaDot = !isRbaElement && (colorElementId.startsWith('dot-') || colorElementId.startsWith('yellow-dot-'));
   const isEsaLine = colorElementId.startsWith('blue-line-') || colorElementId.startsWith('yellow-line-');
 
-  // Use colorFrom property if specified, otherwise use the color element ID
+  // Use explicit color if specified, otherwise look up from element
   // ESA dots and lines use their own color (so yellow dots/lines show yellow, not blue)
-  const colorSourceId = content.colorFrom || ((isEsaDot || isEsaLine) ? colorElementId : tooltipSourceId);
-  const elementColor = getElementColor(colorSourceId, event);
+  let elementColor;
+  if (content.color) {
+    // Explicit color specified in tooltip data
+    elementColor = content.color;
+  } else {
+    const colorSourceId = content.colorFrom || ((isEsaDot || isEsaLine) ? colorElementId : tooltipSourceId);
+    elementColor = getElementColor(colorSourceId, event);
+  }
 
   // Line style: light background with dark text
   const isLineStyle = content.lineStyle === true;
@@ -465,6 +492,7 @@ function showTooltip(elementId, event, originalElementId) {
   tooltipWrapper.style.left = x + 'px';
   tooltipWrapper.style.top = y + 'px';
   tooltipWrapper.style.opacity = '1';
+  tooltipWrapper.style.pointerEvents = 'auto';  // Re-enable pointer events when visible
 }
 
 /**
@@ -474,6 +502,7 @@ function hideTooltip() {
   const tooltip = document.getElementById('diagram-tooltip');
   if (tooltip) {
     tooltip.style.opacity = '0';
+    tooltip.style.pointerEvents = 'none';  // Prevent blocking hover events when hidden
   }
   tooltipIsSticky = false;
   stickyElementId = null;
