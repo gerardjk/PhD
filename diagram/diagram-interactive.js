@@ -305,7 +305,7 @@ function showTooltip(elementId, event, originalElementId) {
   const tooltipContentElement = isFirefoxWrapper ? document.getElementById('diagram-tooltip-content') : tooltipWrapper;
 
   // Check if this element has a tooltipFrom relationship (show another element's tooltip)
-  const relationship = window.diagramRelationships?.[elementId];
+  const relationship = window.elementRelationships?.[elementId];
   let tooltipSourceId = relationship?.tooltipFrom || elementId;
 
   // Map blue-line-X and yellow-line-X to their corresponding dot-X for tooltip content
@@ -545,7 +545,7 @@ function highlightElement(elementId) {
           if (!circle.dataset.originalFilter) {
             circle.dataset.originalFilter = circle.style.filter || 'none';
           }
-          circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+          circle.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
           currentHighlightedElements.add(circle);
           matchingCircles.push(circle);
         }
@@ -653,8 +653,34 @@ function highlightElement(elementId) {
 
     if (tagName === 'rect') {
       element.style.filter = 'brightness(1.3) drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 5px rgba(255,255,255,0.8))';
-    } else if (tagName === 'circle' || tagName === 'path' || tagName === 'line') {
-      element.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+    } else if (tagName === 'circle') {
+      element.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
+
+      // For small ESA dots, add an extra glow circle behind them for more visibility
+      const isSmallDot = elementId && (elementId.startsWith('dot-') || elementId.startsWith('yellow-dot-'));
+      if (isSmallDot) {
+        const svg = document.getElementById('diagram');
+        const cx = element.getAttribute('cx');
+        const cy = element.getAttribute('cy');
+        const r = parseFloat(element.getAttribute('r')) || 4;
+
+        // Create a larger glowing circle behind the dot
+        const glowCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        glowCircle.setAttribute('cx', cx);
+        glowCircle.setAttribute('cy', cy);
+        glowCircle.setAttribute('r', r * 3.5); // Much larger than the dot
+        glowCircle.setAttribute('fill', element.getAttribute('fill') || '#3b82f6');
+        glowCircle.setAttribute('fill-opacity', '0.4');
+        glowCircle.classList.add('dot-glow-effect');
+        glowCircle.style.filter = 'blur(6px)';
+        glowCircle.style.pointerEvents = 'none';
+
+        // Insert before the dot so it appears behind
+        element.parentNode.insertBefore(glowCircle, element);
+      }
+    } else if (tagName === 'path' || tagName === 'line') {
+      // Stronger glow for thin lines - triple drop-shadow for more visibility
+      element.style.filter = 'brightness(1.6) drop-shadow(0 0 8px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1)) drop-shadow(0 0 2px rgba(255,255,255,1))';
     } else if (tagName === 'text') {
       element.style.filter = 'brightness(1.3) drop-shadow(0 0 4px rgba(255,255,255,0.7))';
     }
@@ -681,7 +707,12 @@ function unhighlightElement(elementId) {
       element.style.opacity = element.dataset.originalOpacity;
     }
     if (element.dataset.originalFilter) {
-      element.style.filter = element.dataset.originalFilter;
+      // If original was 'none' or empty, remove inline style to let CSS take over
+      if (element.dataset.originalFilter === 'none' || element.dataset.originalFilter === '') {
+        element.style.removeProperty('filter');
+      } else {
+        element.style.filter = element.dataset.originalFilter;
+      }
     }
 
     // Restore original stroke width for lines
@@ -709,7 +740,12 @@ function clearHighlights() {
       item.style.opacity = item.dataset.originalOpacity;
     }
     if (item.dataset.originalFilter) {
-      item.style.filter = item.dataset.originalFilter;
+      // If original was 'none' or empty, remove inline style to let CSS take over
+      if (item.dataset.originalFilter === 'none' || item.dataset.originalFilter === '') {
+        item.style.removeProperty('filter');
+      } else {
+        item.style.filter = item.dataset.originalFilter;
+      }
     }
     if (item.tagName.toLowerCase() === 'line' && item.dataset.originalStrokeWidth) {
       item.setAttribute('stroke-width', item.dataset.originalStrokeWidth);
@@ -731,7 +767,7 @@ function highlightCirclesInBox(boxElementId) {
     if (!circle.dataset.originalFilter) {
       circle.dataset.originalFilter = circle.style.filter || 'none';
     }
-    circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+    circle.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
     currentHighlightedElements.add(circle);
   });
 }
@@ -836,7 +872,7 @@ function handleMouseEnter(event) {
         if (!circle.dataset.originalFilter) {
           circle.dataset.originalFilter = circle.style.filter || 'none';
         }
-        circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+        circle.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
         currentHighlightedElements.add(circle);
       }
     });
@@ -913,7 +949,7 @@ function handleMouseEnter(event) {
         if (!circle.dataset.originalFilter) {
           circle.dataset.originalFilter = circle.style.filter || 'none';
         }
-        circle.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+        circle.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
         currentHighlightedElements.add(circle);
       }
     });
@@ -939,25 +975,25 @@ function handleMouseEnter(event) {
       }
     });
 
-    // Glow all yellow lines (FSS connections)
-    const yellowLines = document.querySelectorAll('[data-interactive-id^="yellow-line-"]');
+    // Glow all yellow lines (FSS connections) including RBA's yellow line
+    const yellowLines = document.querySelectorAll('[data-interactive-id^="yellow-line-"], [data-interactive-id="rba-yellow-line"]');
     yellowLines.forEach(line => {
       line.classList.add('highlighted');
       if (!line.dataset.originalFilter) {
         line.dataset.originalFilter = line.style.filter || 'none';
       }
-      line.style.filter = 'brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 4px rgba(255,255,255,0.8))';
+      line.style.filter = 'brightness(1.6) drop-shadow(0 0 8px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1)) drop-shadow(0 0 2px rgba(255,255,255,1))';
       currentHighlightedElements.add(line);
     });
 
-    // Glow all yellow dots (FSS members)
-    const yellowDots = document.querySelectorAll('[data-interactive-id^="yellow-dot-"]');
+    // Glow all yellow dots (FSS members) including RBA's yellow dot
+    const yellowDots = document.querySelectorAll('[data-interactive-id^="yellow-dot-"], [data-interactive-id="rba-yellow-dot"]');
     yellowDots.forEach(dot => {
       dot.classList.add('highlighted');
       if (!dot.dataset.originalFilter) {
         dot.dataset.originalFilter = dot.style.filter || 'none';
       }
-      dot.style.filter = 'brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.9)) drop-shadow(0 0 6px rgba(255,255,255,0.8))';
+      dot.style.filter = 'brightness(1.6) drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1)) drop-shadow(0 0 4px rgba(255,255,255,1))';
       currentHighlightedElements.add(dot);
     });
   } else if (targetId === 'adi-box' || targetId === 'non-adis-box' ||
@@ -991,6 +1027,20 @@ function handleMouseEnter(event) {
           relatedElements.add(`yellow-dot-${derivedDotIndex}`);
         } else if (isYellowDot) {
           relatedElements.add(`yellow-dot-${derivedDotIndex}`);
+        }
+      }
+    }
+
+    // When hovering on a blue-line, also highlight its corresponding dot
+    if (targetId.startsWith('blue-line-')) {
+      const lineIndex = parseInt(targetId.replace('blue-line-', ''), 10);
+      if (!Number.isNaN(lineIndex)) {
+        relatedElements = new Set(relatedElements);
+        relatedElements.add(`dot-${lineIndex}`);
+        // Also add yellow dot/line if this dot has FSS membership
+        if (window.yellowLinesByDot && window.yellowLinesByDot[lineIndex]) {
+          relatedElements.add(`yellow-line-${lineIndex}`);
+          relatedElements.add(`yellow-dot-${lineIndex}`);
         }
       }
     }

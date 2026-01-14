@@ -412,25 +412,16 @@ function initializeDiagram() {
         if (esaBox) esaBox.classList.add('diagram-visible');
       }, 0));
 
-      // Stage 2: Blue ESA account glyphs/dots appear
+      // Stage 2: Blue ESA account dots AND their connecting lines appear together
       animationTimeouts.push(setTimeout(() => {
         if (animationSkipped) return;
-        ['blue-circles'].forEach(id => {
+        ['blue-circles', 'blue-connecting-lines'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.classList.add('diagram-visible');
         });
       }, stageDelay));
 
-      // Stage 3: Thin blue connecting lines from ESA dots
-      animationTimeouts.push(setTimeout(() => {
-        if (animationSkipped) return;
-        ['blue-connecting-lines'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.classList.add('diagram-visible');
-        });
-      }, stageDelay * 2));
-
-      // Stage 4: All boxes (FSS circle, labels, arc, background elements)
+      // Stage 3: All boxes (FSS circle, labels, arc, background elements)
       animationTimeouts.push(setTimeout(() => {
         if (animationSkipped) return;
         ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc'].forEach(id => {
@@ -444,9 +435,9 @@ function initializeDiagram() {
             el.classList.add('diagram-visible');
           }
         });
-      }, stageDelay * 3));
+      }, stageDelay * 2));
 
-      // Stage 5: All special lines (red, orange, admin, yellow) last
+      // Stage 4: All special lines (red, orange, admin, yellow) last
       animationTimeouts.push(setTimeout(() => {
         if (animationSkipped) return;
         ['red-connecting-lines', 'orange-connecting-lines',
@@ -499,7 +490,7 @@ function initializeDiagram() {
             }
           });
         }, 1000));
-      }, stageDelay * 4));
+      }, stageDelay * 3));
     };
 
     const updateNppToAdiLine = () => {
@@ -586,6 +577,7 @@ function initializeDiagram() {
           id: 'npp-to-adi-line'
         });
         path.classList.add('thick-line-to-adi');
+        path.classList.add('diagram-hidden'); // Hide initially for animation
         path.setAttribute('data-interactive-id', 'npp-to-adi-line');
         // Make line interactive for tooltips
         if (window.makeInteractive) {
@@ -904,6 +896,18 @@ function initializeDiagram() {
           blueLinesGroup.appendChild(line);
           blueLinesGroup.appendChild(blueLineHitArea);
         }
+      } else {
+        // For dots without visible lines, still add invisible hit area for tooltips
+        // Give the invisible line a data-interactive-id so it can trigger highlighting
+        blueLineHitArea.setAttribute('data-interactive-id', `blue-line-${i}`);
+
+        // Make hit area interactive to show tooltip
+        if (typeof makeInteractive === 'function') {
+          makeInteractive(blueLineHitArea, `blue-line-${i}`);
+        }
+
+        // Append only the hit area (no visible line)
+        blueLinesGroup.appendChild(blueLineHitArea);
       }
 
       // Create small circle
@@ -2291,6 +2295,7 @@ function initializeDiagram() {
         );
         // Add identifier for tooltip color lookup and highlighting
         chequesToApcsLine.setAttribute('data-interactive-id', 'cheques-to-apcs-line');
+        chequesToApcsLine.classList.add('diagram-hidden'); // Hide initially for animation
         // Visible line doesn't need pointer events - hit area handles it
         chequesToApcsLine.style.pointerEvents = 'none';
         // Append to labelsGroup end for proper z-order (above DE lines that may overlap)
@@ -2308,6 +2313,7 @@ function initializeDiagram() {
             id: 'cheques-to-apcs-line-hit-area'
           }
         );
+        chequesToApcsHitArea.classList.add('diagram-hidden'); // Hide initially for animation
         chequesToApcsHitArea.style.pointerEvents = 'stroke';
         if (window.makeInteractive) {
           window.makeInteractive(chequesToApcsHitArea, 'cheques-to-apcs-line');
@@ -7372,9 +7378,21 @@ function initializeDiagram() {
               path.setAttribute('stroke-dasharray', '5,5');
               path.classList.add('chess-rtgs-to-rits-line');
               path.setAttribute('data-interactive-id', 'chess-rtgs-to-rits-line');
+              path.style.pointerEvents = 'none'; // Visible line doesn't need pointer events
+
+              // Create transparent hit area for easier hovering
+              const hitArea = createStyledPath(d, {
+                stroke: 'transparent',
+                strokeWidth: '16',
+                fill: 'none',
+                strokeLinecap: 'round'
+              });
+              hitArea.setAttribute('data-interactive-id', 'chess-rtgs-to-rits-line');
+              hitArea.style.pointerEvents = 'stroke';
               if (window.makeInteractive) {
-                window.makeInteractive(path, 'chess-rtgs-to-rits-line');
+                window.makeInteractive(hitArea, 'chess-rtgs-to-rits-line');
               }
+              curvedLineGroup.appendChild(hitArea);
             }
 
             // Add IDs for SWIFT PDS to RITS lines (indices 0, 1, 2)
@@ -7476,6 +7494,7 @@ function initializeDiagram() {
           clsPath.setAttribute('stroke-linejoin', 'round');
           clsPath.setAttribute('id', 'cls-aud-line-new');
           clsPath.setAttribute('data-interactive-id', 'cls-aud-line-new');
+          clsPath.classList.add('diagram-hidden'); // Hide initially for animation
           // Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
           clsPath.style.pointerEvents = 'stroke';
           // Make line interactive for tooltips
@@ -10724,6 +10743,7 @@ clsToRitsLineFinal.setAttribute('fill', 'none');
 clsToRitsLineFinal.setAttribute('stroke-linecap', 'round');
 clsToRitsLineFinal.setAttribute('id', 'cls-to-rits-line-final');
 clsToRitsLineFinal.setAttribute('data-interactive-id', 'cls-to-rits-line-final');
+clsToRitsLineFinal.classList.add('diagram-hidden'); // Hide initially for animation
 // Use pointerEvents: 'stroke' so only the line itself is interactive, not the bounding box
 clsToRitsLineFinal.style.pointerEvents = 'stroke';
 // Make line interactive for tooltips
@@ -10879,6 +10899,7 @@ if (window.makeInteractive) {
       if (!sCurvePath) {
         sCurvePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         sCurvePath.setAttribute('id', 'cls-s-curve');
+        sCurvePath.classList.add('diagram-hidden'); // Hide initially for animation
         if (container) {
           container.appendChild(sCurvePath);
         } else if (svg) {

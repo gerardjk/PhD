@@ -182,35 +182,35 @@ const elementRelationships = {
   // Example: Card payments
   'eftpos-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['eftpos-left-line-visible', 'eftpos-left-line-horizontal-visible', 'essb-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal', 'essb-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
   },
   'essb-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['eftpos-left-line-visible', 'eftpos-left-line-horizontal-visible', 'eftpos-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal', 'eftpos-box', 'eftpos-to-essb-line', 'essb-to-rits-line', 'bpay-box', 'npp-purple-box', 'osko-box']
   },
   'mcau-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['mastercard-left-line-visible', 'mastercard-left-line-horizontal-visible', 'mastercard-to-mcau-line', 'mastercard-box', 'mcau-to-rits-line']
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal', 'mastercard-to-mcau-line', 'mastercard-box', 'mcau-to-rits-line']
   },
   'mastercard-box': {
     groups: ['card-payments', 'administered-batches'],
-    related: ['mastercard-left-line-visible', 'mastercard-left-line-horizontal-visible', 'mastercard-to-mcau-line', 'mcau-box', 'mcau-to-rits-line']
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal', 'mastercard-to-mcau-line', 'mcau-box', 'mcau-to-rits-line']
   },
   'pexa-convey-box': {
     groups: ['property-settlement', 'administered-batches'],
-    related: ['pexa-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line-visible']
+    related: ['pexa-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line']
   },
   'pexa-box': {
     groups: ['property-settlement', 'administered-batches'],
-    related: ['pexa-convey-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line-visible']
+    related: ['pexa-convey-box', 'pexa-horizontal-line-0', 'pexa-horizontal-line-1', 'pexa-to-rits-line', 'pexa-to-adis-line']
   },
   'sympli-box': {
     groups: ['property-settlement', 'administered-batches'],
-    related: ['asxf-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line-visible']
+    related: ['asxf-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line']
   },
   'asxf-box': {
     groups: ['property-settlement', 'administered-batches'],
-    related: ['sympli-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line-visible', 'asx-box']
+    related: ['sympli-box', 'sympli-horizontal-line-0', 'sympli-horizontal-line-1', 'asxf-to-rits-line', 'sympli-to-adis-line', 'asx-box']
   },
   'asxb-box': {
     groups: ['asx-ecosystem', 'administered-batches'],
@@ -413,10 +413,10 @@ const elementRelationships = {
       'lvss-gear-group', 'lvss-line-cecs',
       'cecs-to-iac-line-1', 'cecs-to-iac-line-2',
       'direct-entry-stack-bounding-box',
-      'direct-entry-stack-line-blue-visible', 'direct-entry-stack-line-yellow-visible',
-      'direct-entry-stack-line-green-visible', 'direct-entry-stack-line-brown-visible',
-      'direct-entry-stack-line-blue-horizontal-visible', 'direct-entry-stack-line-yellow-horizontal-visible',
-      'direct-entry-stack-line-green-horizontal-visible', 'direct-entry-stack-line-brown-horizontal-visible'
+      'direct-entry-stack-line-blue', 'direct-entry-stack-line-yellow',
+      'direct-entry-stack-line-green', 'direct-entry-stack-line-brown',
+      'direct-entry-stack-line-blue-horizontal', 'direct-entry-stack-line-yellow-horizontal',
+      'direct-entry-stack-line-green-horizontal', 'direct-entry-stack-line-brown-horizontal'
     ]
   },
 
@@ -426,10 +426,10 @@ const elementRelationships = {
     related: [
       'cecs-box', 'lvss-gear-group', 'lvss-line-cecs',
       'cecs-to-iac-line-1', 'cecs-to-iac-line-2',
-      'direct-entry-stack-line-blue-visible', 'direct-entry-stack-line-yellow-visible',
-      'direct-entry-stack-line-green-visible', 'direct-entry-stack-line-brown-visible',
-      'direct-entry-stack-line-blue-horizontal-visible', 'direct-entry-stack-line-yellow-horizontal-visible',
-      'direct-entry-stack-line-green-horizontal-visible', 'direct-entry-stack-line-brown-horizontal-visible',
+      'direct-entry-stack-line-blue', 'direct-entry-stack-line-yellow',
+      'direct-entry-stack-line-green', 'direct-entry-stack-line-brown',
+      'direct-entry-stack-line-blue-horizontal', 'direct-entry-stack-line-yellow-horizontal',
+      'direct-entry-stack-line-green-horizontal', 'direct-entry-stack-line-brown-horizontal',
       'visa-box', 'other-cards-box', 'atms-box', 'claims-box'
     ]
   },
@@ -437,25 +437,25 @@ const elementRelationships = {
   // ATMs box - lights up with brown line and its horizontal branch to Non-ADIs
   'atms-box': {
     groups: ['iac-ecosystem'],
-    related: ['direct-entry-stack-line-brown-visible', 'direct-entry-stack-line-brown-horizontal-visible', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+    related: ['direct-entry-stack-line-brown', 'direct-entry-stack-line-brown-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
   },
 
   // Claims box - lights up with green line and its horizontal branch to Non-ADIs
   'claims-box': {
     groups: ['iac-ecosystem'],
-    related: ['direct-entry-stack-line-green-visible', 'direct-entry-stack-line-green-horizontal-visible', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+    related: ['direct-entry-stack-line-green', 'direct-entry-stack-line-green-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
   },
 
   // Visa box - lights up with yellow line and its horizontal branch to Non-ADIs
   'visa-box': {
     groups: ['iac-ecosystem'],
-    related: ['direct-entry-stack-line-yellow-visible', 'direct-entry-stack-line-yellow-horizontal-visible', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+    related: ['direct-entry-stack-line-yellow', 'direct-entry-stack-line-yellow-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
   },
 
   // Other Cards box - lights up with blue line and its horizontal branch to Non-ADIs
   'other-cards-box': {
     groups: ['iac-ecosystem'],
-    related: ['direct-entry-stack-line-blue-visible', 'direct-entry-stack-line-blue-horizontal-visible', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
+    related: ['direct-entry-stack-line-blue', 'direct-entry-stack-line-blue-horizontal', 'cecs-to-iac-line-1', 'cecs-to-iac-line-2']
   },
 
   // GABS box - triggers glowie group including LVSS gear, grey lines, and OPA box
@@ -677,7 +677,7 @@ const elementRelationships = {
   'chess-rtgs-to-rits-line': {
     groups: ['trade-by-trade-lines'],
     related: ['trade-by-trade-to-dvp-rtgs-line', 'dvp-to-chess-rtgs-line', 'trade-by-trade-box', 'dvp-rtgs-box', 'chess-rtgs-box'],
-    tooltipFrom: 'trade-by-trade-box'
+    tooltipFrom: 'chess-rtgs-box'
   },
 
   // Direct Entry ABA lines - red (#ff073a) - all highlight together
@@ -800,50 +800,50 @@ const elementRelationships = {
 
   // eftpos lines - hit area highlights visible line
   'eftpos-left-line': {
-    related: ['eftpos-left-line-visible', 'eftpos-left-line-horizontal-visible']
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal']
   },
   'eftpos-left-line-horizontal': {
-    related: ['eftpos-left-line-visible', 'eftpos-left-line-horizontal-visible']
+    related: ['eftpos-left-line', 'eftpos-left-line-horizontal']
   },
 
   // Mastercard lines - hit area highlights visible line
   'mastercard-left-line': {
-    related: ['mastercard-left-line-visible', 'mastercard-left-line-horizontal-visible']
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal']
   },
   'mastercard-left-line-horizontal': {
-    related: ['mastercard-left-line-visible', 'mastercard-left-line-horizontal-visible']
+    related: ['mastercard-left-line', 'mastercard-left-line-horizontal']
   },
 
   // Cheques/APCS lines - hit area highlights visible line
   'cheques-to-apcs-line': {
     groups: ['apcs-cheques-lines'],
-    related: ['cheques-to-apcs-line-visible', 'osko-to-adi-line-visible']
+    related: ['cheques-to-apcs-line', 'osko-to-adi-line']
   },
   'osko-to-adi-line': {
     groups: ['apcs-cheques-lines'],
-    related: ['osko-to-adi-line-visible', 'cheques-to-apcs-line-visible']
+    related: ['osko-to-adi-line', 'cheques-to-apcs-line']
   },
 
   // IAC stack lines - hit area highlights visible line
   'direct-entry-stack-line-blue': {
-    related: ['direct-entry-stack-line-blue-visible']
+    related: ['direct-entry-stack-line-blue']
   },
   'direct-entry-stack-line-yellow': {
-    related: ['direct-entry-stack-line-yellow-visible']
+    related: ['direct-entry-stack-line-yellow']
   },
   'direct-entry-stack-line-green': {
-    related: ['direct-entry-stack-line-green-visible']
+    related: ['direct-entry-stack-line-green']
   },
   'direct-entry-stack-line-brown': {
-    related: ['direct-entry-stack-line-brown-visible']
+    related: ['direct-entry-stack-line-brown']
   },
 
   // E-conveyancing lines - hit area highlights visible line
   'sympli-to-adis-line': {
-    related: ['sympli-to-adis-line-visible']
+    related: ['sympli-to-adis-line']
   },
   'pexa-to-adis-line': {
-    related: ['pexa-to-adis-line-visible']
+    related: ['pexa-to-adis-line']
   }
 };
 
