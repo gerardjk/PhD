@@ -134,6 +134,8 @@
 \usepackage{booktabs}
 \usepackage{animate}
 \usepackage{datetime}
+\usepackage{colortbl}  % For row coloring in tables
+\usepackage{amssymb}   % For symbols like \multimap
 
 % Counter for subsections within frames
 \newcounter{framesubsection}[section]
@@ -186,7 +188,12 @@
 \title{Liquidity \& Token Interchange}
 \subtitle{Problems in Computational Settlement}
 \author{Gerard Kelly}
-\institute{University of New South Wales\\School of Computer Science \& Engineering}
+\institute{%
+  University of New South Wales\\
+  School of Computer Science \& Engineering
+  \and
+  Digital Finance Cooperative Research Centre
+}
 \date{\monthname\ \the\year}
 
 \begin{document}
@@ -221,33 +228,25 @@
 
 \begin{frame}{1. Introduction}
 
-    \begin{autosubsection}{The Hard Problem of Settlement}
-        Introduction to payments settlement as a computational problem; historical background. 
+    \begin{autosubsection}{The Problem of Settlement}
+        Introduction to payments settlement as a computational problem; general motivation.
     \end{autosubsection}
 
     \begin{autosubsection}{Liquidity \& Tokenisation}
-        Definitions of liquidity, tokens, interchange, and the contemporary industry context.
+        Definitions of liquidity, tokens, interchange, money, and the contemporary industry context.
     \end{autosubsection}
 
     \begin{autosubsection}{Computer Science \& Digital Finance}
-        Overview of formal methods in Computer Science with application to finance.
+        Overview of formal methods in Computer Science with application to finance (preview).
     \end{autosubsection}
 
     \begin{autosubsection}{Research Questions}
-        Enumeration of primary research questions addressed by this project.
+        Scope of project and enumeration of primary research questions.
     \end{autosubsection}
 
     \begin{autosubsection}{Structure \& Contributions}
         Outline of subsequent sections; methodologies, publications, and key research outcomes. 
     \end{autosubsection}
-
-\end{frame}
-
-\begin{frame}{1. Introduction}
-
-\textbf{1.4 Research Questions}
-
-
 
 \end{frame}
 
@@ -259,26 +258,92 @@
 \textbf{Liquidity Automata: A Computational Hierarchy of Money Forms}
 \\[1em]
 \small
-This chapter (and corresponding paper) will propose a correspondence between the Chomsky heirarchy of computational complexity and distinctive forms of money and settlement that have emerged over time. \\
+This chapter (and corresponding paper) will propose a correspondence between the Chomsky heirarchy of computational complexity and distinctive forms of money and settlement that have emerged over history. The proposed hierarchy offers a theoretical framework for the relatioship between liqudity and technology that identifies four key innovations in its evolution; a process beginning with the adoption of physical currency and culminating with computationally universal programmable tokens.\\
 [1em]
-The proposed hierarchy provides a theoretical framework for the relatioship between liqudity and technology that identifies four key innovations in its evolution - a process culminating with digital tokenisation and the arrival of computational universality.\\
-[1em]
-The chapter will include a review of the canonical literature relating to computation and economics. It will argue that the complexity of tokenised monetary systems introduce an imperative to manage settlement risks through the development of autonomous agents. Although abstract, concepts introduced in this chapter will provide theoretical foundations for subsequent chapters.
+The chapter will include a review of the canonical literature relating to computational complexity and monetary theory. It will argue that the undecidability of tokenised monetary systems introduces novel forms of risk and compels the management of settlement operations through the deployment of \textbf{keepers} and other types of autonomous agents. Concepts introduced in this chapter will provide a motivation and theoretical foundation for subsequent chapters.
 
 \end{frame}
+
+% % Second slide for Liquidity Automata - Chomsky Hierarchy Diagram
+% \begin{frame}{2. Liquidity Automata}
+%     \begin{center}
+%     \begin{tikzpicture}[scale=0.8, transform shape]
+%         % Define colors for each level
+%         \definecolor{type0color}{RGB}{200,230,255}
+%         \definecolor{type1color}{RGB}{180,210,240}
+%         \definecolor{type2color}{RGB}{160,190,225}
+%         \definecolor{type3color}{RGB}{140,170,210}
+
+%         % Left side: Nested hierarchy of languages
+%         \node[text width=5cm, align=center] at (-4, 5.5) {\textbf{Language Classes}};
+
+%         % Type 0 - Recursively Enumerable
+%         \draw[very thick, fill=type0color] (-7,-1.8) rectangle (-1,3.9);
+%         \node[align=center] at (-4,3.3) {Type 0: Recursively Enumerable};
+
+%         % Type 1 - Context-Sensitive
+%         \draw[very thick, fill=type1color] (-6.5,-1.7) rectangle (-1.5,2.4);
+%         \node[align=center] at (-4,1.8) {Type 1: Context-Sensitive};
+
+%         % Type 2 - Context-Free
+%         \draw[very thick, fill=type2color] (-6,-1.4) rectangle (-2,0.9);
+%         \node[align=center] at (-4,0.3) {Type 2: Context-Free};
+
+%         % Type 3 - Regular
+%         \draw[very thick, fill=type3color] (-5,-1.3) rectangle (-2.5,-0.7);
+%         \node[align=center] at (-4,-1.0) {Type 3: Regular};
+
+%         % Right side: Corresponding automata
+%         \node[text width=5cm, align=center] at (4, 5.5) {\textbf{Automata Types}};
+
+%         % Turing Machine
+%         \node[concept box, fill=type0color, minimum width=4cm, minimum height=1.2cm] at (4,3.3) {Turing Machine\\(Unbounded tape)};
+
+%         % Linear Bounded Automaton
+%         \node[concept box, fill=type1color, minimum width=4cm, minimum height=1.2cm] at (4,1.8) {Linear Bounded\\Automaton};
+
+%         % Pushdown Automaton
+%         \node[concept box, fill=type2color, minimum width=4cm, minimum height=1.2cm] at (4,0.3) {Pushdown\\Automaton};
+
+%         % Finite State Automaton
+%         \node[concept box, fill=type3color, minimum width=4cm, minimum height=1.2cm] at (4,-1.0) {Finite State\\Automaton};
+
+%         % Arrows connecting languages to automata - all horizontal
+%         \draw[flow arrow, line width=1.5pt] (-1,3.3) -- (1.8,3.3);
+%         \draw[flow arrow, line width=1.5pt] (-1.5,1.8) -- (1.8,1.8);
+%         \draw[flow arrow, line width=1.5pt] (-2,0.3) -- (1.8,0.3);
+%         \draw[flow arrow, line width=1.5pt] (-2.5,-1.0) -- (1.8,-1.0);
+
+%     \end{tikzpicture}
+%     \end{center}
+% \end{frame}
 
 % Section 3: Liquidity Logics
 \section{3. Liquidity Logics}
 
 \begin{frame}{3. Liquidity Logics}
-    % Content to be added
+
+\textbf{Liquidity Logics: Settlement as Computational Resource Allocation}
+\\[1em]
+\small
+Surveying the broader field of Computer Science, this chapter will adopt formal approaches to computational resource constraints to the problem of settlement. A framework for \textbf{Balance State Transition Events} that combines elements from four main fields of theory will aim to model settlement systems that are linearly-constrained, flow-optimized, strategically robust, and privacy-preserving. This chapter will constitute the primary literature review material of the thesis.\\
+[1em]
+\textbf{Linear Logic and Petri Nets} will provide a foundation for resource consumption and conservation, addressing risks of insolvency and rehypothecation. \textbf{Network Calculus and Queueing Theory} provide tools for analysing flow and liveness properties. \textbf{Consensus Mechanisms and Strategic Game Theory} will survey topics including BFT and MEV - exploring finality of settlement and alignment of participant incentives. \textbf{Zero-Knowledge Proofs and Privacy} will examine how settlement can be both private and verifiable, comparing alternative approaches and their respective computational costs.
 \end{frame}
 
 % Section 4: Liquidity Networks
 \section{4. Liquidity Networks}
 
 \begin{frame}{4. Liquidity Networks}
-    % Content to be added
+
+\textbf{Liquidity Networks: Stylised Facts of Early Tokenised Finance}
+\\[1em]
+\small
+This empirical chapter will provide a comprehensive analysis of on-chain data from the Ethereum ecosystem (L1 and L2) and other significant networks. The chapter will examine patterns of stablecoin and token usage, major liquidity pools and flows, and the specific token standards (e.g., ERC-4626) driving institutional adoption.\\
+[1em]
+Through network analysis and statistical methods, the research will identify bot networks, quantify wash trading, and estimate the proportion of actual human users in DeFi protocols versus algorithmic actors. Key metrics will include: the percentage of trades representing arbitrage versus organic trading, concentration of liquidity provision, cross-chain flow patterns, and the emergence of institutional-grade infrastructure.\\
+[1em]
+By applying network theory to transaction graphs and liquidity flows, this chapter aims to establish empirical baselines for understanding tokenised financial networks - distinguishing between genuine adoption patterns and artificial activity, while documenting the evolution of on-chain financial primitives from experimental protocols to production-grade systems.
 \end{frame}
 
 % Section 5: Liquidity Scheme Design
@@ -299,7 +364,7 @@ The chapter will include a review of the canonical literature relating to comput
 \section{7. Conclusion}
 
 \begin{frame}{7. Conclusion}
-    % Content to be added
+    Review and discussion of results; directions for future research.
 \end{frame}
 
 \end{document}
