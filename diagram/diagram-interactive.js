@@ -484,6 +484,9 @@ function hideTooltip() {
  * Handles multiple elements with the same ID
  */
 function highlightElement(elementId) {
+  // Don't highlight during animation
+  if (document.body.classList.contains('animating-startup')) return;
+
   let elements = highlightElementCache.get(elementId);
   if (!elements) {
     elements = Array.from(document.querySelectorAll(`[data-interactive-id="${elementId}"]`));
@@ -758,6 +761,9 @@ function getCirclesForBox(boxElementId) {
  * Handle mouse enter on an interactive element
  */
 function handleMouseEnter(event) {
+  // Completely skip if animating
+  if (document.body.classList.contains('animating-startup')) return;
+
   const elementId = event.currentTarget.dataset.interactiveId;
   if (!elementId) return;
 
@@ -975,6 +981,9 @@ function handleMouseEnter(event) {
  * Handle mouse move on an interactive element (update tooltip position)
  */
 function handleMouseMove(event) {
+  // Completely skip if animating
+  if (document.body.classList.contains('animating-startup')) return;
+
   // Don't move tooltip if it's sticky (stationary)
   if (tooltipIsSticky) return;
 
@@ -1001,6 +1010,9 @@ function handleMouseMove(event) {
  * Handle mouse leave on an interactive element
  */
 function handleMouseLeave(event) {
+  // Completely skip if animating
+  if (document.body.classList.contains('animating-startup')) return;
+
   // If tooltip is sticky, don't dismiss on mouse leave - require click to dismiss
   if (tooltipIsSticky) {
     return;
@@ -1063,6 +1075,12 @@ function makeInteractive(element, elementId) {
   if (!element || !elementId) return;
 
   element.setAttribute('data-interactive-id', elementId);
+
+  // During animation, don't set up any interaction at all
+  if (document.body.classList.contains('animating-startup')) {
+    return;
+  }
+
   element.style.cursor = 'pointer';
   // Only set pointerEvents if not already set (allows 'stroke' etc. to be preserved)
   if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
@@ -1382,4 +1400,9 @@ if (typeof window !== 'undefined') {
   window.unhighlightElement = unhighlightElement;
   window.clearHighlights = clearHighlights;
   window.highlightCirclesInBox = highlightCirclesInBox;
+  // Export handlers for re-initialization after animation
+  window.handleMouseEnter = handleMouseEnter;
+  window.handleMouseMove = handleMouseMove;
+  window.handleMouseLeave = handleMouseLeave;
+  window.handleClick = handleClick;
 }

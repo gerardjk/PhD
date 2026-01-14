@@ -298,36 +298,95 @@ function initializeDiagram() {
 
     // Store reveal function for use after title types out - staged animation
     window.revealDiagramContent = () => {
-      const stageDelay = 800; // ms between stages
+      const stageDelay = 600; // ms between stages
 
-      // Stage 2: Blue ESA dots only (lines come later)
+      // Clear any existing highlights and hide tooltip
+      if (typeof window.clearHighlights === 'function') {
+        window.clearHighlights();
+      }
+      if (typeof window.hideTooltip === 'function') {
+        window.hideTooltip();
+      }
+
+      // The animation class is already added in diagram-init.js
+      // Just ensure it's still there
+      if (!document.body.classList.contains('animating-startup')) {
+        document.body.classList.add('animating-startup');
+      }
+
+      // Stage 1: ESA box appears (RITS circle already visible)
+      setTimeout(() => {
+        const esaBox = document.getElementById('blue-dots-background');
+        if (esaBox) esaBox.classList.add('diagram-visible');
+      }, 0);
+
+      // Stage 2: Blue ESA account glyphs/dots appear
       setTimeout(() => {
         ['blue-circles'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.classList.add('diagram-visible');
         });
-      }, 0);
+      }, stageDelay);
 
-      // Stage 3: All boxes, FSS circle, labels, arc (no lines)
+      // Stage 3: Thin blue connecting lines from ESA dots
+      setTimeout(() => {
+        ['blue-connecting-lines'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('diagram-visible');
+        });
+      }, stageDelay * 2);
+
+      // Stage 4: All boxes (FSS circle, labels, arc, background elements)
       setTimeout(() => {
         ['small-group', 'small-label', 'dot-labels', 'background-elements', 'enclosing-arc'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.classList.add('diagram-visible');
         });
-      }, stageDelay);
+        // Catch any remaining hidden elements except lines
+        document.querySelectorAll('.diagram-hidden:not(.diagram-visible):not(line):not(path)').forEach(el => {
+          // Skip anything that looks like a line
+          if (!el.id.includes('line') && !el.id.includes('connecting')) {
+            el.classList.add('diagram-visible');
+          }
+        });
+      }, stageDelay * 3);
 
-      // Stage 4: ALL lines last
+      // Stage 5: All special lines (red, orange, admin, yellow) last
       setTimeout(() => {
-        ['blue-connecting-lines', 'red-connecting-lines', 'orange-connecting-lines',
+        ['red-connecting-lines', 'orange-connecting-lines',
          'admin-connecting-lines', 'yellow-circles', 'foreground-lines'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.classList.add('diagram-visible');
         });
-        // Catch any remaining hidden elements
+        // Now catch any remaining lines
         document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
           el.classList.add('diagram-visible');
         });
-      }, stageDelay * 2);
+
+        // Re-enable tooltips after animation completes (add extra delay for safety)
+        setTimeout(() => {
+          document.body.classList.remove('animating-startup');
+
+          // Now set up all the interactive elements that were skipped during animation
+          const interactiveElements = document.querySelectorAll('[data-interactive-id]');
+          interactiveElements.forEach(element => {
+            const elementId = element.getAttribute('data-interactive-id');
+            if (elementId && typeof window.makeInteractive === 'function') {
+              // Only set up interactivity if not already done
+              if (!element.style.cursor || element.style.cursor !== 'pointer') {
+                element.style.cursor = 'pointer';
+                if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
+                  element.style.pointerEvents = 'all';
+                }
+                element.addEventListener('mouseenter', window.handleMouseEnter);
+                element.addEventListener('mousemove', window.handleMouseMove);
+                element.addEventListener('mouseleave', window.handleMouseLeave);
+                element.addEventListener('click', window.handleClick);
+              }
+            }
+          });
+        }, 1000);
+      }, stageDelay * 4);
     };
 
     const updateNppToAdiLine = () => {

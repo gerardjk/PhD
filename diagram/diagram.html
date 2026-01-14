@@ -30,11 +30,10 @@
       opacity: 0;
       transition: opacity 1s ease-in-out;
     }
-    /* Title, RITS circle, ESA box and labels stay visible during intro */
+    /* Only RITS circle and its label visible at start */
     #diagram > .intro-title,
     #diagram > #big-group,
-    #diagram > #big-label,
-    #diagram > #blue-dots-background {
+    #diagram > #big-label {
       opacity: 1;
     }
     /* Labels inside groups also need to be visible */
@@ -44,6 +43,21 @@
     /* Reveal when JS adds this class */
     #diagram > *.diagram-visible {
       opacity: 1;
+    }
+    /* Disable all tooltips during animation */
+    body.animating-startup [data-interactive-id] {
+      pointer-events: none !important;
+    }
+
+    /* FORCE opacity during animation - override any JS changes */
+    body.animating-startup #diagram > *:not(defs):not(.intro-title):not(#big-group):not(#big-label):not(.diagram-visible) {
+      opacity: 0 !important;
+      filter: none !important;
+    }
+
+    /* Prevent ANY highlighting during animation */
+    body.animating-startup .highlighted {
+      filter: none !important;
     }
   </style>
 </head>
