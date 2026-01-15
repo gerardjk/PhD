@@ -30,6 +30,21 @@ function initializeDiagram() {
   const svg = document.getElementById('diagram');
   const p = document.getElementById('params').dataset;
 
+  // Ensure nested elements respect diagram-visible/diagram-hidden toggles (needed for staged labels)
+  const ensureVisibilityStyles = () => {
+    if (document.getElementById('diagram-visibility-styles')) {
+      return;
+    }
+    const styleEl = document.createElement('style');
+    styleEl.id = 'diagram-visibility-styles';
+    styleEl.textContent = `
+      #diagram .diagram-hidden:not(.diagram-visible) { opacity: 0 !important; }
+      #diagram .diagram-visible { opacity: 1 !important; }
+    `;
+    document.head.appendChild(styleEl);
+  };
+  ensureVisibilityStyles();
+
     // Read parameters (numbers only)
     const cx       = +p.cx;          // shared x for circles
     const cyBig    = +p.cyBig;       // center y of big circle
@@ -286,18 +301,45 @@ function initializeDiagram() {
     foregroundLinesGroup.setAttribute('class', 'diagram-content');
     svg.appendChild(foregroundLinesGroup);
 
-    // Create a group for labels (rendered last so they appear on top)
-    const labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    labelsGroup.setAttribute('id', 'dot-labels');
-    labelsGroup.setAttribute('class', 'diagram-content');
+    // Create/reuse the dot-labels group (rendered last so labels sit on top)
+    let labelsGroup = document.getElementById('dot-labels');
+    if (!labelsGroup) {
+      labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      labelsGroup.setAttribute('id', 'dot-labels');
+    }
+    labelsGroup.classList.add('diagram-content');
+    // Append (or re-append) so it sits above other groups regardless of where HTML placed it
     svg.appendChild(labelsGroup);
+
+    // Hide any elements appended to labelsGroup until their stage explicitly reveals them
+    const hideLabelChildByDefault = (node) => {
+      if (!node || !node.classList || node.classList.contains('diagram-visible')) {
+        return;
+      }
+      node.classList.add('diagram-hidden');
+    };
+    const originalLabelsAppendChild = labelsGroup.appendChild;
+    labelsGroup.appendChild = function(child) {
+      hideLabelChildByDefault(child);
+      return originalLabelsAppendChild.call(this, child);
+    };
+    const originalLabelsInsertBefore = labelsGroup.insertBefore;
+    labelsGroup.insertBefore = function(child, refNode) {
+      hideLabelChildByDefault(child);
+      return originalLabelsInsertBefore.call(this, child, refNode);
+    };
+    const restoreLabelsGroupDomMethods = () => {
+      labelsGroup.appendChild = originalLabelsAppendChild;
+      labelsGroup.insertBefore = originalLabelsInsertBefore;
+    };
 
     // Hide ALL SVG children initially (will be revealed after title typewriter)
     // This catches everything - groups, paths, rects, circles, text, etc.
     Array.from(svg.children).forEach(child => {
-      if (child.tagName !== 'defs') { // Don't hide defs (filters, gradients, etc.)
-        child.classList.add('diagram-hidden');
-      }
+      if (child.tagName === 'defs') return; // Don't hide defs (filters, gradients, etc.)
+      if (child.classList.contains('intro-title')) return; // Keep intro title visible
+      if (child.id === 'big-group' || child.id === 'big-label') return; // Keep RITS circle + label visible
+      child.classList.add('diagram-hidden');
     });
 
     // Track animation timeout IDs so we can cancel them on skip
@@ -465,8 +507,8 @@ function initializeDiagram() {
         console.warn('FORCED dot-labels opacity to 1');
       }
 
-      // Stage 2: FSS circle, ADI/Non-ADI boxes, RBA/OPA elements (NO ARC)
-      ['small-group', 'small-label', 'dot-labels',
+      // Stage 2: ADI/Non-ADI boxes, RBA/OPA elements (NO ARC)
+      ['dot-labels',
        'adi-box', 'non-adis-box', // ADI and Non-ADI boxes (note: non-adis with 's')
        'adis-label', 'adis-label-duplicate', 'non-adis-label', // ADI and Non-ADI labels
        'rba-black-circle', 'rba-label', // RBA circle and label
@@ -516,8 +558,9 @@ function initializeDiagram() {
       if (animationSkipped || thirdStageStarted) return;
       thirdStageStarted = true;
 
-      // Stage 3: Remaining boxes, special lines, and CLS green circle
-      ['background-elements', // All other background boxes and lines
+      // Stage 3: Remaining boxes (incl. FSS), special lines, and CLS green circle
+      ['small-group', 'small-label', // FSS circle and label now appear in Stage 3
+       'background-elements', // All other background boxes and lines
        'red-connecting-lines', 'orange-connecting-lines',
        'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
        // Individual lines appended directly to SVG
@@ -532,6 +575,7 @@ function initializeDiagram() {
       // Now catch any remaining lines
       document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
         el.classList.add('diagram-visible');
+        el.classList.remove('diagram-hidden');
       });
     };
 
@@ -10659,8 +10703,9 @@ if (window.makeInteractive) {
   window.makeInteractive(connectingLine, 'new-pacs-to-npp-line');
 }
 
-// Append line to svg so it appears on top of boxes
-svg.appendChild(connectingLine);
+// Append line to blue-connecting-lines group so it appears under boxes
+const blueConnectingLines = document.getElementById('blue-connecting-lines');
+blueConnectingLines.appendChild(connectingLine);
 
 console.log('Created new pacs-style box and bounding box:', {
   boundingBox: { x: newBoundingBoxX, y: boundingBoxY, width: hvcsBoxWidth, height: newBoundingBoxHeight },
@@ -11278,11 +11323,15 @@ if (window.makeInteractive) {
     }
   }
 
+  // Restore default DOM helpers now that label elements are initialized with hidden state
+  restoreLabelsGroupDomMethods();
+
   // Hide ALL SVG content right before starting typewriter (catches dynamically created elements)
   Array.from(svg.children).forEach(child => {
-    if (child.tagName !== 'defs') {
-      child.classList.add('diagram-hidden');
-    }
+    if (child.tagName === 'defs') return;
+    if (child.classList.contains('intro-title')) return;
+    if (child.id === 'big-group' || child.id === 'big-label') return;
+    child.classList.add('diagram-hidden');
   });
 
   // Add title label at the top of the diagram with typewriter effect
@@ -11307,7 +11356,7 @@ if (window.makeInteractive) {
 
   // Typewriter effect on SVG title
   let charIndex = 0;
-  const typeSpeed = 40; // milliseconds per character
+  const typeSpeed = 70; // milliseconds per character (slow down to highlight stage changes)
   let typewriterSkipped = false;
 
   // Store stop function globally so skipAnimation can use it

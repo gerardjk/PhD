@@ -377,7 +377,7 @@ const elementRelationships = {
   // Example: Direct Entry / BECS ecosystem
   'bpay-box': {
     groups: ['direct-entry', 'bulk-payments'],
-    related: ['becn-box', 'becs-line', 'de-line', 'npp-purple-box', 'osko-box', 'eftpos-box']
+    related: ['becs-box', 'becs-line', 'de-line', 'npp-purple-box', 'osko-box', 'eftpos-box']
   },
 
   // Example: LVSS and clearing systems
@@ -563,7 +563,8 @@ const elementRelationships = {
     related: [
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'pacs-to-swift-line-0': {
@@ -572,7 +573,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'pacs-to-swift-line-1': {
@@ -581,7 +583,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'pacs-to-swift-line-2': {
@@ -590,7 +593,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'swift-pds-to-rits-line-0': {
@@ -599,7 +603,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'swift-pds-to-rits-line-1': {
@@ -608,7 +613,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'swift-pds-to-rits-line-2': {
@@ -617,7 +623,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1',
-      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   // NPP-related turquoise lines
@@ -627,7 +634,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'new-pacs-to-npp-line', 'npp-to-fss-path'
+      'new-pacs-to-npp-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'new-pacs-to-npp-line': {
@@ -636,7 +644,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'npp-to-fss-path'
+      'npp-to-adi-line', 'npp-to-fss-path',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
   'npp-to-fss-path': {
@@ -645,7 +654,8 @@ const elementRelationships = {
       'hvcs-horizontal-line',
       'pacs-to-swift-line-0', 'pacs-to-swift-line-1', 'pacs-to-swift-line-2',
       'swift-pds-to-rits-line-0', 'swift-pds-to-rits-line-1', 'swift-pds-to-rits-line-2',
-      'npp-to-adi-line', 'new-pacs-to-npp-line'
+      'npp-to-adi-line', 'new-pacs-to-npp-line',
+      'pacs-008-box', 'pacs-009-box', 'pacs-004-box', 'bsct-box'
     ]
   },
 
