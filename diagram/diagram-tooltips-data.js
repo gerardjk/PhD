@@ -1,1839 +1,1270 @@
 /**
- * Tooltip content for all interactive elements
- * Structured data that populates tooltips when hovering
+ * Tooltip copy rewrite: paragraph-based, public-audience explanations, with
+ * (a) plain-English “how it works” descriptions,
+ * (b) historical context and “why it exists” where it materially helps,
+ * (c) quantified flow examples using your attached spreadsheets, and
+ * (d) forward-looking transition notes that are grounded in published plans.
+ *
+ * Data notes:
+ * - RTGS/FSS figures cited below are from your `australian-rtgs-settlement-detail.csv` (latest row: 2025-12).
+ *   These are the RBA-style *average daily* statistics for the month (RTGS per business day; FSS per calendar day).
+ * - Retail instrument figures cited below are from your `australian-payment-flows.csv` (latest row: 2025-11),
+ *   and are *monthly totals* (with the units implied by the column headers).
+ *
+ * IMPORTANT UI NOTE (so you actually avoid bullet formatting):
+ * This rewrite makes `details` a single multi-paragraph string (separated by blank lines).
+ * If your tooltip renderer currently does `details.map(...)` into <li>, update it to render paragraphs.
+ * A safe, backwards-compatible React snippet is included at the bottom of this file.
  */
 
+const paragraphs = (...ps) => ps.filter(Boolean).join('\n\n');
+
+const FLOW_SNAPSHOT = {
+  // From australian-rtgs-settlement-detail.csv (Date = 2025-12)
+  rtgs: {
+    asAt: 'December 2025',
+    unitNote:
+      'Figures are average daily RTGS activity per business day in the month (the standard way RTGS statistics are reported).',
+    total: { paymentsAvgDaily: 57989, valueAudMillionsAvgDaily: 294017 },
+    swift: { paymentsAvgDaily: 52865, valueAudMillionsAvgDaily: 184847 },
+    austraclear: { paymentsAvgDaily: 4967, valueAudMillionsAvgDaily: 101873 },
+    ritsCash: { paymentsAvgDaily: 157, valueAudMillionsAvgDaily: 7296 },
+    batch: { positionsAvgDaily: 16927, valueAudMillionsAvgDaily: 30608 }
+  },
+
+  // From australian-rtgs-settlement-detail.csv (Date = 2025-12)
+  fss: {
+    asAt: 'December 2025',
+    unitNote:
+      'Figures are average daily FSS activity per calendar day in the month (FSS runs 24/7, including weekends).',
+    total: { paymentsAvgDaily: 4037870, valueAudMillionsAvgDaily: 6138 }
+  },
+
+  // From australian-payment-flows.csv (Date = 2025-11)
+  retail: {
+    asAt: 'November 2025',
+    unitNote:
+      'Figures are monthly totals for the instrument/rail (typical for retail payments statistics).',
+    npp: { volume: 157347900, valueAudMillions: 222082.1, avgAudPerPayment: 1411 },
+    directEntry: { volume: 299167800, valueAudMillions: 1611234.3, avgAudPerItem: 5385 },
+    debitCards: { volume: 1043900000, valueAudMillions: 57237.3, avgAudPerTxn: 55 },
+    creditCards: { volume: 332156500, valueAudMillions: 40462.5, avgAudPerTxn: 122 },
+    cheques: { volume: 781000, valueAudMillions: 13119, avgAudPerCheque: 16800 },
+
+    // Simple trend facts from 2023-01 to 2025-11 in your sheet (useful for “future” narrative)
+    trend: {
+      periodStart: 'January 2023',
+      periodEnd: 'November 2025',
+      chequesVolumeChangePct: -60.8,
+      nppVolumeChangePct: 48.2,
+      directEntryVolumeChangePct: 5.2,
+      fssPaymentsChangePctApprox: 76.2, // derived from your flows sheet 2023-01 vs 2025-11
+      rtgsValueChangePctApprox: 45.2 // derived from your flows sheet 2023-01 vs 2025-11
+    }
+  }
+};
+
+const fmtInt = (n) => Number(n).toLocaleString('en-AU');
+const fmtMillionsToAud = (m) => {
+  const v = Number(m) * 1_000_000;
+  if (v >= 1_000_000_000_000) return `A$${(v / 1_000_000_000_000).toFixed(3)} trillion`;
+  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(3)} billion`;
+  return `A$${fmtInt(Math.round(v))}`;
+};
+
+/**
+ * Shared “line” tooltips (so you don’t repeat copy 20 times).
+ * Keep lineStyle/colorFrom fields where your UI expects them.
+ */
+const LINE_TOOLTIPS = {
+  ISO20022_SWIFT: {
+    title: 'ISO 20022 over SWIFT',
+    description: 'Structured messaging standard for payment instructions. SWIFT delivers messages; RITS settles.',
+    lineStyle: true
+  },
+
+  CLS_PVP: {
+    title: 'ISO 20022 CLS PvP',
+    description: 'Payment-versus-payment FX settlement. Links both currency legs so neither settles without the other.',
+    lineStyle: true
+  },
+
+  DE_ABA: {
+    title: 'DE (ABA) File Format',
+    description: 'Batch file format for Direct Entry credits and debits. Settlement netted via LVSS.',
+    lineStyle: true
+  },
+
+  LVSS_FSI_XML: {
+    title: 'LVSS FSI (XML)',
+    description: 'File Settlement Instructions carrying net positions from retail clearing into LVSS.',
+    lineStyle: true
+  },
+
+  APCS_TRUNCATED_PRESENTMENT: {
+    title: 'APCS Truncated Presentment',
+    description: 'Cheque clearing via electronic images rather than physical paper transport.',
+    lineStyle: true
+  },
+
+  RESERVATION_BATCH_XML: {
+    title: 'Reservation Batch (XML)',
+    description: 'Batch settlement with pre-reserved funds. Used for property settlement coordination.',
+    lineStyle: true
+  },
+
+  SWIFT_MT198_SMT131: {
+    title: 'SWIFT MT198 / SMT131',
+    description: 'Batch settlement instructions delivered via SWIFT into RITS.',
+    lineStyle: true
+  },
+
+  EPAL: {
+    title: 'ePAL Format',
+    description: 'eftpos scheme clearing and settlement file format.',
+    lineStyle: true
+  },
+
+  MASTERCARD_IPM: {
+    title: 'Mastercard IPM',
+    description: 'Integrated Product Messages for Mastercard clearing between issuers and acquirers.',
+    lineStyle: true
+  },
+
+  VISA_BASEII: {
+    title: 'Visa BASE II',
+    description: 'Visa clearing file format for transaction detail and net settlement calculations.',
+    lineStyle: true
+  },
+
+  PROPRIETARY_SCHEME_FORMATS: {
+    title: 'Scheme-specific formats',
+    description: 'Other card network clearing formats (Amex, Diners, etc.).',
+    lineStyle: true
+  },
+
+  HEALTH_CLAIMS: {
+    title: 'Health Claims Protocols',
+    description: 'Medicare and private health insurance claim messaging via terminals.',
+    lineStyle: true
+  },
+
+  ATM_AS2805: {
+    title: 'AS 2805 (ATM)',
+    description: 'ATM interchange messaging for withdrawals and balance enquiries.',
+    lineStyle: true
+  },
+
+  NECDS_PEXA: {
+    title: 'PEXA NECDS',
+    description: 'National Electronic Conveyancing Data Standard messages for PEXA property settlement.',
+    lineStyle: true
+  },
+
+  NECDS_SYMPLI: {
+    title: 'Sympli NECDS',
+    description: 'NECDS messages for Sympli e-conveyancing platform.',
+    lineStyle: true
+  }
+};
+
+/**
+ * ASX quantitative snapshot
+ * Source: ASX Group Monthly Activity Report – November 2025 (published December 2025).
+ * (We embed only what is explicitly stated in the report excerpt you provided via web-open text extraction.)
+ */
+const ASX_SNAPSHOT = {
+  asAt: 'November 2025',
+  cashMarkets: { avgDailyTrades: 2654856, avgDailyValueAudBillions: 7.263, totalValueAudBillions: 159.783 },
+  futures: { totalVolumeContracts: 17183000, avgDailyVolumeContracts: 781042, totalNotionalAudBillionsSingleSided: 5800.703 },
+  options: { totalVolumeContracts: 6546000, avgDailyVolumeContracts: 297537, totalNotionalAudBillionsSingleSided: 1002.622 },
+  otcIrd: {
+    totalNotionalClearedAudBillionsDoubleSided: 747.559,
+    openNotionalClearedAudBillionsDoubleSided: 5092.675
+  },
+  clearingRisk: {
+    initialMarginHeldAudBillions: { asxClear: 1.2, asxClearFutures: 10.7, total: 12.6 },
+    variationMarginPaidAudBillions: { asxClear: 4.7, asxClearFutures: 38.5, total: 43.2 }
+  },
+  billableCashMarketValueClearedAudBillions: 158.651,
+  chess: { holdingsAudBillions: 3416.3, dominantSettlementMessagesMillions: 2.034 },
+  austraclear: { holdingsAudBillions: 3403.1, tradeSourceMessagesThousands: 457 }
+};
+
+const makeInstitutionTooltip = ({
+  name,
+  code,
+  category,
+  hqCountry,
+  isFssMember,
+  usesSettlementAgent,
+  extraHistory
+}) => {
+  const branchVsSubsidiaryNote =
+    category.includes('Foreign Branch')
+      ? 'It operates in Australia as part of the parent legal entity rather than as a separately incorporated Australian company.'
+      : category.includes('Foreign Subsidiary')
+        ? 'It is locally incorporated in Australia even though it is ultimately foreign‑owned, and it is supervised as an Australian ADI.'
+        : '';
+
+  const settlementAgentNote = usesSettlementAgent
+    ? 'This institution uses a settlement agent, relying on another ESA holder to settle on its behalf rather than settling directly in its own name.'
+    : '';
+
+  const fssNote = isFssMember
+    ? 'This institution is an FSS participant, which means it can settle retail payments with other FSS participants in real time through the RBA’s Fast Settlement Service (24/7), rather than being limited to settling during RITS operating hours.'
+    : '';
+
+  return {
+    title: name,
+    subtitle: code,
+    description: category,
+    details: paragraphs(
+      `${name} is headquartered in ${hqCountry}. ${branchVsSubsidiaryNote}`.trim(),
+      settlementAgentNote,
+      fssNote,
+      extraHistory
+    )
+  };
+};
+
 const tooltipContent = {
-  // ESA box
+  // ========== ESA / PARTICIPANT GROUPS ==========
+
   'blue-dots-background': {
     title: 'ESAs',
     subtitle: 'Exchange Settlement Accounts',
-    description: 'Accounts held by financial institutions at the Reserve Bank for settling payment obligations',
-    details: [
-      'Used to settle interbank payments',
-      '101 Accounts: 92 ADIs, 8 non-ADIs, and the Reserve Bank',
-      'FSS Participants hold separate FSS balance in addition to RITS balance',
-      'RITS balance earns overnight cash rate'
-    ],
+    description:
+      'Exchange Settlement Accounts (ESAs) are accounts at the Reserve Bank of Australia used to settle obligations between financial institutions in central bank money.',
+    details: paragraphs(
+      'When Australians make payments, banks and other payment providers end up owing each other money. ESAs are the mechanism that lets those obligations settle with legal finally, using money issued by the central bank (rather than commercial bank money).',
+      'Most major settlement services in Australia ultimately move funds across ESAs. High‑value payments settle in real time through RITS (the RTGS system). Many retail payment streams (like Direct Entry and cheque clearing) settle on a net basis through LVSS and then settle across ESAs in RITS. Fast payments (NPP) settle using the Fast Settlement Service (FSS), which uses a dedicated settlement balance that participants allocate for 24/7 settlement.',
+      'As of early 2026, there are 101 Exchange Settlement Account holders in Australia: 92 ADIs (Authorised Deposit-taking Institutions), 8 non-ADIs (including payment service providers and clearing facilities), and the Reserve Bank itself. Some participants also hold separate FSS balances for 24/7 fast payment settlement.'
+    ),
     link: 'https://www.rba.gov.au/payments-and-infrastructure/esa/'
   },
 
-  // Group boxes
   'adi-box': {
     title: 'ADIs',
     subtitle: 'Authorised Deposit-taking Institutions',
-    description: 'Financial institutions authorised by APRA to take deposits from the public',
-    details: [
-      'Includes banks, building societies, and credit unions',
-      'Regulated by the Australian Prudential Regulation Authority',
-      'Direct participants in payment systems',
-      '92 ADIs hold Exchange Settlement Accounts'
-    ],
+    description:
+      'Authorised and prudentially supervised to take deposits from the public. ',
+    details: paragraphs(
+      '“ADI” is a regulatory category used in Australia for deposit‑taking institutions such as banks, building societies and credit unions. Most households and businesses hold their main transaction accounts with an ADI. Most ADIs are banks, but a some non-bank institutions are also authorised to take deposits.',
+      'ADIs are eligible to hold ESAs at the Reserve Bank, which enables them to settle interbank obligations in central bank money. Smaller ADIs that do not hold ESAs can still provide services to customers using a settlement agent or a sponsoring arrangement.',
+      'ADIs are licensed and supervised by the Australian Prudential Regulatory Authority (APRA) under a regulatory framework designed to manage the systemic risks created by deposit‑taking.'
+    ),
     link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
   'non-adis-box': {
     title: 'Non-ADIs',
-    subtitle: 'Non-Authorised Deposit-taking Institutions',
-    description: 'Financial service providers that do not take deposits but participate in payment systems',
-    details: [
-      'Includes payment service providers and clearing facilities',
-      'Require ADI sponsorship to access payment systems',
-      'Subject to Reserve Bank oversight',
-      '8 non-ADIs hold Exchange Settlement Accounts'
-    ],
+    subtitle: 'Non Authorised Deposit-taking Institutions',
+    description:
+      'Payments system participants that do not take deposits.',
+    details: paragraphs(
+      'Payment service providers and financial market infrastructures do not take deposits, but may still need to hold ESAs to clear and settle payments. Like ADIs, non-ADIs are subject to regulatory oversight.',
+    ),
     link: 'https://www.rba.gov.au/payments-and-infrastructure/'
   },
 
   'domestic-banks-box': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banking institutions',
-    description: 'Banks incorporated and headquartered in Australia',
-    details: [
-      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller Australian banks',
-      'Provide full retail and commercial banking services',
-      'Major participants in all payment systems'
-    ],
+    title: 'Domestic banks',
+    subtitle: 'Australian‑owned banking institutions',
+    description:
+      'Banks incorporated and headquartered in Australia.',
+    details: paragraphs(
+      'Domestic banks provide most Australians’ regular transaction accounts for payments, along with lending and other financial services for households, businesses and capital markets.',
+    ),
     link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
   },
 
   'international-banks-box': {
-    title: 'International Banks',
-    subtitle: 'Foreign-owned banking operations in Australia',
-    description: 'Banks with foreign ownership operating in Australia',
-    details: [
-      'Includes both branches and subsidiaries of foreign banks',
-      'Provide wholesale and retail banking services',
-      'Subject to APRA prudential standards',
-      'Participate in Australian payment systems'
-    ],
+    title: 'International banks',
+    subtitle: 'Foreign‑owned operations in Australia',
+    description:
+      'Branches or locally incorporated subsidiaries.',
+    details: paragraphs(
+      'Australia hosts many international banks, some operating as branches (part of the overseas legal entity) and some as subsidiaries (locally incorporated Australian entities). International banks are often important in high‑value interbank payments, securities settlement flows, and correspondent banking, providing payment services to corporate and institutional customers.'
+    ),
     link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
   'foreign-branches-box': {
-    title: 'Foreign Branches',
+    title: 'Foreign branches',
     subtitle: 'Australian branches of foreign banks',
-    description: 'Branches of overseas banks operating in Australia under APRA supervision',
-    smallStyle: true
+    description:
+      'A foreign bank branch is not a separate legal entity from its parent; it operates in Australia under Australian supervision but as part of the overseas bank.',
+    compactStyle: true,
+    details: 'Branches are typically used for wholesale banking, institutional clients, markets activity and trade finance.',
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
   'foreign-subsidiaries-box': {
-    title: 'Foreign Subsidiaries',
-    subtitle: 'Australian subsidiaries of foreign banks',
-    description: 'Locally incorporated subsidiaries of overseas banks supervised by APRA',
-    smallStyle: true
+    title: 'Foreign subsidiaries',
+    subtitle: 'Locally incorporated foreign‑owned banks',
+    description:
+      'A foreign‑owned subsidiary is incorporated in Australia and supervised as an Australian ADI, even though it is ultimately owned by a foreign banking group.',
+    compactStyle: true,
+    details: 'Subsidiaries are separate legal entities. That typically means local capital and governance requirements.',
+    link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
   'specialised-adis-box': {
     title: 'Specialised ADIs',
-    subtitle: 'ADIs with focused business models',
-    description: 'Deposit-taking institutions serving specific market segments',
-    details: [
-      'Payment-focused institutions',
-      'May not offer traditional banking products',
-      'Examples: Wise Australia, Tyro Payments',
-      'Subject to full APRA prudential standards'
-    ],
+    subtitle: 'Non-banks',
+    description:
+      'ADIs in this category are licensed by APRA to undertake a limited range of banking services.',
+    details: 'Wise and Tyro are licensed with a narrower scope than full banking ADIs.',
     link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
-  'other-adis-box': {
+'other-adis-box': {
     title: 'Other ADIs',
-    subtitle: 'Building societies and credit unions',
-    description: 'Customer-owned banking institutions',
-    details: [
-      'Mutual ownership structure',
-      'Primarily retail banking services',
-      'Examples: Indue, CUSCAL, Australian Settlements',
-      'Full ADI regulatory requirements'
-    ],
+    subtitle: 'Non-banks',
+    description:
+      'Wholesale institutions that function as settlement agents allowing smaller ADIs andto access the payments system without maintaining their own ESAs.',
+    details: paragraphs(
+      'Settlement agents aggregate net obligations of hundreds of smaller client institutions (credit unions, mutuals, and neo-banks) and aggregate position using their own liquidity in RITS.'
+    ),
     link: 'https://www.apra.gov.au/register-of-authorised-deposit-taking-institutions'
   },
 
   'psps-box': {
     title: 'PSPs',
     subtitle: 'Payment Service Providers',
-    description: 'Non-bank entities providing payment services',
-    details: [
-      'Fintechs and payment platforms',
-      'Require ADI sponsor for payment system access',
-      'Examples: Adyen, First Data Network',
-      'Subject to Reserve Bank oversight'
-    ],
+    description:
+      'PSPs provide payment acceptance, gateway, processing or orchestration services without being deposit‑taking institutions.',
+    details: paragraphs(
+      'Payment Service Providers (PSPs) connect merchants and platforms to card schemes, account‑to‑account payments, and financial and data services including fraud controls and reconciliation tools.',
+    ),
     link: 'https://www.rba.gov.au/payments-and-infrastructure/'
   },
 
   'cs-box': {
-    title: 'CS',
+    title: 'CS facilities',
     subtitle: 'Clearing and Settlement Facilities',
-    description: 'Entities providing post-trade infrastructure services',
-    details: [
-      'ASX Settlement, ASX Clear, LCH',
-      'Licensed under Corporations Act',
-      'Subject to Reserve Bank oversight',
-      'Critical financial market infrastructure'
-    ],
+    description:
+      'Clearing and settlement facilities (including central counterparties and securities settlement facilities) support financial markets by managing counterparty risk and ensuring trades settle safely.',
+    details: paragraphs(
+      'In markets, “clearing” is the step that determines who owes what after trades occur, and “settlement” is the step where securities and cash are actually exchanged. Clearing and settlement facilities are systemically important and are subject to specialised regulatory standards and oversight.'
+    ),
     link: 'https://www.rba.gov.au/fin-stability/financial-market-infrastructure/'
   },
 
-  // RBA System
+  // ========== RBA / GOVERNMENT / CASH ==========
+
   'dot-0': {
-    rbaSystem: true,
     title: 'RBA',
     subtitle: 'Reserve Bank of Australia',
-    description: 'Central bank responsible for Australian monetary policy and financial system stability',
-    details: [
-      'Operator of RITS (Reserve Bank Information and Transfer System)',
-      'Supervisor of payment systems and financial market infrastructures',
-      'Manages aggregate Exchange Settlement funds supply',
-      'Producer of Australian banknotes',
-      'FSS participant'
-    ],
+    description:
+      'Australia’s central bank. The RBA issues the national currency, implements monetary policy, and operates and oversees key payment and market infrastructures for financial stability.',
+    details: paragraphs(
+      'The Reserve Bank is the core of the Australian payments system because it provides the final settlement asset: central bank money. Banks and other eligible institutions hold Exchange Settlement Accounts at the RBA and use them to settle obligations arising from many different payment channels. The RBA also issues banknotes and works with industry to ensure their reliable distribution.'
+    ),
     link: 'https://www.rba.gov.au/about-rba/'
   },
 
-  // Foreign Branch Banks (dots 2-44)
-  'dot-1': {
-    title: 'Citibank, N.A.',
-    subtitle: 'CINA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States',
-      'FSS Member'
-    ]
-  },
-  'dot-2': {
-    title: 'JPMorgan Chase Bank, National Association',
-    subtitle: 'CHAM',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States',
-      'FSS Member'
-    ]
-  },
-  'dot-3': {
-    title: 'Agricultural Bank of China Limited',
-    subtitle: 'ABOC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-4': {
-    title: 'Bank of America, National Association',
-    subtitle: 'BOFA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States'
-    ]
-  },
-  'dot-5': {
-    title: 'Bank of China Limited, Sydney Branch',
-    subtitle: 'BOCS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-6': {
-    title: 'Bank of Communications Co. Ltd.',
-    subtitle: 'BCOM',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-7': {
-    title: 'Barclays Bank PLC',
-    subtitle: 'BARC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United Kingdom'
-    ]
-  },
-  'dot-8': {
-    title: 'BNP Paribas',
-    subtitle: 'BNPT',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in France'
-    ]
-  },
-  'dot-9': {
-    title: 'China Construction Bank Corporation',
-    subtitle: 'CCBC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-10': {
-    title: 'China Everbright Bank Co., Ltd',
-    subtitle: 'EVER',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-11': {
-    title: 'China Merchants Bank Co., Ltd.',
-    subtitle: 'CMBC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-12': {
-    title: 'Cooperatieve Rabobank U.A.',
-    subtitle: 'RANE',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Netherlands'
-    ]
-  },
-  'dot-13': {
-    title: 'Credit Agricole Corporate and Investment Bank',
-    subtitle: 'CACB',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in France'
-    ]
-  },
-  'dot-14': {
-    title: 'DBS Bank Ltd',
-    subtitle: 'DBSA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Singapore'
-    ]
-  },
-  'dot-15': {
-    title: 'Deutsche Bank AG',
-    subtitle: 'DBAL',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Germany'
-    ]
-  },
-  'dot-16': {
-    title: 'Industrial and Commercial Bank of China Limited',
-    subtitle: 'ICBK',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in China'
-    ]
-  },
-  'dot-17': {
-    title: 'ING Bank NV',
-    subtitle: 'INGA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Netherlands'
-    ]
-  },
-  'dot-18': {
-    title: 'Mega International Commercial Bank Co. Ltd',
-    subtitle: 'ICBC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan'
-    ]
-  },
-  'dot-19': {
-    title: 'Mizuho Bank, Ltd',
-    subtitle: 'MHCB',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Japan'
-    ]
-  },
-  'dot-20': {
-    title: 'MUFG Bank, Ltd.',
-    subtitle: 'BOTK',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Japan'
-    ]
-  },
-  'dot-21': {
-    title: 'Oversea-Chinese Banking Corporation Limited',
-    subtitle: 'OCBC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Singapore'
-    ]
-  },
-  'dot-22': {
-    title: 'Royal Bank of Canada',
-    subtitle: 'ROYC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Canada'
-    ]
-  },
-  'dot-23': {
-    title: 'Standard Chartered Bank',
-    subtitle: 'SCBA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United Kingdom'
-    ]
-  },
-  'dot-24': {
-    title: 'State Bank of India',
-    subtitle: 'SBIS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in India'
-    ]
-  },
-  'dot-25': {
-    title: 'State Street Bank and Trust Company',
-    subtitle: 'SSBS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States'
-    ]
-  },
-  'dot-26': {
-    title: 'Sumitomo Mitsui Banking Corporation',
-    subtitle: 'SMBC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Japan'
-    ]
-  },
-  'dot-27': {
-    title: 'Taiwan Business Bank, Ltd',
-    subtitle: 'TBBS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan'
-    ]
-  },
-  'dot-28': {
-    title: 'The Hongkong and Shanghai Banking Corporation Limited',
-    subtitle: 'HKSB',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Hong Kong'
-    ]
-  },
-  'dot-29': {
-    title: 'The Northern Trust Company',
-    subtitle: 'TNTC',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States'
-    ]
-  },
-  'dot-30': {
-    title: 'UBS AG',
-    subtitle: 'UBSB',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Switzerland'
-    ]
-  },
-  'dot-31': {
-    title: 'United Overseas Bank Limited',
-    subtitle: 'UOBL',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Singapore'
-    ]
-  },
-  'dot-32': {
-    title: 'Bank of Baroda',
-    subtitle: 'BOBA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in India',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-33': {
-    title: 'Bank of Taiwan',
-    subtitle: 'BOTS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-34': {
-    title: 'Canadian Imperial Bank of Commerce',
-    subtitle: 'CIBS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Canada',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-35': {
-    title: 'E.SUN Commercial Bank, Ltd.',
-    subtitle: 'ESUN',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-36': {
-    title: 'First Commercial Bank, Ltd',
-    subtitle: 'FCBL',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-37': {
-    title: 'Hua Nan Commercial Bank Ltd',
-    subtitle: 'HNCB',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-38': {
-    title: 'KEB Hana Bank',
-    subtitle: 'KEBL',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in South Korea',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-39': {
-    title: 'Shinhan Bank Co., Ltd.',
-    subtitle: 'SHIN',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in South Korea',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-40': {
-    title: 'Taishin International Bank Co., Ltd.',
-    subtitle: 'TAIS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-41': {
-    title: 'Taiwan Cooperative Bank, Ltd',
-    subtitle: 'TCBA',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Taiwan',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-42': {
-    title: 'The Bank of New York Mellon',
-    subtitle: 'BNYM',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in United States',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-43': {
-    title: 'The Bank of Nova Scotia',
-    subtitle: 'BNSS',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in Canada',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-44': {
-    title: 'Union Bank of India',
-    subtitle: 'UBOI',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in India',
-      'Uses Settlement Agent'
-    ]
-  },
-  'dot-45': {
-    title: 'Woori Bank',
-    subtitle: 'WOOR',
-    description: 'International Bank: Foreign Branch',
-    details: [
-      'Headquartered in South Korea',
-      'Uses Settlement Agent'
-    ]
-  },
-
   'opa-box': {
-    rbaSystem: true,
     title: 'OPA',
     subtitle: 'Official Public Account',
-    description: 'Commonwealth Government\'s account with the Reserve Bank',
-    details: [
-      'Holds Commonwealth funds prior to disbursement',
-      'Commonwealth is required by law to bank with the Reserve Bank'
-    ],
+    description:
+      'The Commonwealth Government’s primary account at the Reserve Bank. It is where Commonwealth funds are held before being disbursed and where key government receipts are managed.',
+    details: paragraphs(
+      'Government payments (including welfare payments, tax refunds, Medicare payments, and supplier payments) are large, regular, and critical to the national economy and money supply. The Commonwealth banks with the RBA and its daily expenditures and receipts (taxes or bond issuances) constitute significant interbank settlement movements.'
+    ),
     link: 'https://www.finance.gov.au/about-us/glossary/pgpa/term-official-public-account-opa'
   },
+
   'bdf-box': {
-    rbaSystem: true,
     title: 'BDF',
     subtitle: 'Banknote Distribution Framework',
-    description: 'Framework for distributing Australian banknotes from the Reserve Bank to financial institutions',
-    details: [
-      'Four major banks: ANZ, CBA, NAB, and Westpac',
-      'Manage banknote inventory and distribution to branches and ATMs',
-      'Coordinate with RBA for banknote supply and withdrawal'
-    ],
-    link: 'https://www.rba.gov.au/currency/'
+    description:
+      'A framework for distributing Australian banknotes from the Reserve Bank into the banking system, managed in cooperation with the "Big Four" domestic banks.',
+    details: paragraphs(
+      'The Banknote Distribution Framework manages the logistics of physical cash distribution: issuance, sorting, storing, transportation, and withdrawal.',
+    ),
+    link: 'https://www.rba.gov.au/banknotes/distribution/'
   },
-  'bdf-line-50': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banking institutions',
-    description: 'Banks incorporated and headquartered in Australia',
-    details: [
-      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller Australian banks',
-      'Provide full retail and commercial banking services',
-      'Major participants in all payment systems'
-    ],
-    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
-  },
-  'bdf-line-51': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banking institutions',
-    description: 'Banks incorporated and headquartered in Australia',
-    details: [
-      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller Australian banks',
-      'Provide full retail and commercial banking services',
-      'Major participants in all payment systems'
-    ],
-    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
-  },
-  'bdf-line-52': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banking institutions',
-    description: 'Banks incorporated and headquartered in Australia',
-    details: [
-      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller Australian banks',
-      'Provide full retail and commercial banking services',
-      'Major participants in all payment systems'
-    ],
-    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
-  },
-  'bdf-line-53': {
-    title: 'Domestic Banks',
-    subtitle: 'Australian-owned banking institutions',
-    description: 'Banks incorporated and headquartered in Australia',
-    details: [
-      'Includes the Big Four: ANZ, CBA, NAB, Westpac',
-      'Regional and smaller Australian banks',
-      'Provide full retail and commercial banking services',
-      'Major participants in all payment systems'
-    ],
-    link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
-  },
-  'rits-circle': {
+
+  // ========== RITS / RTGS / FSS ==========
+
+'rits-circle': {
     preHeading: 'Systemically Important Payment System (SIPS)',
     title: 'RITS',
     subtitle: 'Reserve Bank Information and Transfer System',
-    description: 'Australia\'s high-value real-time gross settlement system operated by the Reserve Bank',
-    details: [
-      'Settles interbank payments in real-time',
-      'Processes high-value and time-critical payments',
-      'Integrates with FSS (Fast Settlement Service)',
-      'Core infrastructure for Australian payment systems'
-    ],
+    description:
+      'The RBA\'s central settlement system. Manages Exchange Settlement Accounts (ESAs) and settles high-value payments (RTGS) and net retail obligations (LVSS).',
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.rtgs.asAt}, RITS settled ${fmtInt(FLOW_SNAPSHOT.rtgs.total.paymentsAvgDaily)} payments/day averaging ${fmtMillionsToAud(FLOW_SNAPSHOT.rtgs.total.valueAudMillionsAvgDaily)}/day.`,
+      '**RTGS mode**: settles payments individually in real time. **Net settlement mode**: settles aggregated positions from retail clearing streams via LVSS.',
+      'Instructions arrive via **SWIFT** (global messaging network) or **COIN** (domestic network for clearing files and NPP traffic). The **Fast Settlement Service** extends settlement to 24/7 for NPP.'
+    ),
     link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/about.html'
   },
 
-
-  'swift-pds-box': {
-    title: 'SWIFT PDS',
-    subtitle: 'SWIFT Payment Delivery System',
-    description: 'International payment messaging service',
-    details: [
-      'Connects to global SWIFT network',
-      'Handles cross-border payment messages',
-      'Operated by SWIFT'
-    ]
-  },
-  'swift-pds-rect': {
-    title: 'SWIFT PDS',
-    subtitle: 'Payment Data Service',
-    description: 'SWIFT messaging gateway for Australian payment systems, providing standardised ISO 20022 message translation and routing',
-    details: [
-      'Translates domestic formats to ISO 20022 pacs messages',
-      'Routes payment instructions to RITS for settlement',
-      'Connects Australian systems to global SWIFT network',
-      'Handles pacs.009, pacs.008, and pacs.004 message types'
-    ],
-    link: 'https://www.swift.com/'
-  },
-  'swift-hvcs-box': {
-    title: 'SWIFT HVCS',
-    subtitle: 'High Value Clearing System',
-    description: 'SWIFT-based messaging system for high-value payments in Australia, processing payment instructions via ISO 20022 messages',
-    details: [
-      'Processes high-value interbank payments',
-      'Uses pacs.009 (Financial Institution Credit Transfer)',
-      'Uses pacs.008 (Customer Credit Transfer)',
-      'Uses pacs.004 (Payment Return)',
-      'Messages routed through SWIFT PDS to RITS'
-    ],
-    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/'
-  },
-  'pacs-009-box': {
-    title: 'pacs.009',
-    subtitle: 'Financial Institution Credit Transfer',
-    description: 'ISO 20022 message for interbank credit transfers',
-    smallStyle: true
-  },
-  'pacs-008-box': {
-    title: 'pacs.008',
-    subtitle: 'Customer Credit Transfer',
-    description: 'ISO 20022 message for customer-initiated transfers',
-    smallStyle: true
-  },
-  'pacs-004-box': {
-    title: 'pacs.004',
-    subtitle: 'Payment Return',
-    description: 'ISO 20022 message for returning/rejecting payments',
-    smallStyle: true
-  },
-
-  // NPP ecosystem
-  'npp-box': {
-    title: 'NPP BI (SWIFT)',
-    subtitle: 'New Payments Platform Basic Infrastructure',
-    description: 'Real-time payment infrastructure for Australia',
-    details: [
-      'Enables instant payments 24/7',
-      'Supports PayID and PayTo',
-      'Operated by NPP Australia',
-      'Built on ISO 20022 messaging'
-    ],
-    hours: '24/7 availability'
-  },
-  'npp-purple-box': {
-    prominentSystem: true,
-    preHeading: 'Australian Payments Plus',
-    title: 'NPP',
-    subtitle: 'New Payments Platform',
-    description: 'Australia\'s real-time payments infrastructure enabling instant fund transfers between participating financial institutions',
-    details: [
-      'Real-time clearing and settlement 24/7/365',
-      'Supports Osko fast payments',
-      'PayID addressing service',
-      'PayTo for third-party initiated payments',
-      'ISO 20022 messaging standard'
-    ],
-    link: 'https://nppa.com.au/'
-  },
-  'osko-box': {
-    preHeading: 'Australian Payments Plus',
-    title: 'Osko',
-    subtitle: 'Fast payment service',
-    description: 'Consumer-facing brand for NPP payments',
-    details: [
-      'Real-time account-to-account payments',
-      'PayID address resolution',
-      'Payment with message capability'
-    ]
-  },
-  'bsct-box': {
-    title: 'BSCT',
-    subtitle: 'Basic Single Credit Transfer',
-    description: 'ISO 20022 message type for NPP credit transfers',
-    details: [
-      'Standard message format for NPP payments',
-      'Supports real-time fund transfers',
-      'Enables rich payment data'
-    ]
-  },
-  'payid-box': {
-    preHeading: 'Australian Payments Plus',
-    title: 'PayID / PayTo',
-    subtitle: 'NPP Overlay Services',
-    description: 'PayID enables simplified payment addressing using mobile, email, or ABN. PayTo provides real-time payment authorization as a digital alternative to direct debits.',
-    details: [
-      'PayID links easy-to-remember addresses to BSB/account',
-      'PayTo enables customer-controlled recurring payments',
-      'Both managed by NPP Australia'
-    ]
-  },
-  'payto-box': {
-    preHeading: 'Australian Payments Plus',
-    title: 'IPS',
-    subtitle: 'International Payment Service',
-    description: 'Cross-border payment capability for the NPP enabling real-time international transfers',
-    details: [
-      'Connects NPP to international payment networks',
-      'Supports real-time cross-border payments',
-      'ISO 20022 messaging standard'
-    ]
-  },
-
-  // RITS and FSS
-  'big-circle': {
-    title: 'RITS Settlement Engine',
-    subtitle: 'Reserve Bank Information and Transfer System',
-    description: 'High-value real-time gross settlement system',
-    details: [
-      'Processes high-value and time-critical payments',
-      'Real-time gross settlement (RTGS)',
-      'Operated by Reserve Bank of Australia'
-    ],
-    hours: 'Monday-Friday 7:30-22:00 AEST/AEDT'
-  },
   'small-circle': {
     title: 'FSS',
     subtitle: 'Fast Settlement Service',
-    description: 'Real-time settlement service for retail payments',
-    details: [
-      'Supports NPP and other fast payment systems',
-      'Operates 24/7/365',
-      'Managed by Reserve Bank of Australia'
-    ],
-    hours: '24/7 availability'
-  },
-  'fss-circle': {
-    title: 'FSS',
-    subtitle: 'Fast Settlement Service',
-    description: 'Real-time settlement service for retail payments',
-    details: [
-      'Supports NPP and other fast payment systems',
-      'Operates 24/7/365',
-      'Managed by Reserve Bank of Australia'
-    ],
+    description:
+      'The RBA\'s 24/7 settlement service for fast payments. Settles NPP transactions in central bank money around the clock.',
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.fss.asAt}, FSS averaged ${fmtInt(FLOW_SNAPSHOT.fss.total.paymentsAvgDaily)} payments/day with value of ${fmtMillionsToAud(FLOW_SNAPSHOT.fss.total.valueAudMillionsAvgDaily)}/day. ${FLOW_SNAPSHOT.fss.unitNote}`,
+      'NPP clears payments instantly; FSS provides settlement finality by moving funds between participants\' allocated settlement balances. Participants must maintain sufficient liquidity for settlement.'
+    ),
+    hours: '24/7/365',
     link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/about.html'
   },
 
-  // CLS - Continuous Linked Settlement
+  'fss-circle': {
+    title: 'FSS',
+    subtitle: 'Fast Settlement Service',
+    description:
+      'The RBA\'s 24/7 settlement service for NPP payments.',
+    details: 'Enables interbank settlement outside business hours. Participants pre-fund allocated settlement balances to support continuous operation.',
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/'
+  },
+
+  // ========== SWIFT / HVCS / ISO 20022 ==========
+
+  'swift-pds-box': {
+    title: 'SWIFT',
+    subtitle: 'Secure financial messaging',
+    description:
+      'Global secure messaging network for financial institutions. Delivers payment instructions; does not move money.',
+    details: 'SWIFT carries high-value payment instructions (HVCS) and batch settlement instructions into RITS. Settlement finality occurs when RITS moves ESA balances.',
+    link: 'https://www.swift.com/'
+  },
+
+  'swift-pds-rect': {
+    title: 'SWIFT PDS',
+    subtitle: 'Payment Delivery System',
+    description:
+      'SWIFT service that routes payment instructions between institutions and into RITS.',
+    details: 'Handles the messaging layer (instruction delivery). Settlement occurs separately in RITS across Exchange Settlement Accounts.',
+    link: 'https://www.swift.com/'
+  },
+
+  'swift-hvcs-box': {
+    title: 'HVCS',
+    subtitle: 'High Value Clearing System',
+    description:
+      'Australia\'s high-value payment clearing arrangements. Uses ISO 20022 messages delivered via SWIFT, settled in RITS.',
+    details: paragraphs(
+      `SWIFT-delivered payments are the dominant RTGS channel by count and value. In ${FLOW_SNAPSHOT.rtgs.asAt}, SWIFT payments averaged ${fmtInt(FLOW_SNAPSHOT.rtgs.swift.paymentsAvgDaily)}/day with value of ${fmtMillionsToAud(FLOW_SNAPSHOT.rtgs.swift.valueAudMillionsAvgDaily)}/day.`,
+      'ISO 20022 adoption improved data richness and alignment with global standards, supporting automation and compliance screening.'
+    ),
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/rits/'
+  },
+
+  'pacs-009-box': {
+    title: 'pacs.009',
+    subtitle: 'Financial Institution Credit Transfer',
+    description:
+      'ISO 20022 message for bank-to-bank transfers. Used for wholesale interbank payments settled via RTGS.',
+    smallStyle: true,
+    details: 'Used when both payer and payee are financial institutions. Settlement occurs when RITS debits/credits ESAs.'
+  },
+
+  'pacs-008-box': {
+    title: 'pacs.008',
+    subtitle: 'Customer Credit Transfer',
+    description:
+      'ISO 20022 message for customer payments requiring interbank settlement.',
+    smallStyle: true,
+    details: 'Carries structured customer and remittance data for reconciliation and compliance. Settlement via RTGS across ESAs.'
+  },
+
+  'pacs-004-box': {
+    title: 'pacs.004',
+    subtitle: 'Payment Return',
+    description:
+      'ISO 20022 message to return a payment that cannot be processed or must be reversed.',
+    smallStyle: true,
+    details: 'Used for closed accounts, invalid details, or compliance failures. Return ability depends on scheme rules and timing.'
+  },
+
+  // All turquoise ISO 20022 lines → shared definition
+  'hvcs-horizontal-line': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'pacs-to-swift-line-0': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'pacs-to-swift-line-1': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'pacs-to-swift-line-2': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'swift-pds-to-rits-line-0': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'swift-pds-to-rits-line-1': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'swift-pds-to-rits-line-2': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'npp-to-adi-line': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'new-pacs-to-npp-line': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+  'npp-to-fss-path': { ...LINE_TOOLTIPS.ISO20022_SWIFT },
+
+  // CLS lines
+  'cls-aud-line-new': { ...LINE_TOOLTIPS.CLS_PVP },
+  'cls-to-rits-line-final': { ...LINE_TOOLTIPS.CLS_PVP },
+  'cls-s-curve': { ...LINE_TOOLTIPS.CLS_PVP },
+  'cls-aud-rect': { ...LINE_TOOLTIPS.CLS_PVP, colorFrom: 'cls-aud-line-new' },
+
+  // ========== NPP ECOSYSTEM ==========
+
+  'npp-box': {
+    title: 'NPP Basic Infrastructure',
+    subtitle: 'New Payments Platform (clearing layer)',
+    description:
+      'Australia\'s real-time payments clearing infrastructure. Supports overlay services (Osko, PayID, PayTo). Settlement via FSS.',
+    prominentSystem: true,
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}, NPP processed ${fmtInt(FLOW_SNAPSHOT.retail.npp.volume)} payments totalling ${fmtMillionsToAud(FLOW_SNAPSHOT.retail.npp.valueAudMillions)}. Average ~A$${fmtInt(FLOW_SNAPSHOT.retail.npp.avgAudPerPayment)}/payment.`,
+      'Clearing occurs on NPP infrastructure; settlement finality delivered by FSS in central bank money.'
+    ),
+    hours: '24/7/365',
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/new-payments-platform/'
+  },
+
+  'npp-purple-box': {
+    preHeading: 'Australia Payments Plus',
+    title: 'NPP',
+    subtitle: 'New Payments Platform',
+    description:
+      'Real-time account-to-account payments. Supports push payments and (via PayTo) authorised pull payments.',
+    prominentSystem: true,
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}: NPP handled ${fmtInt(FLOW_SNAPSHOT.retail.npp.volume)} payments; Direct Entry handled ${fmtInt(FLOW_SNAPSHOT.retail.directEntry.volume)} items.`,
+      'NPP growing rapidly but legacy batch systems remain embedded in enterprise payroll and billing processes.'
+    ),
+    link: 'https://nppa.com.au/'
+  },
+
+  'osko-box': {
+    preHeading: 'Australia Payments Plus',
+    title: 'Osko',
+    subtitle: 'Fast payment service',
+    description:
+      'Consumer-facing NPP overlay for near-instant account-to-account transfers.',
+    prominentSystem: true,
+    details: 'Runs on NPP clearing; settlement finality via FSS. Provides richer reference data than legacy transfers.'
+  },
+
+  'payid-box': {
+    preHeading: 'Australia Payments Plus',
+    title: 'PayID and PayTo',
+    subtitle: 'NPP overlay services',
+    description:
+      'PayID: links phone/email/ABN to account for easier addressing. PayTo: authorised payment agreements visible in banking apps.',
+    prominentSystem: true,
+    details: paragraphs(
+      '**PayID** reduces misdirected payments by replacing BSB/account numbers with memorable identifiers.',
+      '**PayTo** replaces legacy direct debits with payer-controlled agreements—visible, pausable, cancellable in banking channels.'
+    ),
+    link: 'https://www.auspayplus.com.au/solutions/payto'
+  },
+
+  'payto-box': {
+    preHeading: 'Australia Payments Plus',
+    title: 'IPS',
+    subtitle: 'International Payments Service',
+    description:
+      'Enables inbound cross-border payments to credit via NPP fast payment rails for the final AUD leg.',
+    prominentSystem: true,
+    details: 'Cross-border networks handle international leg; NPP/FSS handles domestic clearing and settlement in AUD.',
+    link: 'https://www.auspayplus.com.au/solutions/npp'
+  },
+
+  'bsct-box': {
+    title: 'BSCT',
+    subtitle: 'Basic Single Credit Transfer',
+    description:
+      'Standard NPP message type for single account-to-account payments.',
+    details: 'One payer, one payee, one payment. Structured fields support automated reconciliation and compliance.'
+  },
+
+  // ========== DIRECT ENTRY / BECS / LVSS / CHEQUES ==========
+
+  'de-box': {
+    title: 'Direct Entry',
+    subtitle: 'Batch credits and debits',
+    description:
+      'Australia\'s batch payment system for payroll, bills, and direct debits. Files exchanged in bulk; net positions settled via LVSS.',
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}, Direct Entry processed ${fmtInt(FLOW_SNAPSHOT.retail.directEntry.volume)} items totalling ${fmtMillionsToAud(FLOW_SNAPSHOT.retail.directEntry.valueAudMillions)}. Average ~A$${fmtInt(FLOW_SNAPSHOT.retail.directEntry.avgAudPerItem)}/item.`,
+      'Deeply embedded in enterprise payroll and billing systems. Migration to real-time alternatives requires business process change, not just technology.'
+    )
+  },
+
+  'becs-box': {
+    title: 'BECS',
+    subtitle: 'Bulk Electronic Clearing System',
+    description:
+      'Clearing framework for Direct Entry file exchange between institutions. Rules govern validation, rejection, and correction.',
+    prominentSystem: true,
+    details: paragraphs(
+      'Institutions exchange files and agree obligations via BECS; settlement occurs separately via LVSS.',
+      'No fixed decommissioning date. BECS will remain while PayTo and other migration pathways mature.'
+    ),
+    link: 'https://www.auspaynet.com.au/payments-services/becs'
+  },
+
+  'becn-box': {
+    title: 'BECN',
+    subtitle: 'Bulk Electronic Clearing (Net)',
+    description:
+      'Net settlement stream for bulk payments. Obligations netted across clearing cycle; only net amounts settled.',
+    details: 'Efficient for high-volume low-value payments—reduces settlement traffic and liquidity needs. Introduces timing dependencies around cut-offs.'
+  },
+
+  'becg-box': {
+    title: 'BECG',
+    subtitle: 'Bulk Electronic Clearing (Gross)',
+    description:
+      'Gross settlement stream for bulk payments where item-by-item settlement is preferred.',
+    details: 'Used where risk or operational rules favour gross treatment over multilateral netting.'
+  },
+
+  'lvss-circle': {
+    title: 'LVSS',
+    subtitle: 'Low Value Settlement Service',
+    description:
+      'RBA service that settles net obligations from retail clearing streams (Direct Entry, cheques, cards) across ESAs.',
+    details: 'Clearing systems determine net positions; LVSS settles them in central bank money. Reduces settlement traffic and liquidity needs.'
+  },
+
+  'lvss-gear': {
+    title: 'LVSS',
+    subtitle: 'Settlement hub for retail clearing streams',
+    description:
+      'Receives File Settlement Instructions from multiple retail streams; settles net positions across ESAs.',
+    details: 'Convergence point where Direct Entry, cheques, and card obligations become interbank positions settled in central bank money.',
+    link: 'https://www.rba.gov.au/payments-and-infrastructure/payments-system.html'
+  },
+
+  // LVSS FSI lines
+  'lvss-line-gabs': {
+    title: 'GABS FSI',
+    description: 'Government sweep settlement instructions to/from Official Public Account.',
+    lineStyle: true
+  },
+  'lvss-line-cecs': { ...LINE_TOOLTIPS.LVSS_FSI_XML },
+  'lvss-line-cshd': {
+    title: 'CSHD FSI (Legacy)',
+    description: 'Former Cashcard ATM network settlement instructions. Network defunct since 2016.',
+    lineStyle: true
+  },
+  'lvss-line-becs': { ...LINE_TOOLTIPS.LVSS_FSI_XML },
+  'lvss-line-apcs': { ...LINE_TOOLTIPS.LVSS_FSI_XML },
+  'cecs-to-iac-line-1': { ...LINE_TOOLTIPS.LVSS_FSI_XML },
+  'cecs-to-iac-line-2': { ...LINE_TOOLTIPS.LVSS_FSI_XML },
+
+  // Direct Entry ABA lines
+  'directentry-to-adi-line': { ...LINE_TOOLTIPS.DE_ABA },
+  'maroon-horizontal-branch': { ...LINE_TOOLTIPS.DE_ABA },
+  'becn-to-becs-line': { ...LINE_TOOLTIPS.DE_ABA },
+  'becg-to-becs-line': { ...LINE_TOOLTIPS.DE_ABA },
+
+  'apcs-box': {
+    title: 'APCS',
+    subtitle: 'Australian Paper Clearing System',
+    description:
+      'Clearing system for cheques. Images exchanged electronically but legal instrument remains paper-based.',
+    details: 'Being wound down as cheque volumes decline. Focus shifted to orderly exit with support for remaining users.'
+  },
+
+  'gabs-box': {
+    title: 'GABS',
+    subtitle: 'Government Agencies Balances Sweep',
+    description:
+      'Daily sweep of Australian Government agency balances to/from the Official Public Account (OPA) at the RBA.',
+    details: 'Consolidates agency balances from commercial banks into the OPA each evening, returning funds each morning. Settlement via LVSS.'
+  },
+
+  'cshd-box': {
+    title: 'CSHD',
+    subtitle: 'Cashcard',
+    description: 'Former ATM network settlement stream (defunct).',
+    details: 'Legacy LVSS payment service code.'
+  },
+
+  'cheques-box': {
+    title: 'Cheques',
+    subtitle: 'Paper-based payment instrument',
+    description:
+      'Declining payment method. Industry transition plan: issuance ends 30 June 2028; acceptance ends 30 September 2029.',
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}: ~${fmtInt(FLOW_SNAPSHOT.retail.cheques.volume)} cheques totalling ${fmtMillionsToAud(FLOW_SNAPSHOT.retail.cheques.valueAudMillions)}. Average ~A$${fmtInt(FLOW_SNAPSHOT.retail.cheques.avgAudPerCheque)}—low volume but high average value.`,
+      `Volume fell ~${Math.abs(FLOW_SNAPSHOT.retail.trend.chequesVolumeChangePct).toFixed(0)}% from ${FLOW_SNAPSHOT.retail.trend.periodStart} to ${FLOW_SNAPSHOT.retail.trend.periodEnd}.`
+    ),
+    link: 'https://treasury.gov.au/consultation/c2024-556474'
+  },
+
+  // APCS truncated presentment lines
+  'cheques-to-apcs-line': { ...LINE_TOOLTIPS.APCS_TRUNCATED_PRESENTMENT, colorFrom: 'cheques-to-apcs-line' },
+
+  // ========== CARDS / CECS / IAC ==========
+
+  'cecs-box': {
+    title: 'CECS',
+    subtitle: 'Consumer Electronic Clearing System',
+    description:
+      'Clearing stream for card obligations. Produces net positions settled via LVSS.',
+    details: 'Cards authorise instantly but settle later on a net basis. Clearing calculates obligations between issuers and acquirers.'
+  },
+
+  'direct-entry-stack-bounding-box': {
+    title: 'IAC',
+    subtitle: 'Issuers and Acquirers Community',
+    description:
+      'Industry clearing arrangements for card issuers and acquirers. Obligations settle through interbank settlement.',
+    details: 'Reconciles transaction volumes between issuers (card providers) and acquirers (merchant payment providers). Settlement via banking layer.'
+  },
+
+  'eftpos-box': {
+    preHeading: 'Australia Payments Plus',
+    title: 'eftpos',
+    subtitle: 'Domestic debit scheme',
+    description:
+      'Australia\'s domestic debit card scheme. Instant authorisation; deferred net settlement.',
+    prominentSystem: true,
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}: ~${fmtInt(FLOW_SNAPSHOT.retail.debitCards.volume)} debit card transactions totalling ${fmtMillionsToAud(FLOW_SNAPSHOT.retail.debitCards.valueAudMillions)}. Average ~A$${fmtInt(FLOW_SNAPSHOT.retail.debitCards.avgAudPerTxn)}/txn.`,
+      'Authorisation is instant; interbank settlement is netted and deferred. Scheme calculates obligations; RBA layer settles them.'
+    )
+  },
+
+  'mastercard-box': {
+    title: 'Mastercard',
+    subtitle: 'International card scheme',
+    description:
+      'Global card network for credit and debit. Net obligations settled through scheme settlement arrangements.',
+    prominentSystem: true,
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.retail.asAt}: ~${fmtInt(FLOW_SNAPSHOT.retail.creditCards.volume)} credit card transactions totalling ${fmtMillionsToAud(FLOW_SNAPSHOT.retail.creditCards.valueAudMillions)}. Average ~A$${fmtInt(FLOW_SNAPSHOT.retail.creditCards.avgAudPerTxn)}/txn.`,
+      'Authorisation is instant; settlement is netted and deferred.'
+    )
+  },
+
+  'visa-box': {
+    title: 'Visa',
+    subtitle: 'International card scheme',
+    description:
+      'Global card network for debit and credit. Real-time authorisation; deferred net settlement.',
+    prominentSystem: true,
+    details: 'Scheme calculates net obligations across issuers and acquirers. Settlement via banking layer.'
+  },
+
+  'other-cards-box': {
+    title: 'Other card schemes',
+    subtitle: 'Additional networks',
+    description:
+      'Other schemes (e.g., Amex, Diners) with different commercial models. Still require interbank settlement.',
+    details: 'Some operate three-party models. All ultimately rely on banking settlement for final value movement.'
+  },
+
+  'mcau-box': {
+    title: 'MCAU',
+    subtitle: 'Mastercard Australia settlement entity',
+    description:
+      'Interface between Mastercard scheme netting and Australian settlement layer.',
+    compactStyle: true,
+    details: 'Scheme computes net obligations; MCAU delivers settlement instructions for ESA settlement.'
+  },
+
+  'essb-box': {
+    title: 'ESSB',
+    subtitle: 'eftpos settlement entity',
+    description:
+      'Interface between eftpos scheme netting and Australian settlement layer.',
+    compactStyle: true,
+    details: 'Converts scheme-computed obligations into final interbank settlement movements.'
+  },
+
+  // Scheme file format lines
+  'eftpos-left-line': { ...LINE_TOOLTIPS.EPAL, colorFrom: 'eftpos-left-line' },
+  'eftpos-left-line-horizontal': { ...LINE_TOOLTIPS.EPAL, colorFrom: 'eftpos-left-line-horizontal' },
+  'mastercard-left-line': { ...LINE_TOOLTIPS.MASTERCARD_IPM, colorFrom: 'mastercard-left-line' },
+  'mastercard-left-line-horizontal': { ...LINE_TOOLTIPS.MASTERCARD_IPM, colorFrom: 'mastercard-left-line-horizontal' },
+  'direct-entry-stack-line-yellow': { ...LINE_TOOLTIPS.VISA_BASEII, colorFrom: 'direct-entry-stack-line-yellow' },
+  'direct-entry-stack-line-blue': { ...LINE_TOOLTIPS.PROPRIETARY_SCHEME_FORMATS, colorFrom: 'direct-entry-stack-line-blue' },
+  'direct-entry-stack-line-green': { ...LINE_TOOLTIPS.HEALTH_CLAIMS, colorFrom: 'direct-entry-stack-line-green' },
+  'direct-entry-stack-line-brown': { ...LINE_TOOLTIPS.ATM_AS2805, colorFrom: 'direct-entry-stack-line-brown' },
+
+  'atms-box': {
+    title: 'ATMs',
+    subtitle: 'Cash withdrawals',
+    description:
+      'Instant cash dispensing; interbank settlement deferred and netted.',
+    details: 'Customer experience is instant. Obligations between institutions settled later via net settlement arrangements.'
+  },
+
+  'claims-box': {
+    title: 'Claims',
+    subtitle: 'Medicare and health claims',
+    description:
+      'Health claims messaging for eligibility and reimbursement. Payment settles via banking channels.',
+    details: 'Validates entitlements and allocates payments between government, insurers, providers, and patients. Resulting payments settle through standard banking infrastructure.'
+  },
+
+  // ========== ADMINISTERED BATCHES / PROPERTY SETTLEMENT ==========
+
+  'administered-batches-box': {
+    title: 'Administered batches',
+    subtitle: 'Batch settlement in RITS',
+    description:
+      'External systems compute net positions; RITS settles across ESAs. Used for markets, schemes, and e-conveyancing.',
+    details: paragraphs(
+      `In ${FLOW_SNAPSHOT.rtgs.asAt}, batch positions averaged ${fmtInt(FLOW_SNAPSHOT.rtgs.batch.positionsAvgDaily)}/day with value of ${fmtMillionsToAud(FLOW_SNAPSHOT.rtgs.batch.valueAudMillionsAvgDaily)}/day.`,
+      'Many specialised systems depend on the same central settlement layer for finality.'
+    )
+  },
+
+  'pexa-convey-box': {
+    title: 'PEXA e-conveyancing',
+    subtitle: 'Property Exchange Australia',
+    description:
+      'Coordinates electronic property settlement: legal title transfer synchronised with banking settlement.',
+    details: 'Orchestrates workflow between lenders, buyers, sellers, and registries. Funds settle via RBA settlement infrastructure in central bank money.'
+  },
+
+  'sympli-box': {
+    title: 'Sympli e-conveyancing',
+    subtitle: 'Electronic property settlement',
+    description:
+      'Alternative e-conveyancing platform coordinating with banks and registries.',
+    details: 'Similar workflow to PEXA. Funds settle via interbank settlement arrangements, not the platform itself.'
+  },
+
+  'pexa-box': {
+    title: 'PEXA',
+    subtitle: 'PEXA settlement stream',
+    description:
+      'Settlement stream for PEXA property settlement obligations.',
+    compactStyle: true,
+    details: 'Interface between property workflow and banking settlement layer.'
+  },
+
+  'asxf-box': {
+    title: 'ASXF',
+    subtitle: 'ASX feeder / settlement stream',
+    description:
+      'Settlement interface for market and property-related batch flows into RITS.',
+    compactStyle: true,
+    details: 'Connector between external systems\' net positions and central bank settlement.'
+  },
+
+  'asxb-box': {
+    title: 'ASXB',
+    subtitle: 'ASX batch settlement stream',
+    description:
+      'Batch settlement stream for ASX clearing and settlement net obligations.',
+    compactStyle: true,
+    details: 'Markets net trades and settle net obligations on schedule. Reduces liquidity needs.'
+  },
+
+  // Reservation batch lines
+  'pexa-horizontal-line-0': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+  'pexa-horizontal-line-1': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+  'pexa-to-rits-line': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+  'sympli-horizontal-line-0': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+  'sympli-horizontal-line-1': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+  'asxf-to-rits-line': { ...LINE_TOOLTIPS.RESERVATION_BATCH_XML },
+
+  // Batch settlement request lines (MT198/SMT131)
+  'clearing-to-asxb-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'clearing-to-asxb-line-0': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'clearing-to-asxb-line-1': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'asxb-to-rits-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'mastercard-to-mcau-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'mcau-to-rits-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'eftpos-to-essb-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+  'essb-to-rits-line': { ...LINE_TOOLTIPS.SWIFT_MT198_SMT131 },
+
+  // e‑conveyancing NECDS lines
+  'sympli-to-adis-line': { ...LINE_TOOLTIPS.NECDS_SYMPLI, colorFrom: 'sympli-to-adis-line' },
+  'pexa-to-adis-line': { ...LINE_TOOLTIPS.NECDS_PEXA, colorFrom: 'pexa-to-adis-line' },
+
+  // ========== CLS ==========
+
   'cls-circle': {
     preHeading: 'Systemically Important Payment System (SIPS)',
     title: 'CLS',
     subtitle: 'Continuous Linked Settlement',
-    description: 'Global multi-currency settlement system that eliminates settlement risk in foreign exchange transactions through payment-versus-payment (PvP) settlement',
-    details: [
-      'Settles FX transactions for 18 currencies including AUD',
-      'Eliminates Herstatt risk (FX settlement risk)',
-      'Operated by CLS Bank International (New York)',
-      'RBA holds an ESA on behalf of CLS for AUD settlements',
-      'Settles over USD 6 trillion daily'
-    ],
+    description:
+      'Global FX settlement system. Payment-versus-payment model links both currency legs to reduce settlement risk.',
+    details: 'Eliminates FX settlement risk where one party pays but doesn\'t receive. RBA supports AUD settlement via CLS.',
     link: 'https://www.cls-group.com/'
   },
 
-  // Card payments
-  'eftpos-box': {
-    prominentSystem: true,
-    preHeading: 'Australian Payments Plus',
-    title: 'eftpos',
-    subtitle: 'Electronic Funds Transfer at Point of Sale',
-    description: 'Australian domestic debit card scheme',
-    details: [
-      'Processes debit card transactions',
-      'Domestic scheme owned by Australian institutions',
-      'ESSB (eftpos Shared Services Bridge) settlement'
-    ]
-  },
-  'mastercard-box': {
-    prominentSystem: true,
-    title: 'Mastercard',
-    subtitle: 'International card scheme',
-    description: 'Global credit and debit card network',
-    details: [
-      'International card payments',
-      'MCAU (Mastercard Australia) settlement',
-      'Settled through administered batches'
-    ]
-  },
-  'mcau-box': {
-    title: 'MCAU',
-    subtitle: 'Mastercard Australia',
-    description: 'Australian settlement entity for Mastercard transactions',
-    compactStyle: true
-  },
-  'essb-box': {
-    title: 'ESSB',
-    subtitle: 'eftpos Shared Services Bridge',
-    description: 'Settlement entity for eftpos transactions',
-    compactStyle: true
-  },
-  'pexa-convey-box': {
-    title: 'PEXA e-conveyancing',
-    subtitle: 'Property Exchange Australia',
-    description: 'Electronic property settlement platform',
-    details: [
-      'Digital platform for property transactions',
-      'Enables electronic lodgement and settlement',
-      'Settles through PEXA administered batches in RITS'
-    ]
-  },
-  'sympli-box': {
-    title: 'Sympli e-conveyancing',
-    subtitle: 'Electronic Property Settlement',
-    description: 'Alternative electronic property settlement platform',
-    details: [
-      'Competing e-conveyancing platform to PEXA',
-      'Digital property transaction settlement',
-      'Settles through ASXF administered batches in RITS'
-    ]
-  },
-  'pexa-box': {
-    title: 'PEXA',
-    subtitle: 'PEXA Settlement',
-    description: 'Settlement entity for PEXA property transactions',
-    compactStyle: true
-  },
-  'asxf-box': {
-    title: 'ASXF',
-    subtitle: 'ASX Feeder',
-    description: 'Settlement entity for Sympli and ASX-related transactions',
-    compactStyle: true
-  },
-  'asxb-box': {
-    title: 'ASXB',
-    subtitle: 'ASX Batch',
-    description: 'Batch settlement facility for ASX clearing and settlement',
-    compactStyle: true
-  },
-  'visa-box': {
-    prominentSystem: true,
-    title: 'Visa',
-    subtitle: 'International card scheme',
-    description: 'Global credit and debit card network',
-    details: [
-      'International card payments',
-      'Settled through card networks',
-      'Processed via administered batches'
-    ]
-  },
-  'other-cards-box': {
-    title: 'Other Cards',
-    subtitle: 'Additional card schemes',
-    description: 'Other international and domestic card networks',
-    details: [
-      'American Express, Diners, etc.',
-      'Various settlement arrangements',
-      'Batch settlement to ADIs'
-    ]
-  },
-  'atms-box': {
-    title: 'ATMs',
-    subtitle: 'Automated Teller Machines',
-    description: 'ATM transaction clearing and settlement',
-    details: [
-      'Cash withdrawal transactions',
-      'Interbank ATM settlements',
-      'Cleared through IAC/CECS'
-    ]
-  },
-  'claims-box': {
-    title: 'Claims',
-    subtitle: 'Medicare and health claims',
-    description: 'Health insurance and Medicare claim processing',
-    details: [
-      'Medicare rebate claims',
-      'Health fund claims',
-      'Cleared through IAC/CECS'
-    ]
-  },
+  // ========== ASX / MARKETS INFRASTRUCTURE ==========
 
-  // Direct Entry / BECS
-  'becn-box': {
-    title: 'BECN',
-    subtitle: 'Bulk Electronic Clearing (Net)',
-    description: 'Net settlement for bulk electronic payments',
-    details: [
-      'Direct Entry payment batches',
-      'Salary, pension, and bill payments',
-      'Settled via BECS (Bulk Electronic Clearing System)'
-    ]
-  },
-  'becg-box': {
-    rbaSystem: true,
-    title: 'BECG',
-    subtitle: 'Bulk Electronic Clearing (Gross)',
-    description: 'Gross settlement for high-value bulk payments',
-    details: [
-      'Same-day high-value direct entry',
-      'Gross settlement mode',
-      'BECS processing'
-    ]
-  },
-  'bpay-box': {
-    preHeading: 'Australian Payments Plus',
-    title: 'BPAY',
-    subtitle: 'Bill payment service',
-    description: 'Electronic bill payment system',
-    details: [
-      'Consumer bill payments',
-      'Biller code and reference number',
-      'Operated by BPAY Group'
-    ]
-  },
-  'de-to-bpay-line': {
-    title: 'Direct Entry to BPAY',
-    description: 'Connection between Direct Entry and BPAY systems for bill payment processing',
-    lineStyle: true,
-    color: '#800020'
-  },
-  'becn-to-bpay-line': {
-    title: 'BECN to BPAY',
-    description: 'Connection between Bulk Electronic Clearing Network and BPAY for bill payment processing',
-    lineStyle: true,
-    color: '#800020'
-  },
-  'de-box': {
-    title: 'Direct Entry',
-    subtitle: 'Bulk electronic funds transfer',
-    description: 'System for processing batched credit and debit transfers between bank accounts',
-    details: [
-      'Salary payments and superannuation',
-      'Direct debits and credits',
-      'Processed through BECS',
-      'Next-day or same-day settlement'
-    ]
-  },
-
-  // LVSS and clearing
-  'lvss-circle': {
-    title: 'LVSS',
-    subtitle: 'Low Value Settlement Service',
-    description: 'Settlement service for retail payment streams',
-    details: [
-      'Multilateral net settlement',
-      'Processes BECS, CECS, and other clearing streams',
-      'Operated by RBA',
-      'Multiple settlement cycles per day'
-    ]
-  },
-  'lvss-gear': {
-    title: 'LVSS',
-    subtitle: 'Low Value Settlement Service',
-    description: 'Settlement hub for retail payment clearing streams. Receives File Settlement Instructions (FSIs) from APCS, BECS, CSHD, CECS and GABS via the Community of Interest Network (COIN), then settles net positions across Exchange Settlement Accounts in RITS.',
-    details: [
-      'Multilateral net settlement',
-      'Multiple settlement cycles per day',
-      'COIN infrastructure operated by Transaction Network Services (TNS)',
-      'Operated by RBA'
-    ],
-    link: 'https://www.rba.gov.au/payments-and-infrastructure/payments-system.html'
-  },
-  'cecs-box': {
-    title: 'CECS',
-    subtitle: 'Consumer Electronic Clearing System',
-    description: 'Clears card-based transactions for settlement',
-    details: [
-      'Processes card payment clearing',
-      'Settled through LVSS',
-      'Connects to IAC (Issuers and Acquirers Community)'
-    ]
-  },
-  'direct-entry-stack-bounding-box': {
-    title: 'IAC',
-    subtitle: 'Issuers and Acquirers Community',
-    description: 'Card payment schemes and clearing arrangements',
-    details: [
-      'Card payment clearing (eftpos, Mastercard, Visa)',
-      'Industry-managed clearing streams',
-      'Connects to CECS for settlement'
-    ]
-  },
-  'becs-box': {
-    prominentSystem: true,
-    title: 'BECS',
-    subtitle: 'Bulk Electronic Clearing System',
-    description: 'Processes Direct Entry payment batches',
-    details: [
-      'Handles BECN and BECG streams',
-      'Multiple settlement cycles',
-      'Operated by Australian Payments Network'
-    ]
-  },
-  'apcs-box': {
-    title: 'APCS',
-    subtitle: 'Australian Paper Clearing System',
-    description: 'Processes paper-based instruments',
-    details: [
-      'Cheques and payment orders',
-      'Declining volume',
-      'Legacy clearing system'
-    ]
-  },
-  'gabs-box': {
-    rbaSystem: true,
-    title: 'GABS',
-    subtitle: 'Government & Banking Settlement',
-    description: 'Settlement for government payments',
-    details: [
-      'Government agency payments',
-      'Settled through LVSS',
-      'Managed by specific government arrangements'
-    ]
-  },
-  'cshd-box': {
-    title: 'CSHD',
-    subtitle: 'Cashcard High Value Direct Entry',
-    description: 'High-value direct entry clearing stream',
-    details: [
-      'Formerly operated by Cashcard Australia Limited',
-      'High-value electronic payments',
-      'Settled through LVSS',
-      'Now defunct or integrated into other systems'
-    ]
-  },
-  'cheques-box': {
-    title: 'Cheques',
-    subtitle: 'Paper-based payment instruments',
-    description: 'Traditional paper-based payment method cleared through the Australian cheque system',
-    details: [
-      'Declining usage in Australia',
-      'Cleared through APCS (Australian Paper Clearing System)',
-      'Settlement through LVSS in RITS',
-      'Subject to the Cheques Act 1986'
-    ]
-  },
-  'administered-batches-box': {
-    title: 'Administered Batches',
-    subtitle: 'Batch settlement facilities in RITS',
-    description: 'Settlement arrangements where the Reserve Bank administers batch processing on behalf of external systems. PEXA and ASXF submit reservation batches via the Community of Interest Network (COIN), while MCAU, ESSB and ASXB submit settlement-only batches via SWIFT.',
-    details: [
-      'Includes MCAU, ESSB, PEXA, ASXF, and ASXB',
-      'Reservation batches (PEXA, ASXF): RBA proprietary XML over COIN',
-      'Settlement-only batches (MCAU, ESSB, ASXB): SWIFT messages',
-      'Settles net positions across Exchange Settlement Accounts'
-    ]
-  },
-
-  // ASX ecosystem
-  'asx-settlement-dot': {
-    title: 'ASX Settlement Pty Limited',
-    subtitle: 'Securities settlement operator',
-    description: 'Provides settlement services for equities and other securities',
-    details: [
-      'Operates CHESS (Clearing House Electronic Subregister System)',
-      'T+2 settlement cycle',
-      'Part of ASX Group'
-    ]
-  },
-  'asx-clearing-dot': {
-    title: 'ASX Clearing Corporation Limited',
-    subtitle: 'Central counterparty',
-    description: 'Provides clearing and risk management for trades',
-    details: [
-      'Acts as central counterparty (CCP)',
-      'Manages counterparty risk',
-      'Operates margin and collateral systems'
-    ]
-  },
-  'lch-dot': {
-    title: 'LCH Limited',
-    subtitle: 'London Clearing House',
-    description: 'International clearing house',
-    details: [
-      'Clears OTC derivatives and repos',
-      'Multi-asset clearing',
-      'Part of LSEG Group'
-    ]
-  },
   'asx-box': {
     title: 'ASX',
     subtitle: 'Australian Securities Exchange',
-    description: 'Australia\'s primary securities exchange and market operator',
-    details: [
-      'Operates equities, derivatives and fixed income markets',
-      'Owns ASX Settlement, ASX Clearing and Austraclear',
-      'CHESS provides settlement and subregister services',
-      'Part-owner of Sympli e-conveyancing platform'
-    ]
+    description:
+      'Market operator and provider of clearing (CCPs) and settlement (SSFs) infrastructure. Cash leg settles via RITS.',
+    details: paragraphs(
+      `In ${ASX_SNAPSHOT.asAt}: cash markets averaged ${fmtInt(ASX_SNAPSHOT.cashMarkets.avgDailyTrades)} trades/day, A$${ASX_SNAPSHOT.cashMarkets.avgDailyValueAudBillions.toFixed(1)}b daily value.`,
+      'Markets create securities and cash obligations. Final AUD settlement occurs via central bank settlement layer.'
+    )
   },
+
+  'asx-clearing-dot': {
+    title: 'ASX clearing facilities',
+    subtitle: 'Central counterparties (CCPs)',
+    description:
+      'CCPs manage counterparty risk by becoming buyer to every seller and vice versa. Supported by margining.',
+    details: paragraphs(
+      `In ${ASX_SNAPSHOT.asAt}: initial margin held ~A$${ASX_SNAPSHOT.clearingRisk.initialMarginHeldAudBillions.total.toFixed(1)}b (ASX Clear A$${ASX_SNAPSHOT.clearingRisk.initialMarginHeldAudBillions.asxClear.toFixed(1)}b, Futures A$${ASX_SNAPSHOT.clearingRisk.initialMarginHeldAudBillions.asxClearFutures.toFixed(1)}b). Variation margin ~A$${ASX_SNAPSHOT.clearingRisk.variationMarginPaidAudBillions.total.toFixed(1)}b.`,
+      '**ASX Clear**: cash equities and options. **ASX Clear (Futures)**: futures and some OTC derivatives.'
+    ),
+    link: 'https://www.rba.gov.au/fin-stability/financial-market-infrastructure/'
+  },
+
+  'asx-settlement-dot': {
+    title: 'ASX Settlement',
+    subtitle: 'Securities settlement facility (SSF)',
+    description:
+      'Operates CHESS for equities settlement. Delivery versus payment (DvP) links securities and cash legs.',
+    details: paragraphs(
+      `In ${ASX_SNAPSHOT.asAt}: CHESS holdings ~A$${ASX_SNAPSHOT.chess.holdingsAudBillions.toFixed(1)}b, ~${ASX_SNAPSHOT.chess.dominantSettlementMessagesMillions.toFixed(1)}m settlement messages.`,
+      'CHESS coordinates securities leg; cash leg settles via RITS.'
+    ),
+    link: 'https://www.asx.com.au/'
+  },
+
   'chess-box': {
     title: 'CHESS',
     subtitle: 'Clearing House Electronic Subregister System',
-    description: 'Electronic system for settlement of ASX-listed securities and maintenance of shareholding records',
-    details: [
-      'Settles equities on T+2 basis',
-      'Maintains electronic subregister of shareholdings',
-      'Processes corporate actions',
-      'Links to CHESS-RTGS for DvP settlement'
-    ]
+    description:
+      'ASX system for equities post-trade processing: settlement workflows and electronic shareholding register.',
+    details: 'Manages steps from trade execution to settlement and holdings update. Cash settlement via RITS.'
   },
+
   'chess-rtgs-box': {
-    title: 'CHESS-RTGS (CHESS)',
-    subtitle: 'CHESS Real-Time Gross Settlement',
-    description: 'Interface between CHESS and RITS for real-time delivery versus payment settlement',
-    details: [
-      'Enables DvP Model 1 settlement',
-      'Real-time securities against cash settlement',
-      'Reduces settlement risk for high-value transactions',
-      'Operated by ASX Settlement'
-    ]
+    title: 'CHESS-RTGS',
+    subtitle: 'DvP cash settlement interface',
+    description:
+      'Interface linking CHESS securities settlement to RTGS cash settlement for delivery-versus-payment.',
+    details: 'DvP risk control: securities delivered only if cash paid, and vice versa.'
   },
+
   'austraclear-box': {
     title: 'Austraclear',
     subtitle: 'Debt securities depository and settlement',
-    description: 'Central securities depository for debt securities and repurchase agreements',
-    details: [
-      'Settles government and corporate bonds',
-      'Processes money market instruments',
-      'Provides custody and settlement services',
-      'Connects to RITS for cash settlement'
-    ]
+    description:
+      'Post-trade system for debt securities and money market instruments. Connects to RITS for cash settlement.',
+    details: paragraphs(
+      `Holdings ~A$${ASX_SNAPSHOT.austraclear.holdingsAudBillions.toFixed(1)}b (${ASX_SNAPSHOT.asAt}).`,
+      `RTGS settlement (${FLOW_SNAPSHOT.rtgs.asAt}): ${fmtInt(FLOW_SNAPSHOT.rtgs.austraclear.paymentsAvgDaily)} payments/day averaging ${fmtMillionsToAud(FLOW_SNAPSHOT.rtgs.austraclear.valueAudMillionsAvgDaily)}/day.`
+    )
   },
 
-  // ASX thick blue lines - cash settlement flows
+  'lch-dot': {
+    title: 'LCH Limited',
+    subtitle: 'OTC derivatives CCP (SwapClear)',
+    description:
+      'Global CCP for interest rate swaps. Licensed in Australia; clears majority of AUD OTC interest rate derivatives.',
+    details: 'Central clearing reduces OTC derivatives counterparty risk via margining and default management. Assessed against RBA Financial Stability Standards.',
+    link: 'https://www.rba.gov.au/fin-stability/financial-market-infrastructure/'
+  },
+
+  // ASX messaging lines
   'asx-to-adi-line': {
-    title: 'ASX EXIGO SWIFT Messaging (Austraclear)',
-    title2: 'ASX EIS (CHESS)',
-    description: 'EXIGO is ASX\'s SWIFT-based messaging system for Austraclear cash movements and fixed income settlement. EIS (CHESS External Interface Specification) handles equities settlement messaging between CHESS and participants.',
+    title: 'EXIGO / ESI',
+    description: 'EXIGO (Austraclear) and ESI (CHESS) messaging interfaces for ASX post-trade settlement.',
     lineStyle: true
   },
   'asx-to-hvcs-line': {
-    title: 'ASX EXIGO SWIFT Messaging (Austraclear)',
-    title2: 'ASX EIS (CHESS)',
-    description: 'EXIGO is ASX\'s SWIFT-based messaging system for Austraclear cash movements and fixed income settlement. EIS (CHESS External Interface Specification) handles equities settlement messaging between CHESS and participants.',
+    title: 'EXIGO / ESI',
+    description: 'EXIGO (Austraclear) and ESI (CHESS) messaging interfaces for ASX post-trade settlement.',
     lineStyle: true
-  },
-  'clearing-box': {
-    title: 'Clearing/Netting',
-    subtitle: 'Batch netting of securities transactions',
-    description: 'Multilateral netting reduces the number and value of settlements',
-    lineStyle: true
-  },
-  'trade-by-trade-box': {
-    title: 'Trade-by-Trade',
-    subtitle: 'Gross settlement of securities transactions',
-    description: 'Each trade settled individually in real-time via CHESS-RTGS',
-    lineStyle: true
-  },
-  'dvp-cash-leg-box': {
-    title: 'Delivery versus Payment Cash Leg',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Cash settlement component of DvP transactions in Austraclear',
-    lineStyle: true,
-    colorFrom: 'dvp-cash-leg-to-dvp-rtgs-line'
-  },
-  'cash-transfer-box': {
-    title: 'Cash Transfer',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    lineStyle: true,
-    colorFrom: 'cash-transfer-to-rtgs-line'
   },
 
-  // DvP cash leg settlement path - all elements share same tooltip
+  'clearing-box': {
+    title: 'Clearing / netting',
+    subtitle: 'Obligations calculation',
+    description:
+      'Offsets obligations to reduce settlement payments. Efficient but concentrates risk at settlement time.',
+    lineStyle: true,
+    details: 'Netting compresses many trades to net positions. Reduces liquidity needs but creates settlement window dependencies.'
+  },
+
+  'trade-by-trade-box': {
+    title: 'Trade-by-trade settlement',
+    subtitle: 'Gross settlement approach',
+    description:
+      'Settles each transaction individually. Reduces net exposure build-up but increases settlement traffic.',
+    lineStyle: true,
+    details: 'Trade-off: risk reduction vs. operational and liquidity efficiency.'
+  },
+
+  // DvP cash leg path
+  'dvp-cash-leg-box': {
+    title: 'DvP cash leg',
+    subtitle: 'RTGS cash settlement',
+    description:
+      'Cash side of DvP settles via RTGS, linked to securities delivery.',
+    lineStyle: true,
+    colorFrom: 'dvp-cash-leg-to-dvp-rtgs-line',
+    details: 'Cash settles in central bank money. Securities only delivered if cash paid.'
+  },
   'dvp-cash-leg-to-dvp-rtgs-line': {
-    title: 'Delivery versus Payment Cash Leg',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Cash settlement component of DvP transactions in Austraclear',
-    lineStyle: true
+    title: 'DvP cash leg',
+    subtitle: 'RTGS cash settlement',
+    description:
+      'Cash settlement path linking to securities delivery.',
+    lineStyle: true,
+    details: 'DvP ensures both legs complete together, reducing principal risk.'
   },
   'dvp-rtgs-box': {
-    title: 'Delivery versus Payment Cash Leg',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Cash settlement component of DvP transactions in Austraclear',
-    lineStyle: true
+    title: 'DvP cash leg',
+    subtitle: 'RTGS cash settlement',
+    description:
+      'RTGS cash settlement for DvP.',
+    lineStyle: true,
+    details: 'Central bank money finality for DvP cash payments. Reduces principal risk.'
   },
   'dvp-rtgs-to-austraclear-line': {
-    title: 'Delivery versus Payment Cash Leg',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Cash settlement component of DvP transactions in Austraclear',
-    lineStyle: true
+    title: 'DvP cash leg',
+    subtitle: 'RTGS cash settlement',
+    description:
+      'Links Austraclear settlement to RTGS cash settlement.',
+    lineStyle: true,
+    details: 'Austraclear DvP events require corresponding RTGS cash movements.'
   },
   'austraclear-to-rits-line-upper': {
-    title: 'Delivery versus Payment Cash Leg',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Cash settlement component of DvP transactions in Austraclear',
-    lineStyle: true
+    title: 'DvP cash leg',
+    subtitle: 'RTGS cash settlement',
+    description:
+      'RTGS cash path for Austraclear DvP.',
+    lineStyle: true,
+    details: 'Cash settlement path into central bank settlement layer.'
   },
 
-  // Cash transfer settlement path - all elements share same tooltip
+  // Cash transfer path
+  'cash-transfer-box': {
+    title: 'Cash transfers',
+    subtitle: 'RTGS cash movements',
+    description:
+      'Non-DvP cash transfers settle via RTGS in central bank money.',
+    lineStyle: true,
+    colorFrom: 'cash-transfer-to-rtgs-line',
+    details: 'Standalone transfers for liquidity management or operational needs. RTGS provides finality.'
+  },
   'cash-transfer-to-rtgs-line': {
-    title: 'Cash Transfer',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    lineStyle: true
+    title: 'Cash transfers',
+    subtitle: 'RTGS cash movements',
+    description:
+      'RTGS path for non-DvP cash transfers.',
+    lineStyle: true,
+    details: 'Cash transfers not coupled to securities delivery. RTGS finality in central bank money.'
   },
   'rtgs-box': {
-    title: 'Cash Transfer',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    lineStyle: true
+    title: 'Cash transfers',
+    subtitle: 'RTGS cash movements',
+    description:
+      'RTGS for market-related cash transfers.',
+    lineStyle: true,
+    details: 'Payments and markets share the same settlement layer.'
   },
   'rtgs-to-austraclear-line': {
-    title: 'Cash Transfer',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    lineStyle: true
+    title: 'Cash transfers',
+    subtitle: 'RTGS cash movements',
+    description:
+      'Links RTGS cash to Austraclear flows.',
+    lineStyle: true,
+    details: 'Austraclear activity triggers RTGS cash movements.'
   },
   'austraclear-to-rits-line-lower': {
-    title: 'Cash Transfer',
-    subtitle: 'Real Time Gross Settlement',
-    description: 'Non-DvP cash transfers settled through Austraclear to RITS',
-    lineStyle: true
+    title: 'Cash transfers',
+    subtitle: 'RTGS cash movements',
+    description:
+      'RTGS cash path for Austraclear-related cash movements.',
+    lineStyle: true,
+    details: 'Market infrastructure and central bank settlement interlock.'
   },
 
-  // Participant groups
-  'non-adi-box': {
-    title: 'Non-ADIs',
-    subtitle: 'Non-bank participants',
-    description: 'Financial service providers that are not ADIs',
-    details: [
-      'Payment service providers',
-      'Clearing and settlement facilities',
-      'Indirect participants via sponsoring ADIs'
-    ]
-  },
-  'psps-box': {
-    title: 'PSPs',
-    subtitle: 'Payment Service Providers',
-    description: 'Non-bank payment facilitators',
-    details: [
-      'Fintechs and payment platforms',
-      'Require ADI sponsorship',
-      'Examples: Adyen, First Data Network'
-    ]
-  },
-  'cs-box': {
-    title: 'CS',
-    subtitle: 'Clearing and Settlement',
-    description: 'Clearing and settlement facility operators',
-    details: [
-      'ASX Settlement, ASX Clear, LCH',
-      'Licensed under Corporations Act',
-      'Provide post-trade infrastructure'
-    ]
+  // ========== APCS / CHEQUES LINE ==========
+  'osko-to-adi-line': {
+    ...LINE_TOOLTIPS.APCS_TRUNCATED_PRESENTMENT,
+    colorFrom: 'osko-to-adi-line'
   },
 
-  // Foreign Subsidiaries (indices 46-51)
-  'dot-46': {
-    title: 'HSBC Bank Australia Limited',
-    subtitle: 'HKBA',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Subsidiary of HSBC Holdings (UK)',
-      'FSS Member'
-    ]
+  // ========== DOMESTIC BANK LINES (CASH DISTRIBUTION) ==========
+  'bdf-line-50': {
+    title: 'Domestic banks',
+    subtitle: 'Cash distribution',
+    description:
+      'Major banks distribute cash to branches, ATMs, and cash services networks.',
+    details: 'Interface between RBA banknote issuance and public access points.',
+    link: 'https://www.rba.gov.au/banknotes/distribution/'
   },
-  'dot-47': {
-    title: 'ING Bank (Australia) Limited',
-    subtitle: 'IMMB',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Subsidiary of ING Group (Netherlands)',
-      'FSS Member'
-    ]
-  },
-  'dot-48': {
-    title: 'Arab Bank Australia Limited',
-    subtitle: 'ARAB',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Subsidiary of Arab Bank (Jordan)',
-      'Australian banking licence'
-    ]
-  },
-  'dot-49': {
-    title: 'Bank of China (Australia) Limited',
-    subtitle: 'BOCA',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Subsidiary of Bank of China (China)',
-      'Australian banking licence'
-    ]
-  },
-  'dot-50': {
-    title: 'Bank of Sydney Ltd',
-    subtitle: 'LIKI',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Formerly Laiki Bank',
-      'Australian banking licence'
-    ]
-  },
-  'dot-51': {
-    title: 'Rabobank Australia Limited',
-    subtitle: 'RABL',
-    description: 'International Bank: Foreign Subsidiary',
-    details: [
-      'Subsidiary of Rabobank (Netherlands)',
-      'Focus on agribusiness banking'
-    ]
-  },
+  'bdf-line-51': null,
+  'bdf-line-52': null,
+  'bdf-line-53': null
+};
 
-  // Major banks (indices 52-55)
-  'dot-52': {
-    title: 'ANZ',
-    subtitle: 'ANZB',
-    description: 'Big Four bank',
-    details: [
-      'FSS member'
-    ]
-  },
-  'dot-53': {
-    title: 'Commonwealth Bank',
-    subtitle: 'CBAA',
-    description: 'Big Four bank',
-    details: [
-      'FSS member'
-    ]
-  },
-  'dot-54': {
-    title: 'NAB',
-    subtitle: 'NABL',
-    description: 'Big Four bank',
-    details: [
-      'FSS member'
-    ]
-  },
-  'dot-55': {
-    title: 'Westpac',
-    subtitle: 'WPAC',
-    description: 'Big Four bank',
-    details: [
-      'FSS member'
-    ]
-  },
-  'dot-56': {
-    title: 'Macquarie Bank',
-    subtitle: 'MACQ',
-    description: 'Domestic bank',
-    details: [
-      'FSS member'
-    ]
-  },
-  'dot-57': {
-    title: 'Bendigo and Adelaide Bank',
-    subtitle: 'BEND',
-    description: 'Domestic bank',
-    details: [
-      'FSS member'
-    ]
-  },
+// Fill the repeated BDF line tooltips with the same content (without duplicating text blocks)
+tooltipContent['bdf-line-51'] = { ...tooltipContent['bdf-line-50'] };
+tooltipContent['bdf-line-52'] = { ...tooltipContent['bdf-line-50'] };
+tooltipContent['bdf-line-53'] = { ...tooltipContent['bdf-line-50'] };
 
-  // Remaining Domestic Banks (58-86)
-  'dot-58': { title: 'Alex Bank', subtitle: 'ALEX', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-59': { title: 'AMP Bank', subtitle: 'AMPB', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-60': { title: 'Bank of Queensland', subtitle: 'BQLQ', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-61': { title: 'Heritage and People\'s Choice', subtitle: 'HBSL', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-62': { title: 'Judo Bank', subtitle: 'JUDO', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-63': { title: 'Norfina', subtitle: 'METW', description: 'Domestic bank', details: ['Direct RITS participant'] },
-  'dot-64': { title: 'Australian Military Bank', subtitle: 'ADCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-65': { title: 'Australian Mutual Bank', subtitle: 'SYCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-66': { title: 'B&E Ltd', subtitle: 'BEPB', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-67': { title: 'Bank Australia', subtitle: 'MECU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-68': { title: 'Beyond Bank Australia', subtitle: 'CCPS', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-69': { title: 'Credit Union Australia', subtitle: 'CUAL', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-70': { title: 'Defence Bank', subtitle: 'DEFB', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-71': { title: 'Gateway Bank', subtitle: 'GATE', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-72': { title: 'Hume Bank', subtitle: 'HUBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-73': { title: 'IMB', subtitle: 'IMBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-74': { title: 'Maitland Mutual', subtitle: 'MMBS', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-75': { title: 'Members Banking Group', subtitle: 'QTCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-76': { title: 'MyState Bank', subtitle: 'MSFL', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-77': { title: 'Newcastle Greater Mutual', subtitle: 'NEWC', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-78': { title: 'Police & Nurses', subtitle: 'PNCS', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-79': { title: 'Police Bank', subtitle: 'PCUL', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-80': { title: 'Police Financial Services', subtitle: 'PACC', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-81': { title: 'QPCU', subtitle: 'QPCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-82': { title: 'Queensland Country Bank', subtitle: 'QCCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-83': { title: 'Regional Australia Bank', subtitle: 'NECU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-84': { title: 'Teachers Mutual Bank', subtitle: 'TMBL', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-85': { title: 'Unity Bank', subtitle: 'SGCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
-  'dot-86': { title: 'Victoria Teachers', subtitle: 'VTCU', description: 'Domestic bank', details: ['Uses settlement agent'] },
+/**
+ * ========== DOT TOOLTIPS (INSTITUTIONS) ==========
+ * Keep these concise and factual. The “educational depth” is concentrated in the system nodes above.
+ */
+const INSTITUTIONS = [
+  // Foreign branches (1–45)
+  { id: 1, name: 'Citibank, N.A.', code: 'CINA', category: 'International bank: Foreign Branch', hqCountry: 'United States', isFssMember: true },
+  { id: 2, name: 'JPMorgan Chase Bank, National Association', code: 'CHAM', category: 'International bank: Foreign Branch', hqCountry: 'United States', isFssMember: true },
+  { id: 3, name: 'Agricultural Bank of China Limited', code: 'ABOC', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 4, name: 'Bank of America, National Association', code: 'BOFA', category: 'International bank: Foreign Branch', hqCountry: 'United States' },
+  { id: 5, name: 'Bank of China Limited, Sydney Branch', code: 'BOCS', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 6, name: 'Bank of Communications Co. Ltd.', code: 'BCOM', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 7, name: 'Barclays Bank PLC', code: 'BARC', category: 'International bank: Foreign Branch', hqCountry: 'United Kingdom' },
+  { id: 8, name: 'BNP Paribas', code: 'BNPT', category: 'International bank: Foreign Branch', hqCountry: 'France' },
+  { id: 9, name: 'China Construction Bank Corporation', code: 'CCBC', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 10, name: 'China Everbright Bank Co., Ltd', code: 'EVER', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 11, name: 'China Merchants Bank Co., Ltd.', code: 'CMBC', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 12, name: 'Cooperatieve Rabobank U.A.', code: 'RANE', category: 'International bank: Foreign Branch', hqCountry: 'Netherlands' },
+  { id: 13, name: 'Credit Agricole Corporate and Investment Bank', code: 'CACB', category: 'International bank: Foreign Branch', hqCountry: 'France' },
+  { id: 14, name: 'DBS Bank Ltd', code: 'DBSA', category: 'International bank: Foreign Branch', hqCountry: 'Singapore' },
+  { id: 15, name: 'Deutsche Bank AG', code: 'DBAL', category: 'International bank: Foreign Branch', hqCountry: 'Germany' },
+  { id: 16, name: 'Industrial and Commercial Bank of China Limited', code: 'ICBK', category: 'International bank: Foreign Branch', hqCountry: 'China' },
+  { id: 17, name: 'ING Bank NV', code: 'INGA', category: 'International bank: Foreign Branch', hqCountry: 'Netherlands' },
+  { id: 18, name: 'Mega International Commercial Bank Co. Ltd', code: 'ICBC', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan' },
+  { id: 19, name: 'Mizuho Bank, Ltd', code: 'MHCB', category: 'International bank: Foreign Branch', hqCountry: 'Japan' },
+  { id: 20, name: 'MUFG Bank, Ltd.', code: 'BOTK', category: 'International bank: Foreign Branch', hqCountry: 'Japan' },
+  { id: 21, name: 'Oversea-Chinese Banking Corporation Limited', code: 'OCBC', category: 'International bank: Foreign Branch', hqCountry: 'Singapore' },
+  { id: 22, name: 'Royal Bank of Canada', code: 'ROYC', category: 'International bank: Foreign Branch', hqCountry: 'Canada' },
+  { id: 23, name: 'Standard Chartered Bank', code: 'SCBA', category: 'International bank: Foreign Branch', hqCountry: 'United Kingdom' },
+  { id: 24, name: 'State Bank of India', code: 'SBIS', category: 'International bank: Foreign Branch', hqCountry: 'India' },
+  { id: 25, name: 'State Street Bank and Trust Company', code: 'SSBS', category: 'International bank: Foreign Branch', hqCountry: 'United States' },
+  { id: 26, name: 'Sumitomo Mitsui Banking Corporation', code: 'SMBC', category: 'International bank: Foreign Branch', hqCountry: 'Japan' },
+  { id: 27, name: 'Taiwan Business Bank, Ltd', code: 'TBBS', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan' },
+  { id: 28, name: 'The Hongkong and Shanghai Banking Corporation Limited', code: 'HKSB', category: 'International bank: Foreign Branch', hqCountry: 'Hong Kong' },
+  { id: 29, name: 'The Northern Trust Company', code: 'TNTC', category: 'International bank: Foreign Branch', hqCountry: 'United States' },
+  { id: 30, name: 'UBS AG', code: 'UBSB', category: 'International bank: Foreign Branch', hqCountry: 'Switzerland' },
+  { id: 31, name: 'United Overseas Bank Limited', code: 'UOBL', category: 'International bank: Foreign Branch', hqCountry: 'Singapore' },
 
-  // Specialised ADIs (87-88)
-  'dot-87': {
-    title: 'Wise Australia',
-    subtitle: 'WISE',
-    description: 'Specialised ADI',
-    details: [
-      'International money transfer provider',
-      'FSS member'
-    ]
-  },
-  'dot-88': {
-    title: 'Tyro Payments',
-    subtitle: 'MONY',
-    description: 'Specialised ADI',
-    details: [
-      'EFTPOS and merchant services provider'
-    ]
-  },
+  { id: 32, name: 'Bank of Baroda', code: 'BOBA', category: 'International bank: Foreign Branch', hqCountry: 'India', usesSettlementAgent: true },
+  { id: 33, name: 'Bank of Taiwan', code: 'BOTS', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 34, name: 'Canadian Imperial Bank of Commerce', code: 'CIBS', category: 'International bank: Foreign Branch', hqCountry: 'Canada', usesSettlementAgent: true },
+  { id: 35, name: 'E.SUN Commercial Bank, Ltd.', code: 'ESUN', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 36, name: 'First Commercial Bank, Ltd', code: 'FCBL', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 37, name: 'Hua Nan Commercial Bank Ltd', code: 'HNCB', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 38, name: 'KEB Hana Bank', code: 'KEBL', category: 'International bank: Foreign Branch', hqCountry: 'South Korea', usesSettlementAgent: true },
+  { id: 39, name: 'Shinhan Bank Co., Ltd.', code: 'SHIN', category: 'International bank: Foreign Branch', hqCountry: 'South Korea', usesSettlementAgent: true },
+  { id: 40, name: 'Taishin International Bank Co., Ltd.', code: 'TAIS', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 41, name: 'Taiwan Cooperative Bank, Ltd', code: 'TCBA', category: 'International bank: Foreign Branch', hqCountry: 'Taiwan', usesSettlementAgent: true },
+  { id: 42, name: 'The Bank of New York Mellon', code: 'BNYM', category: 'International bank: Foreign Branch', hqCountry: 'United States', usesSettlementAgent: true },
+  { id: 43, name: 'The Bank of Nova Scotia', code: 'BNSS', category: 'International bank: Foreign Branch', hqCountry: 'Canada', usesSettlementAgent: true },
+  { id: 44, name: 'Union Bank of India', code: 'UBOI', category: 'International bank: Foreign Branch', hqCountry: 'India', usesSettlementAgent: true },
+  { id: 45, name: 'Woori Bank', code: 'WOOR', category: 'International bank: Foreign Branch', hqCountry: 'South Korea', usesSettlementAgent: true },
 
-  // Other ADIs (89-91)
-  'dot-89': {
-    title: 'Australian Settlements',
-    subtitle: 'ASLL',
-    description: 'Other ADI',
-    details: [
-      'Clearing and settlement services',
-      'FSS member'
-    ]
+  // Foreign subsidiaries (46–51)
+  { id: 46, name: 'HSBC Bank Australia Limited', code: 'HKBA', category: 'International bank: Foreign Subsidiary', hqCountry: 'United Kingdom', isFssMember: true },
+  { id: 47, name: 'ING Bank (Australia) Limited', code: 'IMMB', category: 'International bank: Foreign Subsidiary', hqCountry: 'Netherlands', isFssMember: true },
+  { id: 48, name: 'Arab Bank Australia Limited', code: 'ARAB', category: 'International bank: Foreign Subsidiary', hqCountry: 'Jordan' },
+  { id: 49, name: 'Bank of China (Australia) Limited', code: 'BOCA', category: 'International bank: Foreign Subsidiary', hqCountry: 'China' },
+  {
+    id: 50,
+    name: 'Bank of Sydney Ltd',
+    code: 'LIKI',
+    category: 'International bank: Foreign Subsidiary',
+    hqCountry: 'Australia',
+    extraHistory: 'This bank is historically associated with a change of ownership/branding (it was previously linked to the Laiki brand).'
   },
-  'dot-90': {
-    title: 'CUSCAL',
-    subtitle: 'CUFS',
-    description: 'Other ADI',
-    details: [
-      'Payment infrastructure for credit unions',
-      'FSS member'
-    ]
-  },
-  'dot-91': {
-    title: 'Indue',
-    subtitle: 'INDU',
-    description: 'Other ADI',
-    details: [
-      'Payment services for mutual banks',
-      'FSS member'
-    ]
-  },
+  { id: 51, name: 'Rabobank Australia Limited', code: 'RABL', category: 'International bank: Foreign Subsidiary', hqCountry: 'Netherlands', extraHistory: 'Rabobank is widely known for an agribusiness focus in many markets, which is reflected in its Australian positioning.' },
 
-  // PSPs (92-95)
-  'dot-92': {
-    title: 'Adyen Australia',
-    subtitle: 'ADYE',
-    description: 'Payment Service Provider',
-    details: [
-      'Global payment platform'
-    ]
-  },
-  'dot-93': {
-    title: 'EFTEX',
-    subtitle: 'ETXL',
-    description: 'Payment Service Provider',
-    details: [
-      'Payment processing'
-    ]
-  },
-  'dot-94': {
-    title: 'First Data Network',
-    subtitle: 'CSCD',
-    description: 'Payment Service Provider',
-    details: [
-      'Payment processing services'
-    ]
-  },
-  'dot-95': {
-    title: 'Citigroup',
-    subtitle: 'CITI',
-    description: 'Payment Service Provider',
-    details: [
-      'Uses settlement agent'
-    ]
-  },
+  // Major banks (52–57)
+  { id: 52, name: 'ANZ', code: 'ANZB', category: 'Domestic bank (Big Four)', hqCountry: 'Australia', isFssMember: true },
+  { id: 53, name: 'Commonwealth Bank', code: 'CBAA', category: 'Domestic bank (Big Four)', hqCountry: 'Australia', isFssMember: true },
+  { id: 54, name: 'NAB', code: 'NABL', category: 'Domestic bank (Big Four)', hqCountry: 'Australia', isFssMember: true },
+  { id: 55, name: 'Westpac', code: 'WPAC', category: 'Domestic bank (Big Four)', hqCountry: 'Australia', isFssMember: true },
+  { id: 56, name: 'Macquarie Bank', code: 'MACQ', category: 'Domestic bank', hqCountry: 'Australia', isFssMember: true },
+  { id: 57, name: 'Bendigo and Adelaide Bank', code: 'BEND', category: 'Domestic bank', hqCountry: 'Australia', isFssMember: true },
 
-  // CS - Clearing and Settlement (96-98)
-  'dot-96': {
-    title: 'ASX Clearing',
-    subtitle: 'ASXC',
-    description: 'Clearing and Settlement facility',
-    details: [
-      'Central counterparty for ASX markets'
-    ]
-  },
-  'dot-97': {
-    title: 'ASX Settlement',
-    subtitle: 'ASTC',
-    description: 'Clearing and Settlement facility',
-    details: [
-      'Securities settlement operator'
-    ]
-  },
-  'dot-98': {
-    title: 'LCH Limited',
-    subtitle: 'LCHC',
-    description: 'Clearing and Settlement facility',
-    details: [
-      'Central counterparty clearing house'
-    ]
-  },
+  // Domestic banks (58–86)
+  { id: 58, name: 'Alex Bank', code: 'ALEX', category: 'Domestic bank', hqCountry: 'Australia' },
+  { id: 59, name: 'AMP Bank', code: 'AMPB', category: 'Domestic bank', hqCountry: 'Australia' },
+  { id: 60, name: 'Bank of Queensland', code: 'BQLQ', category: 'Domestic bank', hqCountry: 'Australia' },
+  { id: 61, name: "Heritage and People's Choice", code: 'HBSL', category: 'Domestic bank', hqCountry: 'Australia' },
+  { id: 62, name: 'Judo Bank', code: 'JUDO', category: 'Domestic bank', hqCountry: 'Australia' },
+  { id: 63, name: 'Norfina', code: 'METW', category: 'Domestic bank', hqCountry: 'Australia' },
+
+  { id: 64, name: 'Australian Military Bank', code: 'ADCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 65, name: 'Australian Mutual Bank', code: 'SYCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 66, name: 'B&E Ltd', code: 'BEPB', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 67, name: 'Bank Australia', code: 'MECU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 68, name: 'Beyond Bank Australia', code: 'CCPS', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 69, name: 'Credit Union Australia', code: 'CUAL', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 70, name: 'Defence Bank', code: 'DEFB', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 71, name: 'Gateway Bank', code: 'GATE', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 72, name: 'Hume Bank', code: 'HUBS', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 73, name: 'IMB', code: 'IMBS', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 74, name: 'Maitland Mutual', code: 'MMBS', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 75, name: 'Members Banking Group', code: 'QTCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 76, name: 'MyState Bank', code: 'MSFL', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 77, name: 'Newcastle Greater Mutual', code: 'NEWC', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 78, name: 'Police & Nurses', code: 'PNCS', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 79, name: 'Police Bank', code: 'PCUL', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 80, name: 'Police Financial Services', code: 'PACC', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 81, name: 'QPCU', code: 'QPCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 82, name: 'Queensland Country Bank', code: 'QCCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 83, name: 'Regional Australia Bank', code: 'NECU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 84, name: 'Teachers Mutual Bank', code: 'TMBL', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 85, name: 'Unity Bank', code: 'SGCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+  { id: 86, name: 'Victoria Teachers', code: 'VTCU', category: 'Domestic bank (mutual)', hqCountry: 'Australia', usesSettlementAgent: true },
+
+  // Specialised ADIs (87–88)
+  { id: 87, name: 'Wise Australia', code: 'WISE', category: 'Specialised ADI', hqCountry: 'Australia', isFssMember: true, extraHistory: 'Specialised ADIs are a sign of how payments innovation and prudential frameworks intersect: you can build modern payment services while still being regulated as a deposit‑taking institution if you hold deposits.' },
+  { id: 88, name: 'Tyro Payments', code: 'MONY', category: 'Specialised ADI', hqCountry: 'Australia' },
+
+  // Other ADIs (89–91)
+  { id: 89, name: 'Australian Settlements', code: 'ASLL', category: 'Other ADI (infrastructure-focused)', hqCountry: 'Australia', isFssMember: true },
+  { id: 90, name: 'CUSCAL', code: 'CUFS', category: 'Other ADI (infrastructure-focused)', hqCountry: 'Australia', isFssMember: true },
+  { id: 91, name: 'Indue', code: 'INDU', category: 'Other ADI (infrastructure-focused)', hqCountry: 'Australia', isFssMember: true },
+
+  // PSPs (92–95)
+  { id: 92, name: 'Adyen Australia', code: 'ADYE', category: 'Payment service provider', hqCountry: 'Netherlands' },
+  { id: 93, name: 'EFTEX', code: 'ETXL', category: 'Payment service provider', hqCountry: 'Australia' },
+  { id: 94, name: 'First Data Network', code: 'CSCD', category: 'Payment service provider', hqCountry: 'United States' },
+  { id: 95, name: 'Citigroup', code: 'CITI', category: 'Payment service provider', hqCountry: 'United States', usesSettlementAgent: true },
+
+  // CS facilities (96–98)
+  { id: 96, name: 'ASX Clearing', code: 'ASXC', category: 'Clearing and settlement facility (CCP)', hqCountry: 'Australia' },
+  { id: 97, name: 'ASX Settlement', code: 'ASTC', category: 'Clearing and settlement facility (SSF)', hqCountry: 'Australia' },
+  { id: 98, name: 'LCH Limited', code: 'LCHC', category: 'Clearing and settlement facility (CCP)', hqCountry: 'United Kingdom' },
 
   // CLS (99)
-  'dot-99': {
-    title: 'CLS Bank',
-    subtitle: 'CLSB',
-    description: 'Continuous Linked Settlement',
-    details: [
-      'Multi-currency FX settlement system'
-    ]
-  },
+  { id: 99, name: 'CLS Bank', code: 'CLSB', category: 'FX settlement system', hqCountry: 'United States' }
+];
 
-  // ========== LINE TOOLTIPS ==========
-  // ISO 20022 (SWIFT) lines - turquoise color (#5dd9b8)
-  // All turquoise lines share the same tooltip style
-  'hvcs-horizontal-line': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'pacs-to-swift-line-0': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'pacs-to-swift-line-1': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'pacs-to-swift-line-2': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'swift-pds-to-rits-line-0': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'swift-pds-to-rits-line-1': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'swift-pds-to-rits-line-2': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  // NPP-related turquoise lines
-  'npp-to-adi-line': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'new-pacs-to-npp-line': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-  'npp-to-fss-path': {
-    title: 'ISO 20022 (SWIFT)',
-    description: 'Standardised financial messaging format used for payment instructions between financial institutions via the SWIFT network',
-    lineStyle: true
-  },
-
-  // CLS PvP lines - neon green color (#00FF33)
-  'cls-aud-line-new': {
-    title: 'ISO 20022 CLS PvP',
-    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
-    lineStyle: true
-  },
-  'cls-to-rits-line-final': {
-    title: 'ISO 20022 CLS PvP',
-    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
-    lineStyle: true
-  },
-  'cls-s-curve': {
-    title: 'ISO 20022 CLS PvP',
-    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
-    lineStyle: true
-  },
-  'cls-aud-rect': {
-    title: 'ISO 20022 CLS PvP',
-    description: 'Payment-versus-payment settlement messages for foreign exchange transactions via CLS (Continuous Linked Settlement)',
-    lineStyle: true,
-    colorFrom: 'cls-aud-line-new'
-  },
-
-  // Direct Entry ABA lines - red color (#ff073a)
-  'directentry-to-adi-line': {
-    title: 'DE (ABA) File Format',
-    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true,
-    color: '#ff073a' // Explicit red color for hit area tooltips
-  },
-  'maroon-horizontal-branch': {
-    title: 'DE (ABA) File Format',
-    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true,
-    color: '#ff073a' // Explicit red color for hit area tooltips
-  },
-  'becn-to-becs-line': {
-    title: 'DE (ABA) File Format',
-    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true
-  },
-  'becg-to-becs-line': {
-    title: 'DE (ABA) File Format',
-    description: 'Australian Bankers Association file format used for Direct Entry batch payments through the Bulk Electronic Clearing System',
-    lineStyle: true
-  },
-
-  // APCS Cheques lines - grey color (#e5e7eb)
-  'cheques-to-apcs-line': {
-    title: 'APCS Truncated Presentment',
-    description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
-    lineStyle: true,
-    color: '#e5e7eb'
-  },
-  'osko-to-adi-line': {
-    title: 'APCS Truncated Presentment',
-    description: 'Electronic exchange of cheque images between financial institutions under the Australian Paper Clearing System',
-    lineStyle: true,
-    color: '#e5e7eb'
-  },
-
-  // LVSS FSI XML lines - grey double lines through LVSS circle
-  'lvss-line-gabs': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  'lvss-line-cecs': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  'lvss-line-cshd': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  'lvss-line-becs': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  'lvss-line-apcs': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  // CECS to IAC lines - also LVSS FSI XML
-  'cecs-to-iac-line-1': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-  'cecs-to-iac-line-2': {
-    title: 'LVSS FSI XML',
-    description: 'File Settlement Instructions in RBA proprietary XML format submitted to the Low Value Settlement Service via the Community of Interest Network (COIN) for interbank settlement',
-    lineStyle: true
-  },
-
-  // PEXA/ASXF Reservation Batch lines - magenta/pink color (#FF0090)
-  'pexa-horizontal-line-0': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-  'pexa-horizontal-line-1': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-  'pexa-to-rits-line': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for property settlement transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-  'sympli-horizontal-line-0': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-  'sympli-horizontal-line-1': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-  'asxf-to-rits-line': {
-    title: 'Reservation Batch XML',
-    description: 'RBA proprietary XML messages for Sympli property settlements transmitted over the Community of Interest Network (COIN). Funds are reserved in payers\' ESAs while title changes are processed.',
-    lineStyle: true
-  },
-
-  // ASXB batch settlement lines - from clearing/netting to ASXB and ASXB to RITS
-  'clearing-to-asxb-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-  'clearing-to-asxb-line-0': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-  'clearing-to-asxb-line-1': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-  'asxb-to-rits-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for ASX Clear equity settlement. Net obligations from CHESS clearing are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-
-  // MCAU batch settlement lines - Mastercard to MCAU and MCAU to RITS
-  'mastercard-to-mcau-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for Mastercard scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-  'mcau-to-rits-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for Mastercard scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-
-  // ESSB batch settlement lines - eftpos to ESSB and ESSB to RITS
-  'eftpos-to-essb-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for eftpos scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-  'essb-to-rits-line': {
-    title: 'Batch Settlement Request (MT198 SMT131)',
-    description: 'SWIFT MT198 messages carrying SMT131 batch settlement instructions for eftpos scheme settlement. Net card payment obligations are submitted to RITS for settlement across Exchange Settlement Accounts.',
-    lineStyle: true
-  },
-
-  // eftpos ePAL lines - purple color rgb(158,138,239)
-  'eftpos-left-line': {
-    title: 'ePAL Settlement File Format',
-    description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
-    lineStyle: true,
-    color: 'rgb(158,138,239)'
-  },
-  'eftpos-left-line-horizontal': {
-    title: 'ePAL Settlement File Format',
-    description: 'Bilateral file exchange format used by eftpos Payments Australia Limited (ePAL) for clearing and settlement of eftpos scheme transactions',
-    lineStyle: true,
-    color: 'rgb(158,138,239)'
-  },
-
-  // Mastercard IPM lines - pinkish color rgb(255,120,120)
-  'mastercard-left-line': {
-    title: 'Mastercard IPM File Format',
-    description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
-    lineStyle: true,
-    color: 'rgb(255,120,120)'
-  },
-  'mastercard-left-line-horizontal': {
-    title: 'Mastercard IPM File Format',
-    description: 'Integrated Product Messages (IPM) format based on ISO 8583 used for Mastercard clearing and settlement through the Global Clearing Management System',
-    lineStyle: true,
-    color: 'rgb(255,120,120)'
-  },
-
-  // IAC stack lines - coming from IAC box
-  'direct-entry-stack-line-yellow': {
-    title: 'Visa BASE II File Format',
-    description: 'Fixed-length clearing file format using 168-byte Transaction Component Records (TCRs) for Visa transaction clearing and settlement',
-    lineStyle: true,
-    color: '#FFA500'
-  },
-  'direct-entry-stack-line-blue': {
-    title: 'Proprietary Scheme Formats',
-    description: 'Card scheme-specific clearing formats used by AMEX, UnionPay, Diners Club and other international card networks',
-    lineStyle: true,
-    color: '#5AC8FA'
-  },
-  'direct-entry-stack-line-green': {
-    title: 'Health Claims Protocols',
-    description: 'Electronic claiming via EFTPOS terminals including Medicare Easyclaim, ECLIPSE (Electronic Claim Lodgement and Information Processing Service Environment) for hospital claims, HICAPS (Health Industry Claims and Payments Service) for private health insurers, and government schemes such as the Department of Veterans\' Affairs, Transport Accident Commission, WorkSafe, and National Disability Insurance Scheme',
-    lineStyle: true,
-    color: '#32cd32'
-  },
-  'direct-entry-stack-line-brown': {
-    title: 'ATM Interchange',
-    description: 'ATM transactions use AS2805 (Australian Standard for Electronic Funds Transfer) messaging. Cleared through the Issuers and Acquirers Community (IAC) with deferred net settlement in RITS',
-    lineStyle: true,
-    color: '#C08552'
-  },
-
-  // E-conveyancing lines to ADIs
-  'sympli-to-adis-line': {
-    title: 'Sympli NECDS (ELNO)',
-    description: 'National Electronic Conveyancing Data Standard messages from Sympli (Electronic Lodgment Network Operator) for property settlement with financial institutions',
-    lineStyle: true,
-    color: 'rgb(239,136,51)'
-  },
-  'pexa-to-adis-line': {
-    title: 'PEXA NECDS (ELNO)',
-    description: 'National Electronic Conveyancing Data Standard messages from PEXA (Electronic Lodgment Network Operator) for property settlement with financial institutions',
-    lineStyle: true,
-    color: 'rgb(179,46,161)'
-  }
-};
+// Materialise institution tooltips into tooltipContent
+for (const inst of INSTITUTIONS) {
+  tooltipContent[`dot-${inst.id}`] = makeInstitutionTooltip(inst);
+}
 
 // Export for use in other modules
 if (typeof window !== 'undefined') {
   window.tooltipContent = tooltipContent;
 }
+
+/**
+ * ========== RENDERING PATCH (React example) ==========
+ * If your tooltip UI currently renders `details` as bullet points,
+ * replace that block with paragraph rendering.
+ *
+ * Example:
+ *
+ * const detailText = tooltip.details;
+ * const paras = typeof detailText === 'string'
+ *   ? detailText.split(/\n{2,}/).filter(Boolean)
+ *   : Array.isArray(detailText)
+ *     ? detailText
+ *     : [];
+ *
+ * return (
+ *   <div>
+ *     <h3>{tooltip.title}</h3>
+ *     {tooltip.subtitle && <div>{tooltip.subtitle}</div>}
+ *     {tooltip.description && <div>{tooltip.description}</div>}
+ *     {paras.map((p, i) => <p key={i}>{p}</p>)}
+ *   </div>
+ * );
+ */

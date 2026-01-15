@@ -64,6 +64,19 @@
     #big-label, #small-label {
       filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
     }
+
+    /* Flow particle animation */
+    .flow-particle {
+      offset-distance: 0%;
+      animation: flowAlongPath 3s linear infinite;
+      filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 8px currentColor);
+    }
+    @keyframes flowAlongPath {
+      0% { offset-distance: 0%; opacity: 0; }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { offset-distance: 100%; opacity: 0; }
+    }
   </style>
 </head>
 <body>

@@ -338,7 +338,24 @@ function showTooltip(elementId, event, originalElementId) {
     // Explicit color specified in tooltip data
     elementColor = content.color;
   } else {
-    const colorSourceId = content.colorFrom || ((isEsaDot || isEsaLine) ? colorElementId : tooltipSourceId);
+    let colorSourceId;
+    if (content.colorFrom) {
+      colorSourceId = content.colorFrom;
+    } else if (isEsaLine) {
+      // For ESA lines, always use the corresponding dot's color
+      // blue-line-X -> dot-X, yellow-line-X -> yellow-dot-X
+      if (blueLineMatch) {
+        colorSourceId = `dot-${blueLineMatch[1]}`;
+      } else if (yellowLineMatch) {
+        colorSourceId = `yellow-dot-${yellowLineMatch[1]}`;
+      } else {
+        colorSourceId = colorElementId;
+      }
+    } else if (isEsaDot) {
+      colorSourceId = colorElementId;
+    } else {
+      colorSourceId = tooltipSourceId;
+    }
     elementColor = getElementColor(colorSourceId, event);
   }
 
@@ -456,7 +473,7 @@ function showTooltip(elementId, event, originalElementId) {
   // Italic for RITS/CLS (SIPS), NOT italic for Prominent Systems
   // "Australian Payments Plus" is always bold, and white for Prominent Systems
   if (content.preHeading) {
-    const isAustralianPaymentsPlus = content.preHeading === 'Australian Payments Plus';
+    const isAustralianPaymentsPlus = content.preHeading === 'Australia Payments Plus';
     const preHeadingColor = (isProminentSystem && isAustralianPaymentsPlus) ? 'white' : (accentColor || subtitleColor);
     const preHeadingWeight = isAustralianPaymentsPlus ? 'font-weight: bold;' : 'font-weight: normal;';
     const preHeadingStyle = (isRitsCircle || isClsCircle) ? 'font-style: italic;' : '';
@@ -491,10 +508,17 @@ function showTooltip(elementId, event, originalElementId) {
 
   // Details - each on new line, smaller, no bullet points, bold for lineStyle
   // Skip details for compactStyle tooltips
-  if (content.details && content.details.length > 0 && !isCompactStyle) {
+  // Supports both array format (old) and paragraph string format (new)
+  if (content.details && !isCompactStyle) {
     const detailWeight = isLineStyle ? 'font-weight: bold;' : '';
-    content.details.forEach(detail => {
-      html += `<div style="font-size: ${detailSize}; color: ${detailColor}; ${detailWeight} line-height: 1.4;">${detail}</div>`;
+    // Handle both string (paragraph format with \n\n) and array format
+    const detailItems = typeof content.details === 'string'
+      ? content.details.split(/\n{2,}/).filter(Boolean)
+      : Array.isArray(content.details)
+        ? content.details
+        : [];
+    detailItems.forEach(detail => {
+      html += `<div style="font-size: ${detailSize}; color: ${detailColor}; ${detailWeight} line-height: 1.4; margin-bottom: 8px;">${detail}</div>`;
     });
   }
 
@@ -1505,6 +1529,98 @@ function handleSvgClick(event) {
   }
 }
 
+// Store active flow animations for cleanup
+const activeFlowAnimations = new Map();
+
+/**
+ * Create multiple flowing particles on a path - single animation loop keeps them evenly spaced
+ * @param {string} pathId - The ID of the path element
+ * @param {number} count - Number of particles (default: 3)
+ * @param {Object} options - Configuration options
+ * @param {string} options.color - Particle color (default: inherit from path stroke)
+ * @param {number} options.size - Particle radius in pixels (default: 4)
+ * @param {number} options.duration - Time for one particle to traverse the path in ms (default: 3000)
+ * @param {boolean} options.reverse - Flow in reverse direction (default: false)
+ * @returns {SVGCircleElement[]} Array of created particles
+ */
+function createFlowParticles(pathId, count = 3, options = {}) {
+  const path = document.getElementById(pathId);
+  if (!path || typeof path.getTotalLength !== 'function') {
+    console.warn(`Path not found or invalid: ${pathId}`);
+    return [];
+  }
+
+  const svg = document.getElementById('diagram');
+  if (!svg) return [];
+
+  const pathColor = options.color || path.getAttribute('stroke') || '#ffffff';
+  const size = options.size || 4;
+  const duration = options.duration || 3000;
+  const reverse = options.reverse || false;
+  const pathLength = path.getTotalLength();
+
+  // Create all particles
+  const particles = [];
+  for (let i = 0; i < count; i++) {
+    const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    particle.setAttribute('r', size);
+    particle.setAttribute('fill', pathColor);
+    particle.classList.add('flow-particle');
+    particle.style.filter = `drop-shadow(0 0 ${size}px ${pathColor}) drop-shadow(0 0 ${size * 2}px ${pathColor})`;
+    svg.appendChild(particle);
+    particles.push(particle);
+  }
+
+  // Single animation loop for all particles
+  let animationId;
+  let startTime = null;
+
+  const animate = (timestamp) => {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const baseProgress = (elapsed % duration) / duration;
+
+    // Position each particle with even spacing
+    for (let i = 0; i < count; i++) {
+      const offset = i / count;
+      let progress = (baseProgress + offset) % 1;
+      if (reverse) progress = 1 - progress;
+
+      const point = path.getPointAtLength(progress * pathLength);
+      particles[i].setAttribute('cx', point.x);
+      particles[i].setAttribute('cy', point.y);
+    }
+
+    animationId = requestAnimationFrame(animate);
+  };
+
+  animationId = requestAnimationFrame(animate);
+
+  // Store for cleanup
+  particles._animationId = animationId;
+  activeFlowAnimations.set(pathId, { particles, animationId });
+
+  return particles;
+}
+
+/**
+ * Create a single flowing particle (convenience wrapper)
+ */
+function createFlowParticle(pathId, options = {}) {
+  return createFlowParticles(pathId, 1, options)[0];
+}
+
+/**
+ * Remove all flow particles from the diagram
+ */
+function clearFlowParticles() {
+  activeFlowAnimations.forEach(({ particles, animationId }) => {
+    cancelAnimationFrame(animationId);
+    particles.forEach(p => p.remove());
+  });
+  activeFlowAnimations.clear();
+}
+
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeInteractive);
@@ -1528,4 +1644,8 @@ if (typeof window !== 'undefined') {
   window.handleMouseMove = handleMouseMove;
   window.handleMouseLeave = handleMouseLeave;
   window.handleClick = handleClick;
+  // Flow particle animation
+  window.createFlowParticle = createFlowParticle;
+  window.createFlowParticles = createFlowParticles;
+  window.clearFlowParticles = clearFlowParticles;
 }

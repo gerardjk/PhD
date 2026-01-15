@@ -946,6 +946,14 @@ function initializeDiagram() {
           el.classList.add('diagram-visible');
           el.classList.remove('diagram-hidden');
         });
+
+        // Start flow particles on NPP to ADI line after it becomes visible
+        animationTimeouts.push(setTimeout(() => {
+          if (animationSkipped) return;
+          if (typeof window.createFlowParticles === 'function') {
+            window.createFlowParticles('npp-to-adi-line', 3, { duration: 2500, size: 5, reverse: true });
+          }
+        }, 500)); // Small delay for line to fade in
       });
 
       // Also animate divider elements as part of stage 7
@@ -1034,6 +1042,7 @@ function initializeDiagram() {
             }
           }
         });
+
       }, 2500)); // Wait for all scheduled stages to complete (stage 4 fires at 5500ms from start)
     };
 
