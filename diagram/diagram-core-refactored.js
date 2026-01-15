@@ -399,7 +399,7 @@ function initializeDiagram() {
       document.querySelectorAll('.diagram-hidden').forEach(el => {
         el.classList.add('diagram-visible');
       });
-      currentStage = 6;
+      currentStage = 7;
       cancelStageTimers();
       if (stageVisibilityObserver) {
         stageVisibilityObserver.disconnect();
@@ -410,6 +410,28 @@ function initializeDiagram() {
       const dotLabelsGroup = document.getElementById('dot-labels');
       if (dotLabelsGroup) {
         Array.from(dotLabelsGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+
+      // Ensure all blue dots/lines are visible (they use inline opacity for successive reveal)
+      const blueCirclesGroup = document.getElementById('blue-circles');
+      const blueLinesGroup = document.getElementById('blue-connecting-lines');
+      if (blueCirclesGroup) {
+        Array.from(blueCirclesGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+      if (blueLinesGroup) {
+        Array.from(blueLinesGroup.children).forEach(child => {
+          child.style.opacity = '1';
+        });
+      }
+
+      // Ensure all yellow dots/lines are visible (they use inline opacity for successive reveal)
+      const yellowCirclesGroup = document.getElementById('yellow-circles');
+      if (yellowCirclesGroup) {
+        Array.from(yellowCirclesGroup.children).forEach(child => {
           child.style.opacity = '1';
         });
       }
@@ -551,26 +573,75 @@ function initializeDiagram() {
         document.body.classList.add('animating-startup');
       }
 
-      // Stage 1: ESA box, blue dots (including RBA), and ESA labels appear together
-      // REMOVED dot-labels from here - it will be added in Stage 2 instead
-      // REMOVED blue-connecting-lines - moved to Stage 2
-      stageOneElementIds.forEach(id => {
+      // Stage 1: Blue dots and lines appear successively from index 0 to 99
+      // Time available: 1000ms (until stage 2 starts)
+      const totalAnimationTime = 900; // Leave 100ms buffer before stage 2
+      const numDots = 100;
+      const delayPerDot = totalAnimationTime / numDots; // ~9ms per dot
+
+      // First reveal ESA labels and background immediately
+      ['blue-dots-background', 'esas-label-top', 'esas-label-bottom'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('diagram-visible');
       });
 
-      // COMMENTED OUT - dot-labels group is not shown in Stage 1 anymore
-      // Only show the ESA labels until the other labels fade in during stage 2
-      // const dotLabelsGroup = document.getElementById('dot-labels');
-      // if (dotLabelsGroup) {
-      //   Array.from(dotLabelsGroup.children).forEach(child => {
-      //     if (child.classList && child.classList.contains('esas-box-label')) {
-      //       child.style.opacity = '1';
-      //     } else {
-      //       child.style.opacity = '0';
-      //     }
-      //   });
-      // }
+      // Make the groups visible but hide individual children initially
+      const blueCirclesGroup = document.getElementById('blue-circles');
+      const blueLinesGroup = document.getElementById('blue-connecting-lines');
+
+      if (blueCirclesGroup) blueCirclesGroup.classList.add('diagram-visible');
+      if (blueLinesGroup) blueLinesGroup.classList.add('diagram-visible');
+
+      // Get all dots and lines, then reveal them successively
+      const dots = blueCirclesGroup ? Array.from(blueCirclesGroup.children) : [];
+      const lines = blueLinesGroup ? Array.from(blueLinesGroup.children) : [];
+
+      // Hide all dots and lines initially
+      dots.forEach(dot => {
+        dot.style.opacity = '0';
+        dot.style.transition = 'opacity 0.15s ease-out';
+      });
+      lines.forEach(line => {
+        line.style.opacity = '0';
+        line.style.transition = 'opacity 0.15s ease-out';
+      });
+
+      // Reveal dots successively (they're ordered by index in the group)
+      dots.forEach((dot, index) => {
+        setTimeout(() => {
+          if (animationSkipped) {
+            dot.style.opacity = '1';
+            return;
+          }
+          dot.style.opacity = '1';
+        }, index * delayPerDot);
+      });
+
+      // Reveal lines successively (matching dot timing)
+      lines.forEach((line, index) => {
+        setTimeout(() => {
+          if (animationSkipped) {
+            line.style.opacity = '1';
+            return;
+          }
+          line.style.opacity = '1';
+        }, index * delayPerDot);
+      });
+
+      // Also reveal RBA-specific elements
+      setTimeout(() => {
+        const rbaBlueDot = document.getElementById('rba-blue-dot');
+        const rbaBlueLine = document.getElementById('rba-blue-line');
+        if (rbaBlueDot) {
+          rbaBlueDot.classList.add('diagram-visible');
+          rbaBlueDot.style.opacity = '1';
+        }
+        if (rbaBlueLine) {
+          rbaBlueLine.classList.add('diagram-visible');
+          rbaBlueLine.style.opacity = '1';
+        }
+      }, 0); // RBA is index 0, so it appears first
+
       currentStage = Math.max(currentStage, 1);
       enforceStageVisibility(currentStage);
     };
@@ -752,11 +823,38 @@ function initializeDiagram() {
       if (animationSkipped || fifthStageStarted) return;
       fifthStageStarted = true;
 
-      // Stage 5: Yellow FSS lines/dots, BDF box with its red lines only
-      const yellowCircles = document.getElementById('yellow-circles');
-      if (yellowCircles) {
-        yellowCircles.classList.add('stage-five-element');
-        yellowCircles.classList.add('diagram-visible');
+      // Stage 5: Yellow FSS lines/dots appear successively, then BDF box with its red lines
+      const yellowCirclesGroup = document.getElementById('yellow-circles');
+
+      if (yellowCirclesGroup) {
+        // Make the group visible but hide individual children initially
+        yellowCirclesGroup.classList.add('stage-five-element');
+        yellowCirclesGroup.classList.add('diagram-visible');
+
+        // Get all children (interleaved lines and circles)
+        const children = Array.from(yellowCirclesGroup.children);
+
+        // Time available: 300ms before stage 6, use 250ms with 50ms buffer
+        const totalAnimationTime = 250;
+        const numChildren = children.length;
+        const delayPerChild = numChildren > 0 ? totalAnimationTime / numChildren : 0;
+
+        // Hide all children initially
+        children.forEach(child => {
+          child.style.opacity = '0';
+          child.style.transition = 'opacity 0.1s ease-out';
+        });
+
+        // Reveal children successively
+        children.forEach((child, index) => {
+          animationTimeouts.push(setTimeout(() => {
+            if (animationSkipped) {
+              child.style.opacity = '1';
+              return;
+            }
+            child.style.opacity = '1';
+          }, index * delayPerChild));
+        });
       }
 
       // Reveal BDF box, label, and its red lines (lines for dots 52-55)
@@ -815,7 +913,7 @@ function initializeDiagram() {
         stageVisibilityObserver = null;
       }
 
-      // Stage 7: All remaining lines (with slower fade-in)
+      // Stage 7: All remaining lines (with line-drawing animation)
       // Collect all elements to reveal
       const elementsToReveal = [];
 
@@ -849,6 +947,39 @@ function initializeDiagram() {
           el.classList.remove('diagram-hidden');
         });
       });
+
+      // Also animate divider elements as part of stage 7
+      if (window.dividerElements) {
+        // First, animate the white line extending from right to left
+        if (window.dividerElements.whiteLine) {
+          window.dividerElements.whiteLine.setAttribute('stroke-dashoffset', '0');
+        }
+
+        // After line animation completes (800ms), start text typewriter
+        animationTimeouts.push(setTimeout(() => {
+          if (animationSkipped) return;
+          if (window.dividerElements.upLabel) {
+            window.dividerElements.upLabel.style.opacity = '1';
+            const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / High Volume';
+            if (typeof window.startDividerLabelTypewriter === 'function') {
+              window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
+            } else {
+              window.dividerElements.upLabel.textContent = fullText;
+            }
+          }
+          if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
+          if (window.dividerElements.downLabel) {
+            window.dividerElements.downLabel.style.opacity = '1';
+            const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Low Volume';
+            if (typeof window.startDividerLabelTypewriter === 'function') {
+              window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
+            } else {
+              window.dividerElements.downLabel.textContent = fullDownText;
+            }
+          }
+          if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
+        }, 850)); // Wait for line animation (800ms) + small buffer
+      }
     };
 
     // Store reveal function for use after title types out - cleanup and finalization
@@ -11802,40 +11933,7 @@ if (window.makeInteractive) {
       if (typeof window.revealDiagramContent === 'function') {
         window.revealDiagramContent();
       }
-
-      // Then animate divider elements after diagram fades in
-      if (window.dividerElements) {
-        window.setTimeout(() => {
-          // First, animate the white line extending from right to left
-          if (window.dividerElements.whiteLine) {
-            window.dividerElements.whiteLine.setAttribute('stroke-dashoffset', '0');
-          }
-
-          // After line animation completes (800ms), start text typewriter
-          window.setTimeout(() => {
-            if (window.dividerElements.upLabel) {
-              window.dividerElements.upLabel.style.opacity = '1';
-              const fullText = window.dividerElements.upLabel.dataset.fullText || window.dividerElements.upLabel.textContent || 'Low Value / High Volume';
-              if (typeof window.startDividerLabelTypewriter === 'function') {
-                window.startDividerLabelTypewriter(window.dividerElements.upLabel, fullText);
-              } else {
-                window.dividerElements.upLabel.textContent = fullText;
-              }
-            }
-            if (window.dividerElements.upArrow) window.dividerElements.upArrow.style.opacity = '1';
-            if (window.dividerElements.downLabel) {
-              window.dividerElements.downLabel.style.opacity = '1';
-              const fullDownText = window.dividerElements.downLabel.dataset.fullText || window.dividerElements.downLabel.textContent || 'High Value / Low Volume';
-              if (typeof window.startDividerLabelTypewriter === 'function') {
-                window.startDividerLabelTypewriter(window.dividerElements.downLabel, fullDownText);
-              } else {
-                window.dividerElements.downLabel.textContent = fullDownText;
-              }
-            }
-            if (window.dividerElements.downArrow) window.dividerElements.downArrow.style.opacity = '1';
-          }, 850); // Wait for line animation (800ms) + small buffer
-        }, 1000); // Wait for diagram fade-in (1s) before starting divider animation
-      }
+      // Divider animation is now part of stage 7
     }
   }
   typeWriter();

@@ -352,6 +352,12 @@ function showTooltip(elementId, event, originalElementId) {
   const isRitsCircle = elementId === 'rits-circle';
   const isClsCircle = elementId === 'cls-circle' || tooltipSourceId === 'cls-circle';
 
+  // Prominent Payment Systems (eftpos, Mastercard, Visa, NPP, BECS) get similar styling to SIPS
+  const isProminentSystem = content.prominentSystem === true;
+
+  // RBA Systems (OPA, RBA, BDF, GABS, BECG) get dark red border
+  const isRbaSystem = content.rbaSystem === true;
+
   let tooltipBgColor;
   if (isLineStyle) {
     tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.97)';
@@ -403,13 +409,24 @@ function showTooltip(elementId, event, originalElementId) {
     tooltipContentElement.style.borderWidth = '2px';
   }
 
-  // Set border radius - square edges for RITS and CLS circles, rounded for everything else
-  tooltipContentElement.style.borderRadius = (isRitsCircle || isClsCircle) ? '0px' : '8px';
+  // Set border radius - square edges for RITS, CLS, and Prominent Systems
+  const useSquareCorners = isRitsCircle || isClsCircle || isProminentSystem;
+  tooltipContentElement.style.borderRadius = useSquareCorners ? '0px' : '8px';
 
-  // RITS and CLS circles get lightened element color borders, thicker
-  const sipsAccentColor = (isRitsCircle || isClsCircle) ? lightenColor(elementColor, 0.5) : null;
+  // RITS, CLS, and Prominent Systems get lightened element color borders, thicker
+  const accentColor = (isRitsCircle || isClsCircle || isProminentSystem) ? lightenColor(elementColor, 0.5) : null;
   if (isRitsCircle || isClsCircle) {
-    tooltipContentElement.style.borderColor = sipsAccentColor || 'rgba(255, 255, 255, 0.9)';
+    tooltipContentElement.style.borderColor = accentColor || 'rgba(255, 255, 255, 0.9)';
+    tooltipContentElement.style.borderWidth = '3px';
+    // Wider tooltip for RITS/CLS to avoid word wrap on long subtitles
+    tooltipContentElement.style.width = '480px';
+    tooltipContentElement.style.maxWidth = '480px';
+  } else if (isProminentSystem) {
+    tooltipContentElement.style.borderColor = accentColor || 'rgba(255, 255, 255, 0.9)';
+    tooltipContentElement.style.borderWidth = '3px';
+  } else if (isRbaSystem) {
+    // Dark red border for RBA-related systems
+    tooltipContentElement.style.borderColor = 'rgb(139, 69, 69)';
     tooltipContentElement.style.borderWidth = '3px';
   }
 
@@ -429,10 +446,21 @@ function showTooltip(elementId, event, originalElementId) {
   const textColor = useDarkText ? '#444' : 'white';
   const detailColor = useDarkText ? '#555' : 'white';
 
-  // PreHeading - smaller, not bold, italic (use accent color for RITS/CLS)
+  // For Prominent Systems, add "Prominent Payment System" as pre-pre-heading
+  if (isProminentSystem) {
+    const ppsColor = accentColor || subtitleColor;
+    html += `<div style="font-weight: normal; font-style: italic; font-size: 11px; color: ${ppsColor}; margin-bottom: 6px;">Prominent Payment System</div>`;
+  }
+
+  // PreHeading - smaller
+  // Italic for RITS/CLS (SIPS), NOT italic for Prominent Systems
+  // "Australian Payments Plus" is always bold, and white for Prominent Systems
   if (content.preHeading) {
-    const preHeadingColor = sipsAccentColor || subtitleColor;
-    html += `<div style="font-weight: normal; font-style: italic; font-size: 11px; color: ${preHeadingColor}; margin-bottom: 10px;">${content.preHeading}</div>`;
+    const isAustralianPaymentsPlus = content.preHeading === 'Australian Payments Plus';
+    const preHeadingColor = (isProminentSystem && isAustralianPaymentsPlus) ? 'white' : (accentColor || subtitleColor);
+    const preHeadingWeight = isAustralianPaymentsPlus ? 'font-weight: bold;' : 'font-weight: normal;';
+    const preHeadingStyle = (isRitsCircle || isClsCircle) ? 'font-style: italic;' : '';
+    html += `<div style="${preHeadingWeight} ${preHeadingStyle} font-size: 11px; color: ${preHeadingColor}; margin-bottom: 10px;">${content.preHeading}</div>`;
   }
 
   // Title - larger, bold (italicised for line tooltips and small tooltips)

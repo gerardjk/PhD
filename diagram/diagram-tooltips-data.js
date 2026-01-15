@@ -139,6 +139,7 @@ const tooltipContent = {
 
   // RBA System
   'dot-0': {
+    rbaSystem: true,
     title: 'RBA',
     subtitle: 'Reserve Bank of Australia',
     description: 'Central bank responsible for Australian monetary policy and financial system stability',
@@ -531,6 +532,7 @@ const tooltipContent = {
   },
 
   'opa-box': {
+    rbaSystem: true,
     title: 'OPA',
     subtitle: 'Official Public Account',
     description: 'Commonwealth Government\'s account with the Reserve Bank',
@@ -541,6 +543,7 @@ const tooltipContent = {
     link: 'https://www.finance.gov.au/about-us/glossary/pgpa/term-official-public-account-opa'
   },
   'bdf-box': {
+    rbaSystem: true,
     title: 'BDF',
     subtitle: 'Banknote Distribution Framework',
     description: 'Framework for distributing Australian banknotes from the Reserve Bank to financial institutions',
@@ -682,6 +685,7 @@ const tooltipContent = {
     hours: '24/7 availability'
   },
   'npp-purple-box': {
+    prominentSystem: true,
     preHeading: 'Australian Payments Plus',
     title: 'NPP',
     subtitle: 'New Payments Platform',
@@ -792,6 +796,7 @@ const tooltipContent = {
 
   // Card payments
   'eftpos-box': {
+    prominentSystem: true,
     preHeading: 'Australian Payments Plus',
     title: 'eftpos',
     subtitle: 'Electronic Funds Transfer at Point of Sale',
@@ -803,6 +808,7 @@ const tooltipContent = {
     ]
   },
   'mastercard-box': {
+    prominentSystem: true,
     title: 'Mastercard',
     subtitle: 'International card scheme',
     description: 'Global credit and debit card network',
@@ -863,6 +869,7 @@ const tooltipContent = {
     compactStyle: true
   },
   'visa-box': {
+    prominentSystem: true,
     title: 'Visa',
     subtitle: 'International card scheme',
     description: 'Global credit and debit card network',
@@ -915,6 +922,7 @@ const tooltipContent = {
     ]
   },
   'becg-box': {
+    rbaSystem: true,
     title: 'BECG',
     subtitle: 'Bulk Electronic Clearing (Gross)',
     description: 'Gross settlement for high-value bulk payments',
@@ -1004,6 +1012,7 @@ const tooltipContent = {
     ]
   },
   'becs-box': {
+    prominentSystem: true,
     title: 'BECS',
     subtitle: 'Bulk Electronic Clearing System',
     description: 'Processes Direct Entry payment batches',
@@ -1024,6 +1033,7 @@ const tooltipContent = {
     ]
   },
   'gabs-box': {
+    rbaSystem: true,
     title: 'GABS',
     subtitle: 'Government & Banking Settlement',
     description: 'Settlement for government payments',
