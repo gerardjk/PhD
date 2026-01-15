@@ -897,9 +897,12 @@ const tooltipContent = {
     description:
       'Market operator and provider of clearing (CCPs) and settlement (SSFs) infrastructure. Cash leg settles via RITS.',
     details: paragraphs(
-      `In ${ASX_SNAPSHOT.asAt}: cash markets averaged ${fmtInt(ASX_SNAPSHOT.cashMarkets.avgDailyTrades)} trades/day, A$${ASX_SNAPSHOT.cashMarkets.avgDailyValueAudBillions.toFixed(1)}b daily value.`,
-      'Markets create securities and cash obligations. Final AUD settlement occurs via central bank settlement layer.'
-    )
+      `Cash equities and listed options flow through **ASX Clear**, the primary CCP. In ${ASX_SNAPSHOT.asAt} the lit cash market averaged ${fmtInt(ASX_SNAPSHOT.cashMarkets.avgDailyTrades)} trades per day (≈A$${ASX_SNAPSHOT.cashMarkets.avgDailyValueAudBillions.toFixed(1)} billion). The CCP held ~A$${ASX_SNAPSHOT.clearingRisk.initialMarginHeldAudBillions.asxClear.toFixed(1)} billion in initial margin and called about A$${ASX_SNAPSHOT.clearingRisk.variationMarginPaidAudBillions.asxClear.toFixed(1)} billion of variation margin across a typical day.` ,
+      `**ASX Clear (Futures)** novates SPI futures, listed interest-rate contracts, and a portfolio of cleared OTC IRS. Over ${ASX_SNAPSHOT.asAt} it cleared ≈${fmtInt(ASX_SNAPSHOT.futures.avgDailyVolumeContracts)} contracts a day (≈A$${ASX_SNAPSHOT.futures.totalNotionalAudBillionsSingleSided.toFixed(0)} billion single-sided notional across the month) and held ~A$${ASX_SNAPSHOT.clearingRisk.initialMarginHeldAudBillions.asxClearFutures.toFixed(1)} billion of initial margin. Variation margin flows were roughly A$${ASX_SNAPSHOT.clearingRisk.variationMarginPaidAudBillions.asxClearFutures.toFixed(1)} billion per day.` ,
+      `Settlement facilities sit underneath the CCPs. **ASX Settlement (CHESS)** delivers DvP for equities with custody balances of ≈A$${ASX_SNAPSHOT.chess.holdingsAudBillions.toFixed(0)} billion and about ${ASX_SNAPSHOT.chess.dominantSettlementMessagesMillions.toFixed(1)} million settlement messages a month. **Austraclear** (also an SSF) safekeeps debt securities and structured finance paper with ≈A$${ASX_SNAPSHOT.austraclear.holdingsAudBillions.toFixed(0)} billion on register and ~${fmtInt(ASX_SNAPSHOT.austraclear.tradeSourceMessagesThousands)}k trade-source messages in ${ASX_SNAPSHOT.asAt}.` ,
+      'All ASX clearing and settlement cash legs pay and receive funds in RITS: CCP margin is managed intraday in central-bank money and the SSFs use delivery-versus-payment so securities and cash complete simultaneously.'
+    ),
+    sipsStyle: true
   },
 
   'asx-clearing-dot': {

@@ -439,32 +439,10 @@ function initializeDiagram() {
       // Remove animation class and enable interactivity
       document.body.classList.remove('animating-startup');
 
-      // Set up all interactive elements
-      const interactiveElements = document.querySelectorAll('[data-interactive-id]');
-      interactiveElements.forEach(element => {
-        const elementId = element.getAttribute('data-interactive-id');
-        if (elementId && typeof window.makeInteractive === 'function') {
-          if (!element.style.cursor || element.style.cursor !== 'pointer') {
-            element.style.cursor = 'pointer';
-            // Only set pointer-events if not already set
-            // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
-            if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
-              const tagName = element.tagName.toLowerCase();
-              if (tagName === 'path' || tagName === 'line') {
-                element.style.pointerEvents = 'stroke';
-              } else {
-                element.style.pointerEvents = 'all';
-              }
-            }
-            element.addEventListener('mouseenter', window.handleMouseEnter);
-            element.addEventListener('mousemove', window.handleMouseMove);
-            element.addEventListener('mouseleave', window.handleMouseLeave);
-            element.addEventListener('click', window.handleClick);
-          }
-        }
-      });
-
       // Start flow particles when skipping animation
+      if (typeof window.clearFlowParticles === 'function') {
+        window.clearFlowParticles(); // Clear any existing animations first
+      }
       if (typeof window.createFlowParticles === 'function') {
         // Calculate consistent spacing
         const nppToFssPath = document.getElementById('npp-to-fss-path');
@@ -1017,6 +995,9 @@ function initializeDiagram() {
         // Start flow particles on multiple lines immediately when stage 7 is done
         animationTimeouts.push(setTimeout(() => {
           if (animationSkipped) return;
+          if (typeof window.clearFlowParticles === 'function') {
+            window.clearFlowParticles(); // Clear any existing animations first
+          }
           if (typeof window.createFlowParticles === 'function') {
             // Calculate consistent spacing based on NPP to FSS path
             const nppToFssPath = document.getElementById('npp-to-fss-path');
@@ -1149,31 +1130,6 @@ function initializeDiagram() {
         // Remove skip handlers
         document.removeEventListener('click', skipAnimation);
         document.removeEventListener('keydown', skipOnKey);
-
-        // Now set up all the interactive elements that were skipped during animation
-        const interactiveElements = document.querySelectorAll('[data-interactive-id]');
-        interactiveElements.forEach(element => {
-          const elementId = element.getAttribute('data-interactive-id');
-          if (elementId && typeof window.makeInteractive === 'function') {
-            // Only set up interactivity if not already done
-            if (!element.style.cursor || element.style.cursor !== 'pointer') {
-              element.style.cursor = 'pointer';
-              // For paths/lines, use 'stroke' so only the line is interactive (not interior fill area)
-              if (!element.style.pointerEvents || element.style.pointerEvents === 'none') {
-                const tagName = element.tagName.toLowerCase();
-                if (tagName === 'path' || tagName === 'line') {
-                  element.style.pointerEvents = 'stroke';
-                } else {
-                  element.style.pointerEvents = 'all';
-                }
-              }
-              element.addEventListener('mouseenter', window.handleMouseEnter);
-              element.addEventListener('mousemove', window.handleMouseMove);
-              element.addEventListener('mouseleave', window.handleMouseLeave);
-              element.addEventListener('click', window.handleClick);
-            }
-          }
-        });
 
       }, 2500)); // Wait for all scheduled stages to complete (stage 4 fires at 5500ms from start)
     };
