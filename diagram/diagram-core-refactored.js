@@ -43,6 +43,8 @@ function initializeDiagram() {
       #diagram .stage-three-label { transition: opacity 0.5s ease-in-out; }
       #diagram .stage-four-label { transition: opacity 0.5s ease-in-out; }
       #diagram .stage-five-element { transition: opacity 0.5s ease-in-out; }
+      #diagram .stage-six-element { transition: opacity 0.5s ease-in-out; }
+      #diagram .stage-seven-element { transition: opacity 1s ease-in-out; }
     `;
     document.head.appendChild(styleEl);
   };
@@ -750,20 +752,23 @@ function initializeDiagram() {
       if (animationSkipped || fifthStageStarted) return;
       fifthStageStarted = true;
 
-      // Stage 5: Yellow FSS lines/dots, BDF box with its red lines, all other boxes with labels
-      // Only reveal yellow circles group (contains yellow FSS lines and dots)
-      // All other lines (including background-elements) are revealed in stage 6
+      // Stage 5: Yellow FSS lines/dots, BDF box with its red lines only
       const yellowCircles = document.getElementById('yellow-circles');
       if (yellowCircles) {
         yellowCircles.classList.add('stage-five-element');
         yellowCircles.classList.add('diagram-visible');
       }
 
-      // Reveal BDF box and its red lines (lines for dots 52-55)
+      // Reveal BDF box, label, and its red lines (lines for dots 52-55)
       const bdfBox = document.getElementById('bdf-box');
       if (bdfBox) {
         bdfBox.classList.add('stage-five-element');
         bdfBox.classList.add('diagram-visible');
+      }
+      const bdfLabel = document.getElementById('bdf-label');
+      if (bdfLabel) {
+        bdfLabel.classList.add('stage-five-element');
+        bdfLabel.classList.add('diagram-visible');
       }
       // BDF lines are named bdf-line-52 through bdf-line-55 (matching dot indices)
       for (let i = 52; i <= 55; i++) {
@@ -774,18 +779,6 @@ function initializeDiagram() {
         }
       }
 
-      // Reveal all remaining boxes (rects) and their labels that are still hidden
-      // This includes boxes and text elements, but NOT lines/paths/groups
-      // Line groups (red-connecting-lines, etc.) are revealed in stage 6
-      document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
-        const tagName = el.tagName.toLowerCase();
-        // Only include boxes (rect), text labels, and circles - NOT groups (which contain lines)
-        if (tagName === 'rect' || tagName === 'text' || tagName === 'circle') {
-          el.classList.add('stage-five-element');
-          el.classList.add('diagram-visible');
-        }
-      });
-
       currentStage = Math.max(currentStage, 5);
       enforceStageVisibility(currentStage);
     };
@@ -795,14 +788,37 @@ function initializeDiagram() {
     window.startSixthAnimationStage = () => {
       if (animationSkipped || sixthStageStarted) return;
       sixthStageStarted = true;
+
+      // Stage 6: All remaining boxes (rects) and their labels
+      document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
+        const tagName = el.tagName.toLowerCase();
+        // Only include boxes (rect), text labels, and circles - NOT groups/lines/paths
+        if (tagName === 'rect' || tagName === 'text' || tagName === 'circle') {
+          el.classList.add('stage-six-element');
+          el.classList.add('diagram-visible');
+        }
+      });
+
+      currentStage = Math.max(currentStage, 6);
+      enforceStageVisibility(currentStage);
+    };
+
+    // Function to start seventh stage independently
+    let seventhStageStarted = false;
+    window.startSeventhAnimationStage = () => {
+      if (animationSkipped || seventhStageStarted) return;
+      seventhStageStarted = true;
       cancelStageTimers();
-      currentStage = 6;
+      currentStage = 7;
       if (stageVisibilityObserver) {
         stageVisibilityObserver.disconnect();
         stageVisibilityObserver = null;
       }
 
-      // Stage 6: All remaining lines
+      // Stage 7: All remaining lines (with slower fade-in)
+      // Collect all elements to reveal
+      const elementsToReveal = [];
+
       ['red-connecting-lines', 'orange-connecting-lines',
        'admin-connecting-lines', 'foreground-lines', 'background-elements',
        // Individual lines appended directly to SVG
@@ -813,13 +829,25 @@ function initializeDiagram() {
        'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area',
        'new-pacs-to-npp-line'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.classList.add('diagram-visible');
+        if (el) elementsToReveal.push(el);
       });
 
       // Catch any remaining hidden elements
       document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
-        el.classList.add('diagram-visible');
-        el.classList.remove('diagram-hidden');
+        elementsToReveal.push(el);
+      });
+
+      // First add transition class to all elements
+      elementsToReveal.forEach(el => {
+        el.classList.add('stage-seven-element');
+      });
+
+      // Then trigger visibility in next frame so transition actually animates
+      requestAnimationFrame(() => {
+        elementsToReveal.forEach(el => {
+          el.classList.add('diagram-visible');
+          el.classList.remove('diagram-hidden');
+        });
       });
     };
 
@@ -4498,11 +4526,11 @@ function initializeDiagram() {
                   // Continue horizontally then curve down along ADI box
                   const adiRightEdge = adiData.x + adiData.width;
                   // Offset each line based on its color to prevent overlap
-                  let xOffset = 25; // Default offset
-                  if (entry.color === '#C08552') xOffset = 20; // Brown (ATMs box color)
-                  else if (entry.color === '#32cd32') xOffset = 22; // Green (Claims box color)
-                  else if (entry.color === '#FFA500') xOffset = 25; // Yellow (Visa box color)
-                  else if (entry.color === '#5AC8FA') xOffset = 28; // Blue
+                  let xOffset = 20; // Default offset
+                  if (entry.color === '#C08552') xOffset = 15; // Brown (ATMs box color)
+                  else if (entry.color === '#32cd32') xOffset = 17; // Green (Claims box color)
+                  else if (entry.color === '#FFA500') xOffset = 20; // Yellow (Visa box color)
+                  else if (entry.color === '#5AC8FA') xOffset = 23; // Blue
 
                   const horizontalExtendX = adiRightEdge + xOffset;
                   const curveRadius = 100; // THIS CONTROLS THE ROUNDEDNESS - try values from 10 (sharp) to 50 (smooth)
@@ -8452,6 +8480,7 @@ function initializeDiagram() {
           fontWeight: 'bold'
         }
       );
+      bdfLabel.setAttribute('id', 'bdf-label');
       bdfLabel.setAttribute('text-anchor', 'middle');
       bdfLabel.setAttribute('dominant-baseline', 'middle');
       bdfLabel.setAttribute('pointer-events', 'none'); // Don't block hover events
@@ -11632,11 +11661,12 @@ if (window.makeInteractive) {
   // Timed stage sequence (no longer tied to typewriter progress)
   const stageDelays = {
     first: 100,
-    second: 900,
-    third: 900,
-    fourth: 1100,
-    fifth: 1200,
-    sixth: 1200
+    second: 1000,
+    third: 300,
+    fourth: 300,
+    fifth: 300,
+    sixth: 300,
+    seventh: 300
   };
   const stageTimers = {
     first: null,
@@ -11644,7 +11674,8 @@ if (window.makeInteractive) {
     third: null,
     fourth: null,
     fifth: null,
-    sixth: null
+    sixth: null,
+    seventh: null
   };
   const scheduleStages = () => {
     let accumulated = 0;
@@ -11707,6 +11738,16 @@ if (window.makeInteractive) {
         }
       }, accumulated);
       animationTimeouts.push(stageTimers.sixth);
+    }
+    if (typeof window.startSeventhAnimationStage === 'function') {
+      accumulated += stageDelays.seventh;
+      stageTimers.seventh = setTimeout(() => {
+        stageTimers.seventh = null;
+        if (!animationSkipped) {
+          window.startSeventhAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.seventh);
     }
   };
   scheduleStages();
