@@ -3464,6 +3464,7 @@ function initializeDiagram() {
         const sympliLineGap = 3.0;
         const sympliLineColor = '#FF0090';
         const sympliLineOffsets = [-sympliLineGap/2, sympliLineGap/2]; // Double lines (gap = 1.5 to match curved lines)
+        const sympliHitStrokeWidth = (sympliLineGap + 8).toString();
         const sympliConnectorStartX = sympliX + sympliWidth;
         let sympliConnectorEndX = sympliConnectorStartX;
         if (window.bridgePositions) {
@@ -3474,28 +3475,57 @@ function initializeDiagram() {
             sympliConnectorEndX = right;
           }
         }
+        window.sympliHorizontalHitAreas = [];
         window.sympliHorizontalLines = sympliLineOffsets.map((offset, idx) => {
+          const yPosition = sympliY + sympliHeight / 2 + offset;
+          const lineId = `sympli-horizontal-line-${idx}`;
           const line = createStyledLine(
             sympliConnectorStartX,
-            sympliY + sympliHeight / 2 + offset,
+            yPosition,
             sympliConnectorEndX,
-            sympliY + sympliHeight / 2 + offset,
+            yPosition,
             {
               stroke: sympliLineColor,
               strokeWidth: '2.25', // Match curved double lines
               strokeLinecap: 'round'
             }
           );
-          line.setAttribute('id', `sympli-horizontal-line-${idx}`);
-          line.setAttribute('data-interactive-id', `sympli-horizontal-line-${idx}`);
+          line.setAttribute('id', lineId);
+          line.setAttribute('data-interactive-id', lineId);
           if (window.makeInteractive) {
-            window.makeInteractive(line, `sympli-horizontal-line-${idx}`);
+            window.makeInteractive(line, lineId);
           }
+
+          const hitLine = createStyledLine(
+            sympliConnectorStartX,
+            yPosition,
+            sympliConnectorEndX,
+            yPosition,
+            {
+              stroke: 'transparent',
+              strokeWidth: sympliHitStrokeWidth,
+              strokeLinecap: 'round'
+            }
+          );
+          hitLine.style.pointerEvents = 'stroke';
+          hitLine.setAttribute('data-interactive-id', lineId);
+          if (window.makeInteractive) {
+            window.makeInteractive(hitLine, lineId);
+          }
+
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
+            redLinesGroup.appendChild(hitLine);
           } else {
             labelsGroup.insertBefore(line, labelsGroup.firstChild);
+            if (line.nextSibling) {
+              labelsGroup.insertBefore(hitLine, line.nextSibling);
+            } else {
+              labelsGroup.appendChild(hitLine);
+            }
           }
+
+          window.sympliHorizontalHitAreas.push(hitLine);
           return line;
         });
         window.newSympliX = sympliX;
@@ -5872,28 +5902,58 @@ function initializeDiagram() {
         }
         const pexaLineGap = 3.0;
         const pexaOffsets = [-pexaLineGap/2, pexaLineGap/2]; // Double lines (gap = 1.5 to match curved lines)
+        const pexaHitStrokeWidth = (pexaLineGap + 8).toString();
+        window.pexaHorizontalHitAreas = [];
         window.pexaHorizontalLines = pexaOffsets.map((offset, idx) => {
+          const yPosition = pexaConveyY + pexaConveyHeight / 2 + offset;
+          const lineId = `pexa-horizontal-line-${idx}`;
           const line = createStyledLine(
             pexaConnectorStartX,
-            pexaConveyY + pexaConveyHeight / 2 + offset,
+            yPosition,
             pexaConnectorEndX,
-            pexaConveyY + pexaConveyHeight / 2 + offset,
+            yPosition,
             {
               stroke: pexaLineColor,
               strokeWidth: '2.25', // Match curved double lines
               strokeLinecap: 'round'
             }
           );
-          line.setAttribute('id', `pexa-horizontal-line-${idx}`);
-          line.setAttribute('data-interactive-id', `pexa-horizontal-line-${idx}`);
+          line.setAttribute('id', lineId);
+          line.setAttribute('data-interactive-id', lineId);
           if (window.makeInteractive) {
-            window.makeInteractive(line, `pexa-horizontal-line-${idx}`);
+            window.makeInteractive(line, lineId);
           }
+
+          const hitLine = createStyledLine(
+            pexaConnectorStartX,
+            yPosition,
+            pexaConnectorEndX,
+            yPosition,
+            {
+              stroke: 'transparent',
+              strokeWidth: pexaHitStrokeWidth,
+              strokeLinecap: 'round'
+            }
+          );
+          hitLine.style.pointerEvents = 'stroke';
+          hitLine.setAttribute('data-interactive-id', lineId);
+          if (window.makeInteractive) {
+            window.makeInteractive(hitLine, lineId);
+          }
+
           if (redLinesGroup) {
             redLinesGroup.appendChild(line);
+            redLinesGroup.appendChild(hitLine);
           } else {
             labelsGroup.insertBefore(line, labelsGroup.firstChild);
+            if (line.nextSibling) {
+              labelsGroup.insertBefore(hitLine, line.nextSibling);
+            } else {
+              labelsGroup.appendChild(hitLine);
+            }
           }
+
+          window.pexaHorizontalHitAreas.push(hitLine);
           return line;
         });
 
@@ -6148,6 +6208,16 @@ function initializeDiagram() {
               line.setAttribute('x2', sympliEnd.toFixed(2));
               line.setAttribute('y2', (sympliYCenter + offset).toFixed(2));
             });
+            if (window.sympliHorizontalHitAreas && window.sympliHorizontalHitAreas.length) {
+              window.sympliHorizontalHitAreas.forEach((hitLine, idx) => {
+                if (!hitLine) return;
+                const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+                hitLine.setAttribute('x1', sympliStart.toFixed(2));
+                hitLine.setAttribute('y1', (sympliYCenter + offset).toFixed(2));
+                hitLine.setAttribute('x2', sympliEnd.toFixed(2));
+                hitLine.setAttribute('y2', (sympliYCenter + offset).toFixed(2));
+              });
+            }
           }
         }
 
@@ -6729,6 +6799,16 @@ function initializeDiagram() {
               line.setAttribute('x2', pexaEnd.toFixed(2));
               line.setAttribute('y2', (pexaYCenter + offset).toFixed(2));
             });
+            if (window.pexaHorizontalHitAreas && window.pexaHorizontalHitAreas.length) {
+              window.pexaHorizontalHitAreas.forEach((hitLine, idx) => {
+                if (!hitLine) return;
+                const offset = offsets[idx] !== undefined ? offsets[idx] : 0;
+                hitLine.setAttribute('x1', pexaStart.toFixed(2));
+                hitLine.setAttribute('y1', (pexaYCenter + offset).toFixed(2));
+                hitLine.setAttribute('x2', pexaEnd.toFixed(2));
+                hitLine.setAttribute('y2', (pexaYCenter + offset).toFixed(2));
+              });
+            }
           }
         }
 
@@ -6949,20 +7029,13 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
 
-        // Z-order: OVER chess-box and asx-box (incl white border), UNDER clearing-box and asxb-box
+        // Z-order: OVER chess-box, UNDER clearing-box and asxb-box
         const clearingBoxEl = document.getElementById('clearing-box');
         const asxbBoxEl = document.getElementById('asxb-box');
         const chessBoxEl = document.getElementById('chess-box');
-        const asxBoxEl = document.getElementById('asx-box');
 
         if (chessBoxEl && chessBoxEl.parentNode) {
           const parentGroup = chessBoxEl.parentNode;
-
-          // Move asx-box into the same group as the other boxes, before chess-box
-          // This way we can control z-order within the group
-          if (asxBoxEl) {
-            parentGroup.insertBefore(asxBoxEl, chessBoxEl);
-          }
 
           // Insert lines after chess-box
           parentGroup.insertBefore(clearingToAsxPath1, chessBoxEl.nextSibling);
