@@ -40,6 +40,9 @@ function initializeDiagram() {
     styleEl.textContent = `
       #diagram .diagram-hidden:not(.diagram-visible) { opacity: 0 !important; }
       #diagram .diagram-visible { opacity: 1 !important; }
+      #diagram .stage-three-label { transition: opacity 0.5s ease-in-out; }
+      #diagram .stage-four-label { transition: opacity 0.5s ease-in-out; }
+      #diagram .stage-five-element { transition: opacity 0.5s ease-in-out; }
     `;
     document.head.appendChild(styleEl);
   };
@@ -194,10 +197,10 @@ function initializeDiagram() {
     const adminLinesGroup = document.getElementById('admin-connecting-lines');
     const yellowLinesGroup = document.getElementById('admin-connecting-lines');
 
-    // Add RBA red circle border to redLinesGroup so it renders under blue/yellow lines
-    // This will be created after RBA circle fill is created and info is stored
+    // Add RBA red circle border - inserted before big-group so it's visible in stage 2
+    // (red-connecting-lines group is not visible until stage 4)
     window.addRbaRedBorder = function() {
-      if (window.rbaCircleInfo && redLinesGroup) {
+      if (window.rbaCircleInfo) {
         const rbaBorder = createStyledCircle(
           window.rbaCircleInfo.x,
           window.rbaCircleInfo.y,
@@ -208,7 +211,13 @@ function initializeDiagram() {
             strokeWidth: '2'
           }
         );
-        redLinesGroup.appendChild(rbaBorder);
+        rbaBorder.setAttribute('id', 'rba-red-circle');
+        rbaBorder.classList.add('diagram-hidden'); // Hidden initially, revealed in Stage 2
+        // Insert before big-group (same location as rba-black-circle) so it's at SVG root level
+        const bigGroup = document.getElementById('big-group');
+        if (bigGroup && bigGroup.parentNode) {
+          bigGroup.parentNode.insertBefore(rbaBorder, bigGroup);
+        }
       }
     };
     const bigGroupElement = document.getElementById('big-group');
@@ -388,6 +397,12 @@ function initializeDiagram() {
       document.querySelectorAll('.diagram-hidden').forEach(el => {
         el.classList.add('diagram-visible');
       });
+      currentStage = 6;
+      cancelStageTimers();
+      if (stageVisibilityObserver) {
+        stageVisibilityObserver.disconnect();
+        stageVisibilityObserver = null;
+      }
 
       // Ensure all dot labels are visible when skipping the animation entirely
       const dotLabelsGroup = document.getElementById('dot-labels');
@@ -440,6 +455,80 @@ function initializeDiagram() {
     // Expose skip function globally
     window.skipAnimation = skipAnimation;
 
+    let stageThreeElements = [];
+    let currentStage = 0;
+    let stageVisibilityObserver = null;
+
+    const stageOneElementIds = [
+      'blue-dots-background', 'blue-circles',
+      'rba-blue-dot',
+      'esas-label-top', 'esas-label-bottom',
+      'blue-connecting-lines', 'rba-blue-line'
+    ];
+
+    const stageTwoElementIds = [
+      'dot-labels',  // Labels group - needed for non-adis-label which is inside it
+      'adi-box', 'non-adis-box',
+      'adis-label', 'non-adis-label',
+      'rba-black-circle', 'rba-red-circle', 'rba-label',
+      'opa-box', 'opa-label', 'opa-to-rba-line'
+    ];
+
+    // Stage 4 elements: Foreign boxes, FSS circle, LVSS circle, and ES holder name labels
+    const stageFourElementIds = [
+      'foreign-branches-box',
+      'foreign-branches-label',
+      'foreign-subsidiaries-box',
+      'foreign-subsidiaries-label',
+      'small-group', // FSS yellow circle
+      'small-label', // FSS label
+      'lvss-gear-group', // LVSS circle
+      'lvss-label' // LVSS label
+    ];
+
+    const getAllowedStageIds = (maxStage) => {
+      if (maxStage >= 6) {
+        return null;
+      }
+      const allowed = new Set();
+      if (maxStage >= 1) {
+        stageOneElementIds.forEach(id => allowed.add(id));
+      }
+      if (maxStage >= 2) {
+        stageTwoElementIds.forEach(id => allowed.add(id));
+      }
+      if (maxStage >= 3) {
+        stageThreeElements.forEach(id => allowed.add(id));
+      }
+      if (maxStage >= 4) {
+        stageFourElementIds.forEach(id => allowed.add(id));
+      }
+      return allowed;
+    };
+
+    const enforceStageVisibility = (maxStage) => {
+      if (!svg) return;
+      // Stage 5 and 6 reveal many elements without explicit IDs in the allowed list
+      // Skip enforcement for these stages to allow all revealed elements to stay visible
+      if (maxStage >= 5) {
+        return;
+      }
+      const allowedIds = getAllowedStageIds(maxStage);
+      const visibleElements = svg.querySelectorAll('.diagram-visible');
+      visibleElements.forEach(el => {
+        const elementId = el.getAttribute('id');
+        if (!elementId) {
+          return;
+        }
+        if (!allowedIds.has(elementId)) {
+          el.classList.remove('diagram-visible');
+          if (!el.classList.contains('diagram-hidden')) {
+            el.classList.add('diagram-hidden');
+          }
+        }
+      });
+    };
+
     // Function to start first stage independently
     let firstStageStarted = false;
     window.startFirstAnimationStage = () => {
@@ -463,9 +552,7 @@ function initializeDiagram() {
       // Stage 1: ESA box, blue dots (including RBA), and ESA labels appear together
       // REMOVED dot-labels from here - it will be added in Stage 2 instead
       // REMOVED blue-connecting-lines - moved to Stage 2
-      ['blue-dots-background', 'blue-circles',
-       'rba-blue-dot', // RBA's blue dot appears with other dots
-       'esas-label-top', 'esas-label-bottom'].forEach(id => {
+      stageOneElementIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('diagram-visible');
       });
@@ -482,6 +569,8 @@ function initializeDiagram() {
       //     }
       //   });
       // }
+      currentStage = Math.max(currentStage, 1);
+      enforceStageVisibility(currentStage);
     };
 
     // Function to start second stage independently
@@ -490,69 +579,69 @@ function initializeDiagram() {
       if (animationSkipped || secondStageStarted) return;
       secondStageStarted = true;
 
-      // Debug: Check if specific elements exist
-      console.warn('=== Stage 2 Starting - Checking for problem elements ===');
-      console.warn('  rba-label exists?', !!document.getElementById('rba-label'));
-      console.warn('  opa-box exists?', !!document.getElementById('opa-box'));
-      console.warn('  non-adis-label exists?', !!document.getElementById('non-adis-label'));
-
-      // Ensure dot-labels group is visible - FORCE IT
-      const dotLabelsGroup = document.getElementById('dot-labels');
-      if (dotLabelsGroup) {
-        dotLabelsGroup.classList.add('diagram-visible');
-        dotLabelsGroup.classList.remove('diagram-hidden');
-        dotLabelsGroup.style.opacity = '1 !important';
-        dotLabelsGroup.style.display = '';
-        // Force inline style to override everything
-        dotLabelsGroup.setAttribute('style', 'opacity: 1 !important; display: inline;');
-        console.warn('FORCED dot-labels opacity to 1');
-      }
-
-      // Stage 2: ADI/Non-ADI boxes, RBA/OPA elements, blue connecting lines (NO ARC)
-      ['dot-labels',
-       'blue-connecting-lines', 'rba-blue-line', // Blue lines now appear in Stage 2 (including RBA's line)
-       'adi-box', 'non-adis-box', // ADI and Non-ADI boxes (note: non-adis with 's')
-       'adis-label', 'non-adis-label', // ADI and Non-ADI labels
-       'rba-black-circle', 'rba-label', // RBA circle and label
-       'opa-box', 'opa-label', 'opa-to-rba-line' // OPA elements
-      ].forEach(id => {
+      // Stage 2: ADI/Non-ADI boxes, RBA/OPA elements, dot-labels group
+      stageTwoElementIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.classList.add('diagram-visible');
           el.classList.remove('diagram-hidden');
           el.style.opacity = '1';
           el.style.display = '';
-          if (id === 'rba-label' || id === 'opa-box' || id === 'non-adis-label') {
-            console.warn(`  ✓ Found and revealed: ${id}`);
-            // Check actual visibility
-            const styles = window.getComputedStyle(el);
-            console.warn(`    - display: ${styles.display}, opacity: ${styles.opacity}, visibility: ${styles.visibility}`);
-            console.warn(`    - classList: ${el.classList.toString()}`);
-            console.warn(`    - parent: ${el.parentElement ? el.parentElement.id : 'no parent'}`);
-
-            // Check if parent is visible
-            if (el.parentElement) {
-              const parentStyles = window.getComputedStyle(el.parentElement);
-              console.warn(`    - parent display: ${parentStyles.display}, opacity: ${parentStyles.opacity}`);
-              console.warn(`    - parent classList: ${el.parentElement.classList.toString()}`);
-            }
-          }
-        } else {
-          console.warn(`  ✗ NOT FOUND: ${id}`);
         }
       });
 
-      // Restore the rest of the dot labels now that the group is visible
-      // dotLabelsGroup was already retrieved above
-      if (dotLabelsGroup) {
-        Array.from(dotLabelsGroup.children).forEach(child => {
-          // Don't force opacity on elements that have diagram-hidden class
-          if (!child.classList.contains('diagram-hidden')) {
-            child.style.opacity = '1';
-          }
-        });
-      }
+      // Ensure Stage 3 and Stage 4 elements stay hidden until their dedicated reveal
+      [...stageThreeLabelIds, ...stageFourElementIds].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('diagram-visible');
+          el.classList.add('diagram-hidden');
+          // Don't set inline opacity - let CSS classes handle it for proper transitions
+        }
+      });
+
+      currentStage = Math.max(currentStage, 2);
+      enforceStageVisibility(currentStage);
     };
+
+    // FSS circle moved to stage 4
+    const stageThreeBoxIds = [
+      'international-banks-box',
+      'domestic-banks-box',
+      'specialised-adis-box',
+      'other-adis-box',
+      'psps-box',
+      'cs-box'
+    ];
+    const stageThreeLabelIds = [
+      'international-banks-label-line1', 'international-banks-label-line2',
+      'domestic-banks-label',
+      'specialised-adis-label',
+      'other-adis-label',
+      'psps-label',
+      'cs-label'
+    ];
+    stageThreeElements = [
+      ...stageThreeBoxIds,
+      ...stageThreeLabelIds
+    ];
+
+    const startVisibilityObserver = () => {
+      if (stageVisibilityObserver || !svg) return;
+      stageVisibilityObserver = new MutationObserver(() => {
+        if (currentStage > 0 && currentStage < 6) {
+          enforceStageVisibility(currentStage);
+        }
+      });
+      stageVisibilityObserver.observe(svg, {
+        attributes: true,
+        attributeFilter: ['class'],
+        childList: true,
+        subtree: true
+      });
+    };
+    startVisibilityObserver();
+
 
     // Function to start third stage independently
     let thirdStageStarted = false;
@@ -560,15 +649,29 @@ function initializeDiagram() {
       if (animationSkipped || thirdStageStarted) return;
       thirdStageStarted = true;
 
-      // Stage 3: Mid-tier grouping boxes (International/Domestic/Specialised/Other ADIs, PSPs, CS) and FSS circle
-      ['international-banks-box', 'domestic-banks-box',
-       'specialised-adis-box', 'other-adis-box',
-       'psps-box', 'cs-box',
-       'small-group', 'small-label' // FSS circle and label now appear in Stage 3
-      ].forEach(id => {
+      // Stage 3: Mid-tier grouping boxes with their labels
+      stageThreeElements.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.classList.add('diagram-visible');
+        if (el) {
+          el.classList.add('diagram-visible');
+          el.classList.remove('diagram-hidden');
+          el.style.opacity = '1';
+        }
       });
+
+      // Ensure stage 3 label children inside dot-labels are visible
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        stageThreeLabelIds.forEach(labelId => {
+          const label = document.getElementById(labelId);
+          if (label) {
+            label.style.opacity = '1';
+          }
+        });
+      }
+
+      currentStage = Math.max(currentStage, 3);
+      enforceStageVisibility(currentStage);
     };
 
     // Function to start fourth stage independently
@@ -577,21 +680,143 @@ function initializeDiagram() {
       if (animationSkipped || fourthStageStarted) return;
       fourthStageStarted = true;
 
-      // Stage 4: Remaining boxes, special lines, and CLS green circle
-      ['background-elements', // All other background boxes and lines
-       'red-connecting-lines', 'orange-connecting-lines',
-       'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
+      // Stage 4: Foreign boxes, FSS circle, LVSS circle, and ES holder name labels
+      // Adding diagram-visible while keeping diagram-hidden triggers transition
+      // because CSS selector .diagram-hidden:not(.diagram-visible) stops matching
+      stageFourElementIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.add('stage-four-label'); // Ensure fade transition
+          el.classList.add('diagram-visible');
+        }
+      });
+
+      // Reveal ONLY ES holder name labels (blue dot labels) and their pointer lines
+      // ES holder name labels have: text-anchor='start', font-size='10', NO id
+      // Pointer lines have: stroke='#ffffff', stroke-width='0.5'
+      // Box labels (e.g., MCAU, ASX, GABS) have: text-anchor='middle', font-size='12'+
+      const dotLabelsGroup = document.getElementById('dot-labels');
+      if (dotLabelsGroup) {
+        // Exclude box labels that are revealed in other stages
+        const excludedIds = new Set([
+          ...stageTwoElementIds,
+          ...stageThreeLabelIds,
+          ...stageFourElementIds
+        ]);
+
+        Array.from(dotLabelsGroup.children).forEach(child => {
+          const childId = child.getAttribute('id');
+          if (excludedIds.has(childId)) return;
+          if (!child.classList.contains('diagram-hidden')) return;
+
+          const tagName = child.tagName.toLowerCase();
+
+          // Check if it's an ES holder name label (text element)
+          if (tagName === 'text') {
+            // ES holder names: text-anchor='start', font-size='10'
+            // Box labels: text-anchor='middle' (default), font-size='12' or larger
+            const textAnchor = child.getAttribute('text-anchor');
+            const fontSize = child.getAttribute('font-size');
+            const isEsHolderLabel = textAnchor === 'start' && fontSize === '10';
+
+            if (!isEsHolderLabel) {
+              return; // Skip box labels - they'll appear in stage 5
+            }
+          }
+
+          // Check if it's a pointer line (line or path with white stroke, 0.5 width)
+          if (tagName === 'line' || tagName === 'path') {
+            const stroke = child.getAttribute('stroke');
+            const strokeWidth = child.getAttribute('stroke-width');
+            const isPointerLine = stroke === '#ffffff' && strokeWidth === '0.5';
+
+            if (!isPointerLine) {
+              return; // Skip other lines - they'll appear in later stages
+            }
+          }
+
+          child.classList.add('stage-four-label'); // Add transition class for fade effect
+          child.classList.add('diagram-visible');
+        });
+      }
+
+      currentStage = Math.max(currentStage, 4);
+      enforceStageVisibility(currentStage);
+    };
+
+    // Function to start fifth stage independently
+    let fifthStageStarted = false;
+    window.startFifthAnimationStage = () => {
+      if (animationSkipped || fifthStageStarted) return;
+      fifthStageStarted = true;
+
+      // Stage 5: Yellow FSS lines/dots, BDF box with its red lines, all other boxes with labels
+      // Only reveal yellow circles group (contains yellow FSS lines and dots)
+      // All other lines (including background-elements) are revealed in stage 6
+      const yellowCircles = document.getElementById('yellow-circles');
+      if (yellowCircles) {
+        yellowCircles.classList.add('stage-five-element');
+        yellowCircles.classList.add('diagram-visible');
+      }
+
+      // Reveal BDF box and its red lines (lines for dots 52-55)
+      const bdfBox = document.getElementById('bdf-box');
+      if (bdfBox) {
+        bdfBox.classList.add('stage-five-element');
+        bdfBox.classList.add('diagram-visible');
+      }
+      // BDF lines are named bdf-line-52 through bdf-line-55 (matching dot indices)
+      for (let i = 52; i <= 55; i++) {
+        const bdfLine = document.getElementById(`bdf-line-${i}`);
+        if (bdfLine) {
+          bdfLine.classList.add('stage-five-element');
+          bdfLine.classList.add('diagram-visible');
+        }
+      }
+
+      // Reveal all remaining boxes (rects) and their labels that are still hidden
+      // This includes boxes and text elements, but NOT lines/paths/groups
+      // Line groups (red-connecting-lines, etc.) are revealed in stage 6
+      document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
+        const tagName = el.tagName.toLowerCase();
+        // Only include boxes (rect), text labels, and circles - NOT groups (which contain lines)
+        if (tagName === 'rect' || tagName === 'text' || tagName === 'circle') {
+          el.classList.add('stage-five-element');
+          el.classList.add('diagram-visible');
+        }
+      });
+
+      currentStage = Math.max(currentStage, 5);
+      enforceStageVisibility(currentStage);
+    };
+
+    // Function to start sixth stage independently
+    let sixthStageStarted = false;
+    window.startSixthAnimationStage = () => {
+      if (animationSkipped || sixthStageStarted) return;
+      sixthStageStarted = true;
+      cancelStageTimers();
+      currentStage = 6;
+      if (stageVisibilityObserver) {
+        stageVisibilityObserver.disconnect();
+        stageVisibilityObserver = null;
+      }
+
+      // Stage 6: All remaining lines
+      ['red-connecting-lines', 'orange-connecting-lines',
+       'admin-connecting-lines', 'foreground-lines', 'background-elements',
        // Individual lines appended directly to SVG
        'npp-to-adi-line', 'cheques-to-apcs-line', 'cheques-to-apcs-line-hit-area',
        'cls-aud-line-new', 'cls-to-rits-line-final', 'cls-s-curve', 'cls-s-curve-group',
-       'cls-green-circle', // Add only the green circle here with the neon lines
-       'swift-to-circle-curves', 'cls-aud-rect', 'directentry-to-adi-line', 'maroon-horizontal-branch',
+       'cls-green-circle', 'swift-to-circle-curves', 'cls-aud-rect',
+       'directentry-to-adi-line', 'maroon-horizontal-branch',
        'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area',
        'new-pacs-to-npp-line'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('diagram-visible');
       });
-      // Now catch any remaining lines
+
+      // Catch any remaining hidden elements
       document.querySelectorAll('.diagram-hidden:not(.diagram-visible)').forEach(el => {
         el.classList.add('diagram-visible');
         el.classList.remove('diagram-hidden');
@@ -599,22 +824,22 @@ function initializeDiagram() {
     };
 
     // Store reveal function for use after title types out - cleanup and finalization
+    // NOTE: This function should NOT trigger stages 3 and 4 directly.
+    // Those stages are scheduled via timeouts and should fire at their designated times.
+    // Calling them here would cause them to appear immediately after the typewriter finishes,
+    // bypassing the staggered timing.
     window.revealDiagramContent = () => {
       if (animationSkipped) return;
 
-      // Start all stages if not already started (in case title typing was skipped)
+      // Only start stages 1 and 2 if not already started (in case title typing was skipped)
+      // Stages 3 and 4 should wait for their scheduled timeouts to maintain proper pacing
       if (!firstStageStarted) {
         window.startFirstAnimationStage();
       }
       if (!secondStageStarted) {
         window.startSecondAnimationStage();
       }
-      if (!thirdStageStarted) {
-        window.startThirdAnimationStage();
-      }
-      if (!fourthStageStarted) {
-        window.startFourthAnimationStage();
-      }
+      // Stages 3 and 4 are intentionally NOT triggered here - they use scheduled timeouts
 
       // Re-enable tooltips and setup after animation completes (wait a bit for stages to finish)
       animationTimeouts.push(setTimeout(() => {
@@ -650,7 +875,7 @@ function initializeDiagram() {
             }
           }
         });
-      }, 1500)); // Wait 1.5 seconds after title completes for all stages to finish
+      }, 2500)); // Wait for all scheduled stages to complete (stage 4 fires at 5500ms from start)
     };
 
     const updateNppToAdiLine = () => {
@@ -6958,30 +7183,6 @@ function initializeDiagram() {
           window.asxLine2Data.extraDown = extraDownForRightLine;
           window.asxLine2Data.baseGoDownDistance = goDownDistance;
 
-          // Final z-order fix: create a border-only overlay that renders ON TOP of the blue lines
-          // This keeps the original ASX box behind everything while the border covers the line
-          if (window.asxBoundingBoxElement) {
-            const boxX = parseFloat(window.asxBoundingBoxElement.getAttribute('x'));
-            const boxY = parseFloat(window.asxBoundingBoxElement.getAttribute('y'));
-            const boxW = parseFloat(window.asxBoundingBoxElement.getAttribute('width'));
-            const boxH = parseFloat(window.asxBoundingBoxElement.getAttribute('height'));
-
-            // Create border-only rect (no fill) to render on top of blue lines
-            const borderOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            borderOverlay.setAttribute('x', boxX);
-            borderOverlay.setAttribute('y', boxY);
-            borderOverlay.setAttribute('width', boxW);
-            borderOverlay.setAttribute('height', boxH);
-            borderOverlay.setAttribute('fill', 'none');
-            borderOverlay.setAttribute('stroke', '#ffffff');
-            borderOverlay.setAttribute('stroke-width', '3');
-            borderOverlay.setAttribute('rx', '8');
-            borderOverlay.setAttribute('ry', '8');
-            borderOverlay.setAttribute('pointer-events', 'none'); // Don't interfere with clicks
-
-            // Append to SVG so it renders on top of the lines
-            svg.appendChild(borderOverlay);
-          }
         }
 
         // Add blue line connecting clearing/netting to ASX Settlement
@@ -7029,19 +7230,25 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
 
-        // Z-order: OVER chess-box, UNDER clearing-box and asxb-box
+        // Z-order: asx-box → chess-box → lines → clearing-box → asxb-box
         const clearingBoxEl = document.getElementById('clearing-box');
         const asxbBoxEl = document.getElementById('asxb-box');
         const chessBoxEl = document.getElementById('chess-box');
+        const asxBoxEl = document.getElementById('asx-box');
 
         if (chessBoxEl && chessBoxEl.parentNode) {
           const parentGroup = chessBoxEl.parentNode;
 
-          // Insert lines after chess-box
+          // Step 1: Move asx-box before chess-box FIRST (so lines will be over asx-box border)
+          if (asxBoxEl) {
+            parentGroup.insertBefore(asxBoxEl, chessBoxEl);
+          }
+
+          // Step 2: Insert lines after chess-box
           parentGroup.insertBefore(clearingToAsxPath1, chessBoxEl.nextSibling);
           parentGroup.insertBefore(clearingToAsxPath2, clearingToAsxPath1.nextSibling);
 
-          // Move clearing-box and asxb-box after the lines to ensure they render on top
+          // Step 3: Move clearing-box and asxb-box after the lines to ensure they render on top
           if (clearingBoxEl) parentGroup.insertBefore(clearingBoxEl, clearingToAsxPath2.nextSibling);
           if (asxbBoxEl) parentGroup.insertBefore(asxbBoxEl, clearingBoxEl ? clearingBoxEl.nextSibling : clearingToAsxPath2.nextSibling);
         } else {
@@ -7066,6 +7273,73 @@ function initializeDiagram() {
           window.makeInteractive(clearingHitArea, 'clearing-to-asxb-line');
         }
         labelsGroup.appendChild(clearingHitArea);
+
+        // Rebuild the ASX border overlay so it doesn't obscure the new double lines
+        if (window.asxBoundingBoxElement) {
+          const boxX = parseFloat(window.asxBoundingBoxElement.getAttribute('x'));
+          const boxY = parseFloat(window.asxBoundingBoxElement.getAttribute('y'));
+          const boxW = parseFloat(window.asxBoundingBoxElement.getAttribute('width'));
+          const boxH = parseFloat(window.asxBoundingBoxElement.getAttribute('height'));
+
+          // Ensure defs element exists for the mask
+          let defs = svg.querySelector('defs');
+          if (!defs) {
+            defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.insertBefore(defs, svg.firstChild);
+          }
+
+          const overlayMaskId = 'asx-border-overlay-mask';
+          let overlayMask = document.getElementById(overlayMaskId);
+          if (!overlayMask) {
+            overlayMask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+            overlayMask.setAttribute('id', overlayMaskId);
+            overlayMask.setAttribute('maskUnits', 'userSpaceOnUse');
+            defs.appendChild(overlayMask);
+          }
+
+          // Reset mask contents each time we rebuild the overlay
+          while (overlayMask.firstChild) {
+            overlayMask.removeChild(overlayMask.firstChild);
+          }
+
+          const maskRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          maskRect.setAttribute('x', boxX);
+          maskRect.setAttribute('y', boxY);
+          maskRect.setAttribute('width', boxW);
+          maskRect.setAttribute('height', boxH);
+          maskRect.setAttribute('fill', '#ffffff');
+          overlayMask.appendChild(maskRect);
+
+          // Carve out a gap along the clearing-to-ASXB line so the purple strokes remain visible
+          const overlayMaskGap = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          overlayMaskGap.setAttribute('d', clearingHitPathData);
+          overlayMaskGap.setAttribute('stroke', '#000000');
+          overlayMaskGap.setAttribute('stroke-width', '16');
+          overlayMaskGap.setAttribute('stroke-linecap', 'round');
+          overlayMaskGap.setAttribute('fill', 'none');
+          overlayMask.appendChild(overlayMaskGap);
+
+          // Remove any existing overlay before adding a new one
+          if (window.asxBorderOverlay && window.asxBorderOverlay.parentNode) {
+            window.asxBorderOverlay.parentNode.removeChild(window.asxBorderOverlay);
+          }
+
+          const borderOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          borderOverlay.setAttribute('x', boxX);
+          borderOverlay.setAttribute('y', boxY);
+          borderOverlay.setAttribute('width', boxW);
+          borderOverlay.setAttribute('height', boxH);
+          borderOverlay.setAttribute('fill', 'none');
+          borderOverlay.setAttribute('stroke', '#ffffff');
+          borderOverlay.setAttribute('stroke-width', '3');
+          borderOverlay.setAttribute('rx', '8');
+          borderOverlay.setAttribute('ry', '8');
+          borderOverlay.setAttribute('pointer-events', 'none');
+          borderOverlay.setAttribute('mask', `url(#${overlayMaskId})`);
+
+          svg.appendChild(borderOverlay);
+          window.asxBorderOverlay = borderOverlay;
+        }
 
         // Calculate the 1/3 point on ASXF box using the UPDATED position
         const sympliCenterY = sympliY + sympliHeight / 2;
@@ -9319,6 +9593,8 @@ function initializeDiagram() {
             fontSize: '14' // Same size as Domestic Banks
           }
         );
+        intlText.setAttribute('id', 'international-banks-label-line1');
+        intlText.classList.add('stage-three-label');
         labelsGroup.appendChild(intlText);
 
         // Second line: "Banks"
@@ -9332,6 +9608,8 @@ function initializeDiagram() {
             fontSize: '14' // Same size as Domestic Banks
           }
         );
+        banksText.setAttribute('id', 'international-banks-label-line2');
+        banksText.classList.add('stage-three-label');
         labelsGroup.appendChild(banksText);
       }
 
@@ -9403,6 +9681,8 @@ function initializeDiagram() {
             fontSize: '14' // Smaller than ADIs font (16)
           }
         );
+        domesticBanksText.setAttribute('id', 'domestic-banks-label');
+        domesticBanksText.classList.add('stage-three-label');
         labelsGroup.appendChild(domesticBanksText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(domesticBanksText, 'domestic-banks-box');
@@ -9471,6 +9751,8 @@ function initializeDiagram() {
             fontWeight: 'normal'
           }
         );
+        foreignBranchesText.setAttribute('id', 'foreign-branches-label');
+        foreignBranchesText.classList.add('stage-four-label');
         labelsGroup.appendChild(foreignBranchesText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(foreignBranchesText, 'foreign-branches-box');
@@ -9540,6 +9822,8 @@ function initializeDiagram() {
             fontWeight: 'normal'
           }
         );
+        foreignSubsText.setAttribute('id', 'foreign-subsidiaries-label');
+        foreignSubsText.classList.add('stage-four-label');
         labelsGroup.appendChild(foreignSubsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(foreignSubsText, 'foreign-subsidiaries-box');
@@ -9609,6 +9893,8 @@ function initializeDiagram() {
             dominantBaseline: 'middle' // Vertically center the text
           }
         );
+        specialisedADIsText.setAttribute('id', 'specialised-adis-label');
+        specialisedADIsText.classList.add('stage-three-label');
         labelsGroup.appendChild(specialisedADIsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(specialisedADIsText, 'specialised-adis-box');
@@ -9678,6 +9964,8 @@ function initializeDiagram() {
             dominantBaseline: 'middle'
           }
         );
+        otherADIsText.setAttribute('id', 'other-adis-label');
+        otherADIsText.classList.add('stage-three-label');
         labelsGroup.appendChild(otherADIsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(otherADIsText, 'other-adis-box');
@@ -10346,7 +10634,7 @@ function initializeDiagram() {
         const redBorderRect = createStyledRect(
           minX10 - redLeftPadding - dotRadius - redShiftLeft,
           minY10 - redTopPadding - dotRadius,
-          reducedRedWidth + 5,
+          reducedRedWidth + 11,
           (maxY10 - minY10) + redTopPadding + redBottomPadding + dotRadius * 2,
           {
             fill: '#b91c1c', // Darker red
@@ -10383,6 +10671,8 @@ function initializeDiagram() {
             dominantBaseline: 'middle'
           }
         );
+        pspsText.setAttribute('id', 'psps-label');
+        pspsText.classList.add('stage-three-label');
         labelsGroup.appendChild(pspsText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(pspsText, 'psps-box');
@@ -10419,7 +10709,7 @@ function initializeDiagram() {
         const greenBorderRect = createStyledRect(
           minX11 - greenBorderLeftPadding - dotRadius - csShiftLeft,
           minY11 - greenBorderTopPadding - dotRadius,
-          reducedCsWidth + 5,
+          reducedCsWidth + 11,
           (maxY11 - minY11) + greenBorderTopPadding + greenBorderBottomPadding + dotRadius * 2,
           {
             fill: '#15803d', // Darker green
@@ -10456,6 +10746,8 @@ function initializeDiagram() {
             dominantBaseline: 'middle'
           }
         );
+        csText.setAttribute('id', 'cs-label');
+        csText.classList.add('stage-three-label');
         labelsGroup.appendChild(csText);
         if (typeof makeInteractive === 'function') {
           makeInteractive(csText, 'cs-box');
@@ -11337,9 +11629,100 @@ if (window.makeInteractive) {
   titleText.classList.add('intro-title'); // Keep visible during intro animation
   svg.appendChild(titleText);
 
-  // Typewriter effect on SVG title
+  // Timed stage sequence (no longer tied to typewriter progress)
+  const stageDelays = {
+    first: 100,
+    second: 900,
+    third: 900,
+    fourth: 1100,
+    fifth: 1200,
+    sixth: 1200
+  };
+  const stageTimers = {
+    first: null,
+    second: null,
+    third: null,
+    fourth: null,
+    fifth: null,
+    sixth: null
+  };
+  const scheduleStages = () => {
+    let accumulated = 0;
+    if (typeof window.startFirstAnimationStage === 'function') {
+      accumulated += stageDelays.first;
+      stageTimers.first = setTimeout(() => {
+        stageTimers.first = null;
+        if (!animationSkipped) {
+          window.startFirstAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.first);
+    }
+    if (typeof window.startSecondAnimationStage === 'function') {
+      accumulated += stageDelays.second;
+      stageTimers.second = setTimeout(() => {
+        stageTimers.second = null;
+        if (!animationSkipped) {
+          window.startSecondAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.second);
+    }
+    if (typeof window.startThirdAnimationStage === 'function') {
+      accumulated += stageDelays.third;
+      stageTimers.third = setTimeout(() => {
+        stageTimers.third = null;
+        if (!animationSkipped) {
+          window.startThirdAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.third);
+    }
+    if (typeof window.startFourthAnimationStage === 'function') {
+      accumulated += stageDelays.fourth;
+      stageTimers.fourth = setTimeout(() => {
+        stageTimers.fourth = null;
+        if (!animationSkipped) {
+          window.startFourthAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.fourth);
+    }
+    if (typeof window.startFifthAnimationStage === 'function') {
+      accumulated += stageDelays.fifth;
+      stageTimers.fifth = setTimeout(() => {
+        stageTimers.fifth = null;
+        if (!animationSkipped) {
+          window.startFifthAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.fifth);
+    }
+    if (typeof window.startSixthAnimationStage === 'function') {
+      accumulated += stageDelays.sixth;
+      stageTimers.sixth = setTimeout(() => {
+        stageTimers.sixth = null;
+        if (!animationSkipped) {
+          window.startSixthAnimationStage();
+        }
+      }, accumulated);
+      animationTimeouts.push(stageTimers.sixth);
+    }
+  };
+  scheduleStages();
+
+  const cancelStageTimers = () => {
+    Object.keys(stageTimers).forEach(key => {
+      if (stageTimers[key]) {
+        clearTimeout(stageTimers[key]);
+        stageTimers[key] = null;
+      }
+    });
+  };
+
+  // Typewriter effect on SVG title (visual flair only)
   let charIndex = 0;
-  const typeSpeed = 70; // milliseconds per character (slow down to highlight stage changes)
+  const typeSpeed = 70; // milliseconds per character
   let typewriterSkipped = false;
 
   // Store stop function globally so skipAnimation can use it
@@ -11369,24 +11752,6 @@ if (window.makeInteractive) {
     if (charIndex < fullTitle.length) {
       titleText.textContent += fullTitle.charAt(charIndex);
       charIndex += 1;
-
-      // Start animation stages at specific points during title typing
-      // Stage 1 at 20%
-      if (charIndex === Math.floor(fullTitle.length * 0.20) && typeof window.startFirstAnimationStage === 'function') {
-        window.startFirstAnimationStage();
-      }
-      // Stage 2 at 40%
-      if (charIndex === Math.floor(fullTitle.length * 0.40) && typeof window.startSecondAnimationStage === 'function') {
-        window.startSecondAnimationStage();
-      }
-      // Stage 3 at 60%
-      if (charIndex === Math.floor(fullTitle.length * 0.60) && typeof window.startThirdAnimationStage === 'function') {
-        window.startThirdAnimationStage();
-      }
-      // Stage 4 at 80%
-      if (charIndex === Math.floor(fullTitle.length * 0.80) && typeof window.startFourthAnimationStage === 'function') {
-        window.startFourthAnimationStage();
-      }
 
       setTimeout(typeWriter, typeSpeed);
     } else {

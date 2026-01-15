@@ -176,6 +176,7 @@ function createLvssCircle(params, labelsGroup) {
 
   const lvssGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   lvssGroup.setAttribute('id', 'lvss-gear-group');
+  lvssGroup.classList.add('stage-four-label'); // For fade transition
 
   // Calculate LVSS Y position
   const redCircleRadius = 37 * 1.2 * 0.9 * 0.9 * 0.9; // 10% smaller
@@ -246,7 +247,9 @@ function createLvssCircle(params, labelsGroup) {
     fill: '#ffffff',
     fontSize: '14'
   });
+  lvssText.setAttribute('id', 'lvss-label');
   lvssText.setAttribute('pointer-events', 'none');
+  lvssText.classList.add('stage-four-label'); // For fade transition
   labelsGroup.appendChild(lvssText);
 
   // Store LVSS position
