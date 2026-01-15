@@ -348,6 +348,10 @@ function showTooltip(elementId, event, originalElementId) {
   // ESA dots and their lines use actual color with black text
   const isEsaElement = isEsaDot || isEsaLine;
 
+  // RITS and CLS circles get square corners
+  const isRitsCircle = elementId === 'rits-circle';
+  const isClsCircle = elementId === 'cls-circle' || tooltipSourceId === 'cls-circle';
+
   let tooltipBgColor;
   if (isLineStyle) {
     tooltipBgColor = lightenColor(elementColor, 0.6) || 'rgba(220, 220, 220, 0.97)';
@@ -373,26 +377,40 @@ function showTooltip(elementId, event, originalElementId) {
     // Compact tooltips for batch boxes - between small (240px) and normal (320px)
     tooltipContentElement.style.width = '280px';
     tooltipContentElement.style.minWidth = '';
+    tooltipContentElement.style.maxWidth = '280px';
     tooltipContentElement.style.padding = '10px 12px';
     tooltipContentElement.style.borderWidth = '2px';
   } else if (isSmallStyle) {
     // Smaller tooltips for ESA dots and elements with smallStyle
     tooltipContentElement.style.width = '240px';
     tooltipContentElement.style.minWidth = '';
+    tooltipContentElement.style.maxWidth = '240px';
     tooltipContentElement.style.padding = '8px 10px';
     tooltipContentElement.style.borderWidth = '1px';
   } else if (isLineStyle) {
-    // LineStyle tooltips: auto width with min-width to accommodate non-wrapping titles
-    tooltipContentElement.style.width = 'auto';
-    tooltipContentElement.style.minWidth = '320px';
+    // LineStyle tooltips: fixed width for consistency
+    tooltipContentElement.style.width = '400px';
+    tooltipContentElement.style.minWidth = '';
+    tooltipContentElement.style.maxWidth = '400px';
     tooltipContentElement.style.padding = '12px 14px';
     tooltipContentElement.style.borderWidth = '2px';
   } else {
-    // Normal tooltips: auto width with min-width to accommodate non-wrapping titles
-    tooltipContentElement.style.width = 'auto';
-    tooltipContentElement.style.minWidth = '320px';
+    // Normal tooltips: fixed width for consistency
+    tooltipContentElement.style.width = '400px';
+    tooltipContentElement.style.minWidth = '';
+    tooltipContentElement.style.maxWidth = '400px';
     tooltipContentElement.style.padding = '12px 14px';
     tooltipContentElement.style.borderWidth = '2px';
+  }
+
+  // Set border radius - square edges for RITS and CLS circles, rounded for everything else
+  tooltipContentElement.style.borderRadius = (isRitsCircle || isClsCircle) ? '0px' : '8px';
+
+  // RITS and CLS circles get lightened element color borders, thicker
+  const sipsAccentColor = (isRitsCircle || isClsCircle) ? lightenColor(elementColor, 0.5) : null;
+  if (isRitsCircle || isClsCircle) {
+    tooltipContentElement.style.borderColor = sipsAccentColor || 'rgba(255, 255, 255, 0.9)';
+    tooltipContentElement.style.borderWidth = '3px';
   }
 
   // Build tooltip HTML with new design
@@ -411,31 +429,29 @@ function showTooltip(elementId, event, originalElementId) {
   const textColor = useDarkText ? '#444' : 'white';
   const detailColor = useDarkText ? '#555' : 'white';
 
-  // PreHeading - smaller, not bold (for Australian Payments Plus elements)
+  // PreHeading - smaller, not bold, italic (use accent color for RITS/CLS)
   if (content.preHeading) {
-    html += `<div style="font-weight: normal; font-size: 11px; color: ${subtitleColor}; margin-bottom: 10px;">${content.preHeading}</div>`;
+    const preHeadingColor = sipsAccentColor || subtitleColor;
+    html += `<div style="font-weight: normal; font-style: italic; font-size: 11px; color: ${preHeadingColor}; margin-bottom: 10px;">${content.preHeading}</div>`;
   }
 
-  // Title - larger, bold (italicised for line tooltips and small tooltips, no wrap for normal, lineStyle and compact)
+  // Title - larger, bold (italicised for line tooltips and small tooltips)
   if (content.title) {
     const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
     const titleMargin = content.title2 ? '4px' : (isSmallStyle ? '2px' : (isCompactStyle ? '6px' : '10px'));
-    const titleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
-    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} ${titleNoWrap} margin-bottom: ${titleMargin};">${content.title}</div>`;
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${titleMargin};">${content.title}</div>`;
   }
 
   // Title2 - same size as title, for double-heading tooltips
   if (content.title2) {
     const titleStyle = (isLineStyle || isSmallStyle) ? 'font-style: italic;' : '';
-    const titleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
-    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} ${titleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.title2}</div>`;
+    html += `<div style="font-weight: bold; font-size: ${titleSize}; color: ${titleColor}; ${titleStyle} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.title2}</div>`;
   }
 
-  // Subtitle - normal size, bold (show for lineStyle if present, no wrap for normal, lineStyle and compact)
+  // Subtitle - normal size, bold (show for lineStyle if present)
   if (content.subtitle) {
     const subtitleStyle = isLineStyle ? 'font-style: italic;' : '';
-    const subtitleNoWrap = (!isSmallStyle || isCompactStyle) ? 'white-space: nowrap;' : '';
-    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; ${subtitleStyle} ${subtitleNoWrap} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.subtitle}</div>`;
+    html += `<div style="font-size: ${subtitleSize}; color: ${subtitleColor}; font-weight: bold; ${subtitleStyle} margin-bottom: ${isSmallStyle ? '4px' : (isCompactStyle ? '8px' : '12px')};">${content.subtitle}</div>`;
   }
 
   // Description - smaller, italic for normal style (not compact), bold for lineStyle

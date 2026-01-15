@@ -460,9 +460,10 @@ function initializeDiagram() {
         document.body.classList.add('animating-startup');
       }
 
-      // Stage 1: ESA box, blue dots (including RBA), their lines, and ESA labels appear together
+      // Stage 1: ESA box, blue dots (including RBA), and ESA labels appear together
       // REMOVED dot-labels from here - it will be added in Stage 2 instead
-      ['blue-dots-background', 'blue-circles', 'blue-connecting-lines',
+      // REMOVED blue-connecting-lines - moved to Stage 2
+      ['blue-dots-background', 'blue-circles',
        'rba-blue-dot', // RBA's blue dot appears with other dots
        'esas-label-top', 'esas-label-bottom'].forEach(id => {
         const el = document.getElementById(id);
@@ -507,19 +508,20 @@ function initializeDiagram() {
         console.warn('FORCED dot-labels opacity to 1');
       }
 
-      // Stage 2: ADI/Non-ADI boxes, RBA/OPA elements (NO ARC)
+      // Stage 2: ADI/Non-ADI boxes, RBA/OPA elements, blue connecting lines (NO ARC)
       ['dot-labels',
+       'blue-connecting-lines', 'rba-blue-line', // Blue lines now appear in Stage 2 (including RBA's line)
        'adi-box', 'non-adis-box', // ADI and Non-ADI boxes (note: non-adis with 's')
-       'adis-label', 'adis-label-duplicate', 'non-adis-label', // ADI and Non-ADI labels
+       'adis-label', 'non-adis-label', // ADI and Non-ADI labels
        'rba-black-circle', 'rba-label', // RBA circle and label
        'opa-box', 'opa-label', 'opa-to-rba-line' // OPA elements
       ].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.classList.add('diagram-visible');
-          el.classList.remove('diagram-hidden'); // Explicitly remove hidden class
-          el.style.opacity = '1'; // Force opacity to 1 (override any inline styles from Stage 1)
-          el.style.display = ''; // Clear any display:none
+          el.classList.remove('diagram-hidden');
+          el.style.opacity = '1';
+          el.style.display = '';
           if (id === 'rba-label' || id === 'opa-box' || id === 'non-adis-label') {
             console.warn(`  ✓ Found and revealed: ${id}`);
             // Check actual visibility
@@ -558,9 +560,25 @@ function initializeDiagram() {
       if (animationSkipped || thirdStageStarted) return;
       thirdStageStarted = true;
 
-      // Stage 3: Remaining boxes (incl. FSS), special lines, and CLS green circle
-      ['small-group', 'small-label', // FSS circle and label now appear in Stage 3
-       'background-elements', // All other background boxes and lines
+      // Stage 3: Mid-tier grouping boxes (International/Domestic/Specialised/Other ADIs, PSPs, CS) and FSS circle
+      ['international-banks-box', 'domestic-banks-box',
+       'specialised-adis-box', 'other-adis-box',
+       'psps-box', 'cs-box',
+       'small-group', 'small-label' // FSS circle and label now appear in Stage 3
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('diagram-visible');
+      });
+    };
+
+    // Function to start fourth stage independently
+    let fourthStageStarted = false;
+    window.startFourthAnimationStage = () => {
+      if (animationSkipped || fourthStageStarted) return;
+      fourthStageStarted = true;
+
+      // Stage 4: Remaining boxes, special lines, and CLS green circle
+      ['background-elements', // All other background boxes and lines
        'red-connecting-lines', 'orange-connecting-lines',
        'admin-connecting-lines', 'yellow-circles', 'foreground-lines',
        // Individual lines appended directly to SVG
@@ -568,7 +586,8 @@ function initializeDiagram() {
        'cls-aud-line-new', 'cls-to-rits-line-final', 'cls-s-curve', 'cls-s-curve-group',
        'cls-green-circle', // Add only the green circle here with the neon lines
        'swift-to-circle-curves', 'cls-aud-rect', 'directentry-to-adi-line', 'maroon-horizontal-branch',
-       'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area'].forEach(id => {
+       'directentry-to-adi-line-hit-area', 'maroon-horizontal-branch-hit-area',
+       'new-pacs-to-npp-line'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('diagram-visible');
       });
@@ -592,6 +611,9 @@ function initializeDiagram() {
       }
       if (!thirdStageStarted) {
         window.startThirdAnimationStage();
+      }
+      if (!fourthStageStarted) {
+        window.startFourthAnimationStage();
       }
 
       // Re-enable tooltips and setup after animation completes (wait a bit for stages to finish)
@@ -1015,6 +1037,8 @@ function initializeDiagram() {
 
         // For RBA dot (i=0), insert before big-group so line renders over black circle but under RITS
         if (i === 0) {
+          line.setAttribute('id', 'rba-blue-line');
+          line.classList.add('diagram-hidden'); // Hide initially for animation (revealed in Stage 2)
           const bigGroup = document.getElementById('big-group');
           if (bigGroup && bigGroup.parentNode) {
             bigGroup.parentNode.insertBefore(line, bigGroup);
@@ -6510,56 +6534,76 @@ function initializeDiagram() {
                 height: bpayHeight
               };
 
-              // Add horizontal purple lines from Direct Entry and BECN to BPAY
-              // Horizontal line from Direct Entry (left edge middle) to BPAY (right edge)
+              // Add horizontal pink double lines from Direct Entry and BECN to BPAY
+              // (Same pattern as purple eftpos/mastercard lines - use adminLinesGroup)
+              const pinkAdminLinesGroup = document.getElementById('admin-connecting-lines');
+              const pinkLineGap = 5;
+              const pinkLineColor = '#800020';
+              const pinkLineOffsets = [-pinkLineGap / 2, pinkLineGap / 2];
+
+              // DE to BPAY double line
               const directEntryMidY = headerY + headerHeight / 2;
-              // Create double maroon line (thicker, not quite as thick as ASX)
-              const bpayToDirectEntryLine1 = createStyledLine(
-                newHeaderX, directEntryMidY - 2.5,
-                bpayX + bpayWidth, directEntryMidY - 2.5,
-                {
-                  stroke: '#800020',
-                  strokeWidth: '4',
-                  strokeLinecap: 'round'
-                }
-              );
-              labelsGroup.insertBefore(bpayToDirectEntryLine1, labelsGroup.firstChild);
+              const deStartX = newHeaderX;
+              const deEndX = bpayX + bpayWidth;
 
-              const bpayToDirectEntryLine2 = createStyledLine(
-                newHeaderX, directEntryMidY + 2.5,
-                bpayX + bpayWidth, directEntryMidY + 2.5,
-                {
-                  stroke: '#800020',
-                  strokeWidth: '4',
-                  strokeLinecap: 'round'
-                }
-              );
-              labelsGroup.insertBefore(bpayToDirectEntryLine2, labelsGroup.firstChild);
+              pinkLineOffsets.forEach((offset) => {
+                const line = createStyledLine(
+                  deStartX, directEntryMidY + offset,
+                  deEndX, directEntryMidY + offset,
+                  {
+                    stroke: pinkLineColor,
+                    strokeWidth: '4',
+                    strokeLinecap: 'round'
+                  }
+                );
+                line.classList.add('de-to-bpay-line');
+                line.setAttribute('data-interactive-id', 'de-to-bpay-line');
+                pinkAdminLinesGroup.appendChild(line);
+              });
 
-              // Horizontal line from BECN (left edge middle) to BPAY (right edge)
-              // Double maroon line to match DE to BPAY (thicker)
+              // Hit area for DE to BPAY double line - append to svg for top z-order
+              const deToBpayHitArea = createStyledLine(
+                deStartX, directEntryMidY,
+                deEndX, directEntryMidY,
+                { stroke: 'transparent', strokeWidth: (pinkLineGap + 8).toString(), strokeLinecap: 'round' }
+              );
+              deToBpayHitArea.style.pointerEvents = 'stroke';
+              deToBpayHitArea.setAttribute('data-interactive-id', 'de-to-bpay-line');
+              if (window.makeInteractive) {
+                window.makeInteractive(deToBpayHitArea, 'de-to-bpay-line');
+              }
+              svg.appendChild(deToBpayHitArea);
+
+              // BECN to BPAY double line
               const becnMidY = boxY + boxHeight / 2;
-              const bpayToBecnLine1 = createStyledLine(
-                newHeaderX, becnMidY - 2.5,
-                bpayX + bpayWidth, becnMidY - 2.5,
-                {
-                  stroke: '#800020',
-                  strokeWidth: '4',
-                  strokeLinecap: 'round'
-                }
-              );
-              labelsGroup.insertBefore(bpayToBecnLine1, labelsGroup.firstChild);
 
-              const bpayToBecnLine2 = createStyledLine(
-                newHeaderX, becnMidY + 2.5,
-                bpayX + bpayWidth, becnMidY + 2.5,
-                {
-                  stroke: '#800020',
-                  strokeWidth: '4',
-                  strokeLinecap: 'round'
-                }
+              pinkLineOffsets.forEach((offset) => {
+                const line = createStyledLine(
+                  deStartX, becnMidY + offset,
+                  deEndX, becnMidY + offset,
+                  {
+                    stroke: pinkLineColor,
+                    strokeWidth: '4',
+                    strokeLinecap: 'round'
+                  }
+                );
+                line.classList.add('becn-to-bpay-line');
+                line.setAttribute('data-interactive-id', 'becn-to-bpay-line');
+                pinkAdminLinesGroup.appendChild(line);
+              });
+
+              // Hit area for BECN to BPAY double line - append to svg for top z-order
+              const becnToBpayHitArea = createStyledLine(
+                deStartX, becnMidY,
+                deEndX, becnMidY,
+                { stroke: 'transparent', strokeWidth: (pinkLineGap + 8).toString(), strokeLinecap: 'round' }
               );
-              labelsGroup.insertBefore(bpayToBecnLine2, labelsGroup.firstChild);
+              becnToBpayHitArea.style.pointerEvents = 'stroke';
+              becnToBpayHitArea.setAttribute('data-interactive-id', 'becn-to-bpay-line');
+              if (window.makeInteractive) {
+                window.makeInteractive(becnToBpayHitArea, 'becn-to-bpay-line');
+              }
+              svg.appendChild(becnToBpayHitArea);
 
               // Curved lines from BECN and BECG to BECS (which is now labeled on APCS box)
               if (window.directEntryChild1 && window.directEntryChild2 && window.apcsBoxData) {
@@ -6889,10 +6933,8 @@ function initializeDiagram() {
         if (window.makeInteractive) {
           window.makeInteractive(clearingToAsxPath1, 'clearing-to-asxb-line');
         }
-        // Append to admin-connecting-lines group so it renders under the ASXB box
-        adminLinesGroup.appendChild(clearingToAsxPath1);
 
-        // Create second yellow line with offset for double line effect
+        // Create second purple line with offset for double line effect
         const pathData2 = `M ${clearingRightX} ${clearingCenterY + 3}
                          C ${clearingRightX + controlOffset} ${clearingCenterY + 3},
                            ${asxSettlementLeftX - controlOffset} ${asxSettlementCenterY + 3},
@@ -6906,8 +6948,34 @@ function initializeDiagram() {
         clearingToAsxPath2.setAttribute('id', 'clearing-to-asxb-line-1');
         clearingToAsxPath2.setAttribute('data-interactive-id', 'clearing-to-asxb-line');
         clearingToAsxPath2.classList.add('clearing-to-asxb-line');
-        // Append to admin-connecting-lines group so it renders under the ASXB box
-        adminLinesGroup.appendChild(clearingToAsxPath2);
+
+        // Z-order: OVER chess-box and asx-box (incl white border), UNDER clearing-box and asxb-box
+        const clearingBoxEl = document.getElementById('clearing-box');
+        const asxbBoxEl = document.getElementById('asxb-box');
+        const chessBoxEl = document.getElementById('chess-box');
+        const asxBoxEl = document.getElementById('asx-box');
+
+        if (chessBoxEl && chessBoxEl.parentNode) {
+          const parentGroup = chessBoxEl.parentNode;
+
+          // Move asx-box into the same group as the other boxes, before chess-box
+          // This way we can control z-order within the group
+          if (asxBoxEl) {
+            parentGroup.insertBefore(asxBoxEl, chessBoxEl);
+          }
+
+          // Insert lines after chess-box
+          parentGroup.insertBefore(clearingToAsxPath1, chessBoxEl.nextSibling);
+          parentGroup.insertBefore(clearingToAsxPath2, clearingToAsxPath1.nextSibling);
+
+          // Move clearing-box and asxb-box after the lines to ensure they render on top
+          if (clearingBoxEl) parentGroup.insertBefore(clearingBoxEl, clearingToAsxPath2.nextSibling);
+          if (asxbBoxEl) parentGroup.insertBefore(asxbBoxEl, clearingBoxEl ? clearingBoxEl.nextSibling : clearingToAsxPath2.nextSibling);
+        } else {
+          // Fallback to adminLinesGroup
+          adminLinesGroup.appendChild(clearingToAsxPath1);
+          adminLinesGroup.appendChild(clearingToAsxPath2);
+        }
 
         // Add hit area for clearing-to-asxb double line (center path with wide stroke)
         const clearingHitPathData = `M ${clearingRightX} ${clearingCenterY + 1.5}
@@ -9060,7 +9128,7 @@ function initializeDiagram() {
             rx: '8' // Slightly less rounded corners
           }
         );
-        adiRect.setAttribute('fill-opacity', '0.9'); // More opaque
+        adiRect.setAttribute('fill-opacity', '0.9'); // Original opacity target
         adiRect.setAttribute('id', 'adi-box');
         if (typeof makeInteractive === 'function') {
           makeInteractive(adiRect, 'adi-box');
@@ -10650,41 +10718,42 @@ if (typeof makeInteractive === 'function') {
   makeInteractive(payIdText, 'payid-box');
 }
 
-// Draw connecting line from BSCT box to NPP BI (SWIFT) bounding box
-// Start from right edge of BSCT box (using new position), middle height
-const lineStartX = pacsBoxX + pacsBoxWidth;
+// Draw connecting line from BSCT box (right edge) to NPP BI (SWIFT) box (left edge)
+// Keep same vertical midpoint as BSCT so the segment matches the original geometry
 const lineStartY = adjustedBsctY + pacsBoxHeight / 2;
+const bsctRightEdge = pacsBoxX + pacsBoxWidth;
 
-// Debug: Let's find what boxes we have
-const nppBiBox = document.getElementById('npp-box');
+// Get the turquoise NPP BI (SWIFT) box (id='npp-box'), NOT the purple bounding box
+const nppBiSwiftBox = document.getElementById('npp-box');
 const purpleNppBox = document.getElementById('npp-purple-box');
 
 console.log('BSCT to NPP BI connection debug:', {
-  BSCT: { x: pacsBoxX, width: pacsBoxWidth, rightEdge: lineStartX },
+  BSCT: { x: pacsBoxX, width: pacsBoxWidth, rightEdge: bsctRightEdge },
   purpleBox: purpleNppBox ? {
     x: parseFloat(purpleNppBox.getAttribute('x')),
     width: parseFloat(purpleNppBox.getAttribute('width')),
     rightEdge: parseFloat(purpleNppBox.getAttribute('x')) + parseFloat(purpleNppBox.getAttribute('width'))
   } : 'not found',
-  nppBiBox: nppBiBox ? {
-    x: parseFloat(nppBiBox.getAttribute('x')),
-    width: parseFloat(nppBiBox.getAttribute('width')),
-    rightEdge: parseFloat(nppBiBox.getAttribute('x')) + parseFloat(nppBiBox.getAttribute('width'))
+  nppBiSwiftBox: nppBiSwiftBox ? {
+    x: parseFloat(nppBiSwiftBox.getAttribute('x')),
+    width: parseFloat(nppBiSwiftBox.getAttribute('width')),
+    leftEdge: parseFloat(nppBiSwiftBox.getAttribute('x'))
   } : 'not found'
 });
 
-// The line should connect BSCT (inside purple box) to NPP BI box (should be on the right)
-// If NPP BI box not found, that's an error - don't draw line to purple box edge
-if (!nppBiBox) {
-  console.error('NPP BI box not found! Cannot draw BSCT to NPP BI line correctly');
+// The line should connect BSCT (inside purple box) to NPP BI (SWIFT) box (turquoise, on the right)
+if (!nppBiSwiftBox) {
+  console.error('NPP BI (SWIFT) box not found! Cannot draw BSCT to NPP BI line correctly');
 }
-const lineEndX = nppBiBox ? parseFloat(nppBiBox.getAttribute('x')) : lineStartX + 100; // If not found, extend line rightward as placeholder
+const nppLeftEdge = nppBiSwiftBox ? parseFloat(nppBiSwiftBox.getAttribute('x')) : null;
+const lineStartX = Number.isFinite(nppLeftEdge) ? nppLeftEdge : (bsctRightEdge + 100);
+const lineEndX = bsctRightEdge; // Enter BSCT on its right edge
 const lineEndY = lineStartY; // Same Y for horizontal line
 
 console.log('Line endpoints:', {
   start: { x: lineStartX, y: lineStartY },
   end: { x: lineEndX, y: lineEndY },
-  nppBiFound: !!nppBiBox
+  nppBiSwiftBoxFound: !!nppBiSwiftBox
 });
 
 const connectingLine = createStyledLine(
@@ -10697,15 +10766,32 @@ const connectingLine = createStyledLine(
     id: 'new-pacs-to-npp-line'
   }
 );
+connectingLine.classList.add('diagram-hidden'); // Revealed during Stage 3
 connectingLine.setAttribute('data-interactive-id', 'new-pacs-to-npp-line');
 // Make line interactive for tooltips
 if (window.makeInteractive) {
   window.makeInteractive(connectingLine, 'new-pacs-to-npp-line');
 }
 
-// Append line to blue-connecting-lines group so it appears under boxes
-const blueConnectingLines = document.getElementById('blue-connecting-lines');
-blueConnectingLines.appendChild(connectingLine);
+// Append line OVER purple NPP box but UNDER NPP BI (SWIFT) box and BSCT box
+// Z-order (bottom to top): purple NPP box -> line -> NPP BI (SWIFT) box -> BSCT box
+// Explicitly reorder elements to guarantee correct z-order
+const labelsGroupRef = purpleNppBox ? purpleNppBox.parentNode : (nppBiSwiftBox ? nppBiSwiftBox.parentNode : null);
+if (labelsGroupRef && purpleNppBox && nppBiSwiftBox) {
+  // Step 1: Insert line right after purple NPP box
+  labelsGroupRef.insertBefore(connectingLine, purpleNppBox.nextSibling);
+  // Step 2: Move NPP BI (SWIFT) box to be right after the line (so it renders on top of line)
+  labelsGroupRef.insertBefore(nppBiSwiftBox, connectingLine.nextSibling);
+  // Step 3: Move NPP BI (SWIFT) text labels to be after the box (so they render on top)
+  const nppTextTop = document.getElementById('npp-text-top');
+  const nppTextBottom = document.getElementById('npp-text-bottom');
+  if (nppTextTop) labelsGroupRef.insertBefore(nppTextTop, nppBiSwiftBox.nextSibling);
+  if (nppTextBottom) labelsGroupRef.insertBefore(nppTextBottom, nppTextTop ? nppTextTop.nextSibling : nppBiSwiftBox.nextSibling);
+} else if (labelsGroupRef && purpleNppBox) {
+  labelsGroupRef.insertBefore(connectingLine, purpleNppBox.nextSibling);
+} else {
+  svg.appendChild(connectingLine);
+}
 
 console.log('Created new pacs-style box and bounding box:', {
   boundingBox: { x: newBoundingBoxX, y: boundingBoxY, width: hvcsBoxWidth, height: newBoundingBoxHeight },
@@ -11147,182 +11233,6 @@ if (window.makeInteractive) {
   console.log('Test 3: After S-curve check');
     } // End of main for loop
 
-  // Now create group boxes after all dots are positioned
-  console.log('Creating group boxes after main loop');
-  console.log('window.dotPositions available:', Object.keys(window.dotPositions || {}).length);
-
-  // Add ADI box (dots 1-91)
-  if (window.dotPositions) {
-    const dotRadius = 3.5; // Define dotRadius here since it's out of scope
-    const svg = document.getElementById('diagram');
-    const labelsGroup = document.getElementById('dot-labels');
-
-    let minX2 = null, minY2 = null, maxX2 = null, maxY2 = null;
-
-    // Find boundaries excluding special dots
-    console.log('ADI box debug: Looking for dots 1-91 after main loop');
-    let foundDots = 0;
-    for (let j = 1; j < 92; j++) {  // Start from 1 (skip RBA) and go up to 91
-      if (window.dotPositions[j]) {
-        foundDots++;
-        if (minX2 === null || window.dotPositions[j].x < minX2) minX2 = window.dotPositions[j].x;
-        if (maxX2 === null || window.dotPositions[j].x > maxX2) maxX2 = window.dotPositions[j].x;
-        if (minY2 === null || window.dotPositions[j].y < minY2) minY2 = window.dotPositions[j].y;
-        if (maxY2 === null || window.dotPositions[j].y > maxY2) maxY2 = window.dotPositions[j].y;
-      }
-    }
-    console.log('ADI box debug: Found', foundDots, 'dots out of 91 expected');
-
-    console.log('ADI box debug: minX2=', minX2, 'maxX2=', maxX2);
-    if (minX2 !== null && maxX2 !== null) {
-      console.log('ADI box debug: Creating ADI box');
-      // Use similar padding but slightly less
-      const innerLeftPadding = 60; // Increased to move left edge left
-      const innerTopPadding = 30;
-      const innerBottomPadding = 10; // Moved down 4 pixels
-      const innerRightPadding = 284;
-
-      const adiRect = createStyledRect(
-        minX2 - innerLeftPadding - dotRadius,
-        minY2 - innerTopPadding - dotRadius,
-        (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
-        (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
-        {
-          fill: 'rgba(140, 165, 220, 1)', // Light blue fully opaque
-          stroke: '#2563eb', // Darker blue border
-          strokeWidth: '2',
-          rx: '8' // Slightly less rounded corners
-        }
-      );
-      adiRect.setAttribute('fill-opacity', '0.65'); // Less opaque
-      adiRect.id = 'adi-box';
-
-      // Insert in original position (right after ESA box)
-      const esaRect = document.getElementById('blue-dots-background');
-      svg.insertBefore(adiRect, esaRect.nextSibling);
-
-      // Make ADI box interactive
-      // adiRect.style.pointerEvents = 'all';
-      if (typeof makeInteractive === 'function') {
-        makeInteractive(adiRect, 'adi-box');
-      }
-
-      // // Create invisible overlay for capturing pointer events in gaps
-      // const adiOverlay = createStyledRect(
-      //   minX2 - innerLeftPadding - dotRadius,
-      //   minY2 - innerTopPadding - dotRadius,
-      //   (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2,
-      //   (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2,
-      //   {
-      //     fill: 'none',
-      //     stroke: 'none',
-      //     pointerEvents: 'all'
-      //   }
-      // );
-      // adiOverlay.style.pointerEvents = 'all';
-      // adiOverlay.id = 'adi-box-overlay'; // Different ID to avoid being highlighted
-
-      // // Insert right before the first interior box so overlay is UNDER all interior boxes
-      // // This way interior boxes can capture events, but gaps show ADI tooltip
-      // const internationalBanksBox = document.getElementById('international-banks-box');
-      // const domesticBanksBox = document.getElementById('domestic-banks-box');
-      // const firstBox = internationalBanksBox || domesticBanksBox;
-
-      // if (firstBox) {
-      //   svg.insertBefore(adiOverlay, firstBox);
-      // } else {
-      //   // Fallback: insert before blue lines group
-      //   const blueLinesGroup = document.getElementById('blue-connecting-lines');
-      //   if (blueLinesGroup) {
-      //     svg.insertBefore(adiOverlay, blueLinesGroup);
-      //   } else {
-      //     svg.appendChild(adiOverlay);
-      //   }
-      // }
-
-      // // Make overlay interactive manually - set data attribute but don't call makeInteractive
-      // // so it triggers ADI tooltip but doesn't get highlighted (since highlightElement uses data-interactive-id)
-      // // Instead we manually add event listeners that reference 'adi-box'
-      // adiOverlay.setAttribute('data-interactive-id', 'adi-box-trigger'); // Different ID to prevent highlighting
-      // adiOverlay.style.cursor = 'pointer';
-
-      // // Manually add event listeners that act as if this is the adi-box
-      // adiOverlay.addEventListener('mouseenter', (event) => {
-      //   if (typeof window.showTooltip === 'function') {
-      //     window.showTooltip('adi-box', event);
-      //   }
-      //   if (typeof window.highlightElement === 'function') {
-      //     window.highlightElement('adi-box');
-      //   }
-      //   if (typeof window.highlightCirclesInBox === 'function') {
-      //     window.highlightCirclesInBox('adi-box');
-      //   }
-      // });
-
-      // adiOverlay.addEventListener('mousemove', (event) => {
-      //   const tooltip = document.getElementById('diagram-tooltip');
-      //   if (!tooltip || tooltip.style.opacity === '0') return;
-      //   const padding = 15;
-      //   let x = event.clientX + padding;
-      //   let y = event.clientY + padding;
-      //   const rect = tooltip.getBoundingClientRect();
-      //   if (x + rect.width > window.innerWidth) {
-      //     x = event.clientX - rect.width - padding;
-      //   }
-      //   if (y + rect.height > window.innerHeight) {
-      //     y = event.clientY - rect.height - padding;
-      //   }
-      //   tooltip.style.left = x + 'px';
-      //   tooltip.style.top = y + 'px';
-      // });
-
-      // adiOverlay.addEventListener('mouseleave', () => {
-      //   if (typeof window.hideTooltip === 'function') {
-      //     window.hideTooltip();
-      //   }
-      //   if (typeof window.clearHighlights === 'function') {
-      //     window.clearHighlights();
-      //   }
-      // });
-
-      // adiOverlay.addEventListener('click', () => {
-      //   const content = window.tooltipContent?.['adi-box'];
-      //   if (content && content.link) {
-      //     window.open(content.link, '_blank', 'noopener,noreferrer');
-      //   }
-      // });
-
-      // Store ADI box position for HVCS line
-      if (!window.adiBoxData) window.adiBoxData = {};
-      window.adiBoxData.x = minX2 - innerLeftPadding - dotRadius;
-      window.adiBoxData.y = minY2 - innerTopPadding - dotRadius;
-      window.adiBoxData.width = (maxX2 - minX2) + innerLeftPadding + innerRightPadding + dotRadius * 2;
-      window.adiBoxData.height = (maxY2 - minY2) + innerTopPadding + innerBottomPadding + dotRadius * 2;
-
-      // Add "ADIs" text
-      const adiRectX = parseFloat(adiRect.getAttribute('x'));
-      const adiRectY = parseFloat(adiRect.getAttribute('y'));
-      const adiRectWidth = parseFloat(adiRect.getAttribute('width'));
-
-      const adisText = createStyledText(
-        adiRectX + adiRectWidth - 15,
-        adiRectY + 35,
-        'ADIs',
-        {
-          textAnchor: 'end',
-          fill: '#ffffff', // White (matching Non-ADIs label)
-          fontSize: '24' // Slightly bigger
-        }
-      );
-      adisText.setAttribute('id', 'adis-label-duplicate'); // Give different ID to avoid conflict
-      adisText.classList.add('diagram-hidden'); // Hide initially for animation
-      svg.appendChild(adisText); // Add directly to SVG, not to labelsGroup
-      if (typeof makeInteractive === 'function') {
-        makeInteractive(adisText, 'adi-box');
-      }
-    }
-  }
-
   // Restore default DOM helpers now that label elements are initialized with hidden state
   restoreLabelsGroupDomMethods();
 
@@ -11396,9 +11306,13 @@ if (window.makeInteractive) {
       if (charIndex === Math.floor(fullTitle.length * 0.40) && typeof window.startSecondAnimationStage === 'function') {
         window.startSecondAnimationStage();
       }
-      // Stage 3 at 75%
-      if (charIndex === Math.floor(fullTitle.length * 0.75) && typeof window.startThirdAnimationStage === 'function') {
+      // Stage 3 at 60%
+      if (charIndex === Math.floor(fullTitle.length * 0.60) && typeof window.startThirdAnimationStage === 'function') {
         window.startThirdAnimationStage();
+      }
+      // Stage 4 at 80%
+      if (charIndex === Math.floor(fullTitle.length * 0.80) && typeof window.startFourthAnimationStage === 'function') {
+        window.startFourthAnimationStage();
       }
 
       setTimeout(typeWriter, typeSpeed);

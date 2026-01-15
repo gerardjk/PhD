@@ -600,6 +600,7 @@ const tooltipContent = {
     link: 'https://www.apra.gov.au/monthly-authorised-deposit-taking-institution-statistics'
   },
   'rits-circle': {
+    preHeading: 'Systemically Important Payment System (SIPS)',
     title: 'RITS',
     subtitle: 'Reserve Bank Information and Transfer System',
     description: 'Australia\'s high-value real-time gross settlement system operated by the Reserve Bank',
@@ -681,7 +682,7 @@ const tooltipContent = {
     hours: '24/7 availability'
   },
   'npp-purple-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'NPP',
     subtitle: 'New Payments Platform',
     description: 'Australia\'s real-time payments infrastructure enabling instant fund transfers between participating financial institutions',
@@ -695,7 +696,7 @@ const tooltipContent = {
     link: 'https://nppa.com.au/'
   },
   'osko-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'Osko',
     subtitle: 'Fast payment service',
     description: 'Consumer-facing brand for NPP payments',
@@ -716,7 +717,7 @@ const tooltipContent = {
     ]
   },
   'payid-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'PayID / PayTo',
     subtitle: 'NPP Overlay Services',
     description: 'PayID enables simplified payment addressing using mobile, email, or ABN. PayTo provides real-time payment authorization as a digital alternative to direct debits.',
@@ -727,7 +728,7 @@ const tooltipContent = {
     ]
   },
   'payto-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'IPS',
     subtitle: 'International Payment Service',
     description: 'Cross-border payment capability for the NPP enabling real-time international transfers',
@@ -775,6 +776,7 @@ const tooltipContent = {
 
   // CLS - Continuous Linked Settlement
   'cls-circle': {
+    preHeading: 'Systemically Important Payment System (SIPS)',
     title: 'CLS',
     subtitle: 'Continuous Linked Settlement',
     description: 'Global multi-currency settlement system that eliminates settlement risk in foreign exchange transactions through payment-versus-payment (PvP) settlement',
@@ -790,7 +792,7 @@ const tooltipContent = {
 
   // Card payments
   'eftpos-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'eftpos',
     subtitle: 'Electronic Funds Transfer at Point of Sale',
     description: 'Australian domestic debit card scheme',
@@ -923,7 +925,7 @@ const tooltipContent = {
     ]
   },
   'bpay-box': {
-    preHeading: 'Australia Payments Plus',
+    preHeading: 'Australian Payments Plus',
     title: 'BPAY',
     subtitle: 'Bill payment service',
     description: 'Electronic bill payment system',
@@ -932,6 +934,18 @@ const tooltipContent = {
       'Biller code and reference number',
       'Operated by BPAY Group'
     ]
+  },
+  'de-to-bpay-line': {
+    title: 'Direct Entry to BPAY',
+    description: 'Connection between Direct Entry and BPAY systems for bill payment processing',
+    lineStyle: true,
+    color: '#800020'
+  },
+  'becn-to-bpay-line': {
+    title: 'BECN to BPAY',
+    description: 'Connection between Bulk Electronic Clearing Network and BPAY for bill payment processing',
+    lineStyle: true,
+    color: '#800020'
   },
   'de-box': {
     title: 'Direct Entry',
